@@ -41,8 +41,6 @@
 
 #if TRINITY_COMPILER == TRINITY_COMPILER_MICROSOFT
 
-#define TRINITY ///< Hackfix eluna
-#define BFA     ///< Another hackfix POG
 #define atoll _atoi64
 #define llabs _abs64
 

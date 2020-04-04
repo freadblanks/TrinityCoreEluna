@@ -46,6 +46,10 @@
 #include "Weather.h"
 #include "WorldPacket.h"
 #include <unordered_map>
+#ifdef ELUNA
+#include "LuaEngine.h"
+#include "ElunaUtility.h"
+#endif
 
 // Trait which indicates whether this script type
 // must be assigned in the database.

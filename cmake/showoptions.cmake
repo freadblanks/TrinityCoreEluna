@@ -127,6 +127,8 @@ endif()
 
 if (ELUNA)
 	message("* Build Eluna Lua Engine : Yes (default)")
+	add_definitions(-DELUNA)
+	add_definitions(-DTRINITY)
 else()
 	message("* Build Eluna Lua Engine : No")
 endif()
