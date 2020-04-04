@@ -125,4 +125,10 @@ if (BUILD_SHARED_LIBS)
   WarnAboutSpacesInBuildPath()
 endif()
 
+if (ELUNA)
+	message("* Build Eluna Lua Engine : Yes (default)")
+else()
+	message("* Build Eluna Lua Engine : No")
+endif()
+
 message("")

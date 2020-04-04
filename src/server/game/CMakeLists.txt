@@ -40,6 +40,12 @@ target_link_libraries(game-interface
   INTERFACE
     shared
     Detour)
+	
+if(ELUNA)
+  target_link_libraries(game-interface
+	INTERFACE
+	  lualib)
+endif()
 
 add_library(game
   ${PRIVATE_SOURCES})
