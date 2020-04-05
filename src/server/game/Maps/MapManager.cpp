@@ -34,6 +34,9 @@
 #include "WorldSession.h"
 #include "Opcodes.h"
 #include "MiscPackets.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 
 MapManager::MapManager()
     : _nextInstanceId(0), _scheduledScripts(0)
@@ -396,4 +399,8 @@ void MapManager::FreeInstanceId(uint32 instanceId)
         SetNextInstanceId(instanceId);
 
     _instanceIds[instanceId] = false;
+
+#ifdef ELUNA
+    sEluna->FreeInstanceId(instanceId);
+#endif
 }

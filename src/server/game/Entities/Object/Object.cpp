@@ -49,6 +49,10 @@
 #include "World.h"
 #include "WorldSession.h"
 #include <G3D/Vector3.h>
+#ifdef ELUNA
+#include "LuaEngine.h"
+#include "ElunaEventMgr.h"
+#endif
 
 constexpr float VisibilityDistances[AsUnderlyingType(VisibilityDistanceType::Max)] =
 {
@@ -72,6 +76,11 @@ Object::Object() : m_values(this)
 
 WorldObject::~WorldObject()
 {
+#ifdef ELUNA
+    delete ElunaEvents;
+    ElunaEvents = NULL;
+#endif
+
     // this may happen because there are many !create/delete
     if (IsWorldObject() && m_currMap)
     {
@@ -840,12 +849,19 @@ void MovementInfo::OutDebug()
 }
 
 WorldObject::WorldObject(bool isWorldObject) : WorldLocation(), LastUsedScriptID(0),
-m_name(""), m_isActive(false), m_isWorldObject(isWorldObject), m_zoneScript(NULL),
+ElunaEvents(NULL), m_name(""), m_isActive(false), m_isWorldObject(isWorldObject), m_zoneScript(NULL),
 m_transport(NULL), m_currMap(NULL), m_InstanceId(0),
 _dbPhase(0), m_notifyflags(0), m_executed_notifies(0)
 {
     m_serverSideVisibility.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_ALIVE | GHOST_VISIBILITY_GHOST);
     m_serverSideVisibilityDetect.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_ALIVE);
+}
+
+void WorldObject::Update(uint32 time_diff)
+{
+#ifdef ELUNA
+    ElunaEvents->Update(time_diff);
+#endif
 }
 
 void WorldObject::SetWorldObject(bool on)
@@ -1647,6 +1663,13 @@ void WorldObject::SetMap(Map* map)
     m_currMap = map;
     m_mapId = map->GetId();
     m_InstanceId = map->GetInstanceId();
+
+#ifdef ELUNA
+    delete ElunaEvents;
+    // On multithread replace this with a pointer to map's Eluna pointer stored in a map
+    ElunaEvents = new ElunaEventProcessor(&Eluna::GEluna, this);
+#endif
+
     if (IsWorldObject())
         m_currMap->AddWorldObject(this);
 }
@@ -1657,6 +1680,12 @@ void WorldObject::ResetMap()
     ASSERT(!IsInWorld());
     if (IsWorldObject())
         m_currMap->RemoveWorldObject(this);
+
+#ifdef ELUNA
+    delete ElunaEvents;
+    ElunaEvents = NULL;
+#endif
+
     m_currMap = NULL;
     //maybe not for corpse
     //m_mapId = 0;

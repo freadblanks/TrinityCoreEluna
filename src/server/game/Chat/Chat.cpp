@@ -35,6 +35,9 @@
 #include "Realm.h"
 #include "ScriptMgr.h"
 #include "World.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include "WorldSession.h"
 
 ChatCommand::ChatCommand(char const* name, uint32 permission, bool allowConsole, pHandler handler, std::string help, std::vector<ChatCommand> childCommands /*= std::vector<ChatCommand>()*/)
@@ -293,6 +296,10 @@ bool ChatHandler::ExecuteCommandInTable(std::vector<ChatCommand> const& table, c
         {
             if (!ExecuteCommandInTable(table[i].ChildCommands, text, fullcmd))
             {
+#ifdef ELUNA
+                if (!sEluna->OnCommand(GetSession() ? GetSession()->GetPlayer() : NULL, oldtext))
+                    return true;
+#endif
                 if (m_session && !m_session->HasPermission(rbac::RBAC_PERM_COMMANDS_NOTIFY_COMMAND_NOT_FOUND_ERROR))
                     return false;
 
@@ -439,6 +446,11 @@ bool ChatHandler::ParseCommands(char const* text)
     /// skip first . or ! (in console allowed use command with . and ! and without its)
     if (text[0] == '!' || text[0] == '.')
         ++text;
+
+#ifdef ELUNA
+    if (!sEluna->OnCommand(GetSession() ? GetSession()->GetPlayer() : NULL, text))
+        return true;
+#endif
 
     if (!ExecuteCommandInTable(getCommandTable(), text, fullcmd))
     {

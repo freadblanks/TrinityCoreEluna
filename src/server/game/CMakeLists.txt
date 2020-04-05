@@ -94,9 +94,9 @@ if( ELUNA )
     endif()
   endif()
 
-  target_link_libraries(game-interface
-    INTERFACE
-      lualib)
+  #target_link_libraries(game-interface
+  #  INTERFACE
+  #    lualib)
 
   if( UNIX )
     install(DIRECTORY LuaEngine/extensions DESTINATION bin/lua_scripts/)

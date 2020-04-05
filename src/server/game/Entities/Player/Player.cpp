@@ -124,6 +124,9 @@
 #include "WorldSession.h"
 #include "WorldStatePackets.h"
 #include <G3D/g3dmath.h>
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 
 #define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
 

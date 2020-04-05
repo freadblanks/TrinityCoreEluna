@@ -1712,7 +1712,7 @@ bool ScriptMgr::OnItemUse(Player* player, Item* item, SpellCastTargets const& ta
     ASSERT(item);
 
 #ifdef ELUNA
-    if (!sEluna->OnUse(player, item, targets, castId)) return true; //New parameter castId
+    if (!sEluna->OnUse(player, item, targets, castId)) return true;
 #endif
 
     GET_SCRIPT_RET(ItemScript, item->GetScriptId(), tmpscript, false);
@@ -1785,7 +1785,7 @@ bool ScriptMgr::OnGossipSelect(Player* player, Creature* creature, uint32 sender
     ASSERT(creature);
 
 #ifdef ELUNA
-    sEluna->HandleGossipSelectOption(player, creature, sender, action, ""); //Changed item->creature; Why the ""?
+    sEluna->OnGossipSelect(player, creature, sender, action); //Changed item->creature; Why the ""?
 #endif
 
     GET_SCRIPT_RET(CreatureScript, creature->GetScriptId(), tmpscript, false);
@@ -1799,7 +1799,7 @@ bool ScriptMgr::OnGossipSelectCode(Player* player, Creature* creature, uint32 se
     ASSERT(code);
 
 #ifdef ELUNA
-    sEluna->HandleGossipSelectOption(player, creature, sender, action, code); //Changed item->creature; 
+    sEluna->OnGossipSelectCode(player, creature, sender, action, code); //Changed item->creature; 
 #endif
 
     GET_SCRIPT_RET(CreatureScript, creature->GetScriptId(), tmpscript, false);
@@ -2427,10 +2427,6 @@ void ScriptMgr::OnPlayerChat(Player* player, uint32 type, uint32 lang, std::stri
 
 void ScriptMgr::OnPlayerClearEmote(Player* player)
 {
-#ifdef ELUNA
-    sEluna->OnEmote(player);//, emote);     Seems to have changed since 335
-#endif
-
     FOREACH_SCRIPT(PlayerScript)->OnClearEmote(player);
 }
 
@@ -2483,7 +2479,7 @@ void ScriptMgr::OnPlayerCreate(Player* player)
 void ScriptMgr::OnPlayerDelete(ObjectGuid guid, uint32 accountId)
 {
 #ifdef ELUNA
-    sEluna->OnDelete(GUID_LOPART(guid));
+    sEluna->OnDelete(guid.GetCounter());
 #endif
 
     FOREACH_SCRIPT(PlayerScript)->OnDelete(guid, accountId);
@@ -2585,7 +2581,7 @@ void ScriptMgr::OnGuildAddMember(Guild* guild, Player* player, uint8& plRank)
 void ScriptMgr::OnGuildRemoveMember(Guild* guild, ObjectGuid guid, bool isDisbanding, bool isKicked)
 {
 #ifdef ELUNA
-    sEluna->OnRemoveMember(guild, player, isDisbanding);
+    sEluna->OnRemoveMember(guild, guid, isDisbanding, isKicked);
 #endif
 
     FOREACH_SCRIPT(GuildScript)->OnRemoveMember(guild, guid, isDisbanding, isKicked);

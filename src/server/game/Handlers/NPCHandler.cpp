@@ -45,6 +45,9 @@
 #include "SpellMgr.h"
 #include "Trainer.h"
 #include "WorldPacket.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 
 enum StableResultCode
 {
@@ -183,6 +186,9 @@ void WorldSession::HandleGossipHelloOpcode(WorldPackets::NPC::Hello& packet)
         }
     }
 
+#ifdef ELUNA
+    if (!sEluna->OnGossipHello(_player, unit))
+#endif
     if (!sScriptMgr->OnGossipHello(_player, unit))
     {
 //        _player->TalkedToCreature(unit->GetEntry(), unit->GetGUID());
