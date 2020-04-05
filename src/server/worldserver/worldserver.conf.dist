@@ -4052,3 +4052,35 @@ Metric.OverallStatusInterval = 1
 
 #
 ###################################################################################################
+
+###################################################################################################
+# ELUNA SETTINGS
+#
+# These settings control if Eluna is enabled
+#
+#    Eluna.Enabled
+#        Description: If Eluna is enabled on the server
+#        Default:     True
+
+Eluna.Enabled = 1
+
+#
+# These settings control the Eluna scripts path
+#
+#    Eluna.ScriptPath
+#        Description: Eluna script Path
+#        Default:     lua_scripts
+
+Eluna.ScriptPath = "lua_scripts"
+
+#
+# These settings control the Eluna traceback
+#
+#    Eluna.ScriptPath
+#        Description: Eluna Trace back
+#        Default:     0
+
+Eluna.TraceBack = 0
+
+#
+###################################################################################################
