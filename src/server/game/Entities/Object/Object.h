@@ -53,6 +53,9 @@ class WorldObject;
 class WorldPacket;
 class ZoneScript;
 struct QuaternionData;
+#ifdef ELUNA
+class ElunaEventProcessor;
+#endif
 
 typedef std::unordered_map<Player*, UpdateData> UpdateDataMapType;
 
@@ -566,6 +569,10 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         virtual uint16 GetAIAnimKitId() const { return 0; }
         virtual uint16 GetMovementAnimKitId() const { return 0; }
         virtual uint16 GetMeleeAnimKitId() const { return 0; }
+
+#ifdef ELUNA
+        ElunaEventProcessor* ElunaEvents;
+#endif
 
     protected:
         std::string m_name;
