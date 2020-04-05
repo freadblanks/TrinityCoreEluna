@@ -92,6 +92,9 @@
 #include "WardenCheckMgr.h"
 #include "WaypointMovementGenerator.h"
 #include "WeatherMgr.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include "WhoListStorage.h"
 #include "WorldSession.h"
 #include "WorldSocket.h"
@@ -1540,6 +1543,11 @@ void World::SetInitialWorldSettings()
     ///- Initialize PlayerDump
     TC_LOG_INFO("server.loading", "Initialize PlayerDump...");
     PlayerDump::InitializeColumnDefinition();
+
+#ifdef ELUNA
+    TC_LOG_INFO("server.loading", "Initializing Eluna Lua Engine...");
+    Eluna::Initialize();
+#endif
 
     ///- Initialize pool manager
     sPoolMgr->Initialize();
