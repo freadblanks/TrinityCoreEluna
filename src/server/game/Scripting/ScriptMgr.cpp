@@ -2405,7 +2405,7 @@ void ScriptMgr::OnPlayerChat(Player* player, uint32 type, uint32 lang, std::stri
     FOREACH_SCRIPT(PlayerScript)->OnChat(player, type, lang, msg);
 
 #ifdef ELUNA
-            if (!sEluna->OnChat(sender, type, lang, msg)) return;
+            if (!sEluna->OnChat(player, type, lang, msg)) return;
 #endif
 }
 
@@ -2414,7 +2414,7 @@ void ScriptMgr::OnPlayerChat(Player* player, uint32 type, uint32 lang, std::stri
     FOREACH_SCRIPT(PlayerScript)->OnChat(player, type, lang, msg, receiver);
 
 #ifdef ELUNA
-            if (!sEluna->OnChat(GetPlayer(), type, lang, msg, receiver)) return;
+            if (!sEluna->OnChat(player, type, lang, msg, receiver)) return;
 #endif
 }
 
@@ -2423,7 +2423,7 @@ void ScriptMgr::OnPlayerChat(Player* player, uint32 type, uint32 lang, std::stri
     FOREACH_SCRIPT(PlayerScript)->OnChat(player, type, lang, msg, group);
 
 #ifdef ELUNA
-            if(!sEluna->OnChat(sender, type, lang, msg, group)) return;
+            if(!sEluna->OnChat(player, type, lang, msg, group)) return;
 #endif
 }
 
@@ -2432,7 +2432,7 @@ void ScriptMgr::OnPlayerChat(Player* player, uint32 type, uint32 lang, std::stri
     FOREACH_SCRIPT(PlayerScript)->OnChat(player, type, lang, msg, guild);
 
 #ifdef ELUNA
-                    if(!sEluna->OnChat(sender, type, lang, msg, guild)) return;
+                    if(!sEluna->OnChat(player, type, lang, msg, guild)) return;
 #endif
 }
 
@@ -2441,7 +2441,7 @@ void ScriptMgr::OnPlayerChat(Player* player, uint32 type, uint32 lang, std::stri
     FOREACH_SCRIPT(PlayerScript)->OnChat(player, type, lang, msg, channel);
 
 #ifdef ELUNA
-                if(!sEluna->OnChat(sender, type, lang, msg, channel)) return;
+                if(!sEluna->OnChat(player, type, lang, msg, channel)) return;
 #endif
 }
 
