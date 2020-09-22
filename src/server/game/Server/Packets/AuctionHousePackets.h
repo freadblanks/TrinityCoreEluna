@@ -24,9 +24,12 @@
 #include "ItemPacketsCommon.h"
 #include "ObjectGuid.h"
 
-struct AuctionEntry;
-enum class AuctionHouseSortOrder : uint8;
+struct AuctionsBucketKey;
+struct AuctionPosting;
+enum class AuctionHouseBrowseMode : uint8;
 enum class AuctionHouseFilterMask : uint32;
+enum class AuctionHouseListType : uint8;
+enum class AuctionHouseSortOrder : uint8;
 
 namespace WorldPackets
 {
@@ -34,6 +37,12 @@ namespace WorldPackets
     {
         struct AuctionBucketKey
         {
+            AuctionBucketKey() : ItemID(0), ItemLevel(0) { }
+            AuctionBucketKey(AuctionsBucketKey const& key) { *this = key; }
+
+            AuctionBucketKey& operator=(AuctionBucketKey const& key) = default;
+            AuctionBucketKey& operator=(AuctionsBucketKey const& key);
+
             uint32 ItemID = 0;
             uint16 ItemLevel = 0;
             Optional<uint16> BattlePetSpeciesID;
@@ -70,12 +79,12 @@ namespace WorldPackets
             uint32 ItemID = 0;
             uint32 ItemLevel = 0;
             uint32 BattlePetSpeciesID = 0;
-            uint32 ItemSuffix = 0;
+            uint32 SuffixItemNameDescriptionID = 0;
         };
 
         struct AuctionOwnerNotification
         {
-            void Initialize(::AuctionEntry const* auction, ::Item const* item);
+            void Initialize(::AuctionPosting const* auction);
 
             int32 AuctionID = 0;
             uint64 BidAmount = 0;
@@ -123,7 +132,7 @@ namespace WorldPackets
 
         struct AuctionBidderNotification
         {
-            void Initialize(::AuctionEntry const* auction, ::Item const* item);
+            void Initialize(::AuctionPosting const* auction, ::Item const* item);
 
             int32 AuctionID = 0;
             ObjectGuid Bidder;
@@ -184,10 +193,10 @@ namespace WorldPackets
             ObjectGuid Guid;
         };
 
-        class AuctionListBidderItems final : public ClientPacket
+        class AuctionListBiddedItems final : public ClientPacket
         {
         public:
-            AuctionListBidderItems(WorldPacket&& packet) : ClientPacket(CMSG_AUCTION_LIST_BIDDER_ITEMS, std::move(packet)) { }
+            AuctionListBiddedItems(WorldPacket&& packet) : ClientPacket(CMSG_AUCTION_LIST_BIDDED_ITEMS, std::move(packet)) { }
 
             void Read() override;
 
@@ -196,6 +205,19 @@ namespace WorldPackets
             Array<uint32, 100> AuctionIDs;
             Array<AuctionSortDef, 2> Sorts;
             Optional<Addon::AddOnInfo> TaintedBy;
+        };
+
+        class AuctionListBucketsByBucketKeys final : public ClientPacket
+        {
+        public:
+            AuctionListBucketsByBucketKeys(WorldPacket&& packet) : ClientPacket(CMSG_AUCTION_LIST_BUCKETS_BY_BUCKET_KEYS, std::move(packet)) { }
+
+            void Read() override;
+
+            ObjectGuid Auctioneer;
+            Optional<Addon::AddOnInfo> TaintedBy;
+            Array<AuctionBucketKey, 100> BucketKeys;
+            Array<AuctionSortDef, 2> Sorts;
         };
 
         class AuctionListItemsByBucketKey final : public ClientPacket
@@ -228,23 +250,10 @@ namespace WorldPackets
             Array<AuctionSortDef, 2> Sorts;
         };
 
-        class AuctionListItemsByItemKeys final : public ClientPacket
+        class AuctionListOwnedItems final : public ClientPacket
         {
         public:
-            AuctionListItemsByItemKeys(WorldPacket&& packet) : ClientPacket(CMSG_AUCTION_LIST_ITEMS_BY_ITEM_KEYS, std::move(packet)) { }
-
-            void Read() override;
-
-            ObjectGuid Auctioneer;
-            Optional<Addon::AddOnInfo> TaintedBy;
-            Array<AuctionBucketKey, 100> BucketKeys;
-            Array<AuctionSortDef, 2> Sorts;
-        };
-
-        class AuctionListOwnerItems final : public ClientPacket
-        {
-        public:
-            AuctionListOwnerItems(WorldPacket&& packet) : ClientPacket(CMSG_AUCTION_LIST_OWNER_ITEMS, std::move(packet)) { }
+            AuctionListOwnedItems(WorldPacket&& packet) : ClientPacket(CMSG_AUCTION_LIST_OWNED_ITEMS, std::move(packet)) { }
 
             void Read() override;
 
@@ -320,7 +329,7 @@ namespace WorldPackets
             uint64 MinBid = 0;
             uint32 RunTime = 0;
             Optional<Addon::AddOnInfo> TaintedBy;
-            Array<AuctionItemForSale, 64> Items;
+            Array<AuctionItemForSale, 1> Items;
         };
 
         class AuctionSetFavoriteItem final : public ClientPacket
@@ -334,10 +343,10 @@ namespace WorldPackets
             bool IsNotFavorite = true;
         };
 
-        class AuctionStartCommoditiesPurchase final : public ClientPacket
+        class AuctionGetCommodityQuote final : public ClientPacket
         {
         public:
-            AuctionStartCommoditiesPurchase(WorldPacket&& packet) : ClientPacket(CMSG_AUCTION_START_COMMODITIES_PURCHASE, std::move(packet)) { }
+            AuctionGetCommodityQuote(WorldPacket&& packet) : ClientPacket(CMSG_AUCTION_GET_COMMODITY_QUOTE, std::move(packet)) { }
 
             void Read() override;
 
@@ -364,15 +373,6 @@ namespace WorldPackets
         public:
             AuctionCommandResult() : ServerPacket(SMSG_AUCTION_COMMAND_RESULT, 4 + 4 + 4 + 8 + 4 + 8 + 8 + 8) { }
 
-            /**
-             * @fn  void WorldPackets::AuctionHousePackets::AuctionCommandResult::InitializeAuction(AuctionEntry* auction);
-             *
-             * @brief   Initialize the following fields: AuctionId, Bid, AuctionOutBid, Bidder
-             *
-             * @param   auction         The relevant auction object
-             */
-            void InitializeAuction(::AuctionEntry const* auction);
-
             WorldPacket const* Write() override;
 
             int32 AuctionID      = 0; ///< the id of the auction that triggered this notification
@@ -385,10 +385,10 @@ namespace WorldPackets
             uint32 DesiredDelay  = 0;
         };
 
-        class AuctionCommodityPriceUpdate final : public ServerPacket
+        class AuctionGetCommodityQuoteResult final : public ServerPacket
         {
         public:
-            AuctionCommodityPriceUpdate() : ServerPacket(SMSG_AUCTION_COMMODITY_PRICE_UPDATE, 1 + 8 + 4 + 4 + 4 + 4) { }
+            AuctionGetCommodityQuoteResult() : ServerPacket(SMSG_AUCTION_GET_COMMODITY_QUOTE_RESULT, 1 + 8 + 4 + 4 + 4 + 4) { }
 
             WorldPacket const* Write() override;
 
@@ -410,10 +410,10 @@ namespace WorldPackets
             bool OpenForBusiness = true;
         };
 
-        class AuctionListBidderItemsResult final : public ServerPacket
+        class AuctionListBiddedItemsResult final : public ServerPacket
         {
         public:
-            AuctionListBidderItemsResult() : ServerPacket(SMSG_AUCTION_LIST_BIDDER_ITEMS_RESULT, 149) { }
+            AuctionListBiddedItemsResult() : ServerPacket(SMSG_AUCTION_LIST_BIDDED_ITEMS_RESULT, 149) { }
 
             WorldPacket const* Write() override;
 
@@ -422,10 +422,10 @@ namespace WorldPackets
             bool HasMoreResults = false;
         };
 
-        class AuctionListBucketItemsResult final : public ServerPacket
+        class AuctionListBucketsResult final : public ServerPacket
         {
         public:
-            AuctionListBucketItemsResult() : ServerPacket(SMSG_AUCTION_LIST_BUCKET_ITEMS_RESULT) { }
+            AuctionListBucketsResult() : ServerPacket(SMSG_AUCTION_LIST_BUCKETS_RESULT) { }
 
             WorldPacket const* Write() override;
 
@@ -433,14 +433,14 @@ namespace WorldPackets
             uint32 DesiredDelay = 0;
             int32 Unknown830_0 = 0;
             int32 Unknown830_1 = 0;
-            int32 BrowseMode = 0;
+            AuctionHouseBrowseMode BrowseMode = AuctionHouseBrowseMode(0);
             bool HasMoreResults = false;
         };
 
-        class AuctionListFavoriteItemsResult final : public ServerPacket
+        class AuctionFavoriteList final : public ServerPacket
         {
         public:
-            AuctionListFavoriteItemsResult() : ServerPacket(SMSG_AUCTION_LIST_FAVORITE_ITEMS_RESULT, 4 + 4 + 20 * 100) { }
+            AuctionFavoriteList() : ServerPacket(SMSG_AUCTION_FAVORITE_LIST, 4 + 4 + 20 * 100) { }
 
             WorldPacket const* Write() override;
 
@@ -459,15 +459,15 @@ namespace WorldPackets
             uint32 Unknown830 = 0;
             uint32 TotalCount = 0;
             uint32 DesiredDelay = 0;
-            uint32 ListType = 0;
+            AuctionHouseListType ListType = AuctionHouseListType(0);
             bool HasMoreResults = false;
             AuctionBucketKey BucketKey;
         };
 
-        class AuctionListOwnerItemsResult final : public ServerPacket
+        class AuctionListOwnedItemsResult final : public ServerPacket
         {
         public:
-            AuctionListOwnerItemsResult() : ServerPacket(SMSG_AUCTION_LIST_OWNER_ITEMS_RESULT, 149) { }
+            AuctionListOwnedItemsResult() : ServerPacket(SMSG_AUCTION_LIST_OWNED_ITEMS_RESULT, 149) { }
 
             WorldPacket const* Write() override;
 

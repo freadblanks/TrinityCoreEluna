@@ -72,9 +72,9 @@ void CollectionMgr::LoadMountDefinitions()
 
 namespace
 {
-    EnumClassFlag<ToyFlags> GetToyFlags(bool isFavourite, bool hasFanfare)
+    EnumFlag<ToyFlags> GetToyFlags(bool isFavourite, bool hasFanfare)
     {
-        EnumClassFlag<ToyFlags> flags(ToyFlags::None);
+        ToyFlags flags = ToyFlags::None;
         if (isFavourite)
             flags |= ToyFlags::Favorite;
 
@@ -85,7 +85,7 @@ namespace
     }
 }
 
-CollectionMgr::CollectionMgr(WorldSession* owner) : _owner(owner), _appearances(Trinity::make_unique<boost::dynamic_bitset<uint32>>())
+CollectionMgr::CollectionMgr(WorldSession* owner) : _owner(owner), _appearances(std::make_unique<boost::dynamic_bitset<uint32>>())
 {
 }
 
@@ -151,7 +151,7 @@ void CollectionMgr::ToySetFavorite(uint32 itemId, bool favorite)
     if (favorite)
         itr->second |= ToyFlags::Favorite;
     else
-        itr->second.RemoveFlag(ToyFlags::Favorite);
+        itr->second &= ~ToyFlags::Favorite;
 }
 
 void CollectionMgr::ToyClearFanfare(uint32 itemId)
@@ -160,7 +160,7 @@ void CollectionMgr::ToyClearFanfare(uint32 itemId)
     if (itr == _toys.end())
         return;
 
-    itr->second.RemoveFlag(ToyFlags::HasFanfare);
+    itr->second &= ~ ToyFlags::HasFanfare;
 }
 
 void CollectionMgr::OnItemAdded(Item* item)
@@ -851,6 +851,19 @@ std::unordered_set<ObjectGuid> CollectionMgr::GetItemsProvidingTemporaryAppearan
     return std::unordered_set<ObjectGuid>();
 }
 
+std::unordered_set<uint32> CollectionMgr::GetAppearanceIds() const
+{
+    std::unordered_set<uint32> appearances;
+    std::size_t id = _appearances->find_first();
+    while (id != boost::dynamic_bitset<uint32>::npos)
+    {
+        appearances.insert(sItemModifiedAppearanceStore.AssertEntry(id)->ItemAppearanceID);
+        id = _appearances->find_next(id);
+    }
+
+    return appearances;
+}
+
 void CollectionMgr::SetAppearanceIsFavorite(uint32 itemModifiedAppearanceId, bool apply)
 {
     auto itr = _favoriteAppearances.find(itemModifiedAppearanceId);
@@ -873,22 +886,22 @@ void CollectionMgr::SetAppearanceIsFavorite(uint32 itemModifiedAppearanceId, boo
     else
         return;
 
-    WorldPackets::Transmogrification::TransmogCollectionUpdate transmogCollectionUpdate;
-    transmogCollectionUpdate.IsFullUpdate = false;
-    transmogCollectionUpdate.IsSetFavorite = apply;
-    transmogCollectionUpdate.FavoriteAppearances.push_back(itemModifiedAppearanceId);
+    WorldPackets::Transmogrification::AccountTransmogUpdate accountTransmogUpdate;
+    accountTransmogUpdate.IsFullUpdate = false;
+    accountTransmogUpdate.IsSetFavorite = apply;
+    accountTransmogUpdate.FavoriteAppearances.push_back(itemModifiedAppearanceId);
 
-    _owner->SendPacket(transmogCollectionUpdate.Write());
+    _owner->SendPacket(accountTransmogUpdate.Write());
 }
 
 void CollectionMgr::SendFavoriteAppearances() const
 {
-    WorldPackets::Transmogrification::TransmogCollectionUpdate transmogCollectionUpdate;
-    transmogCollectionUpdate.IsFullUpdate = true;
-    transmogCollectionUpdate.FavoriteAppearances.reserve(_favoriteAppearances.size());
+    WorldPackets::Transmogrification::AccountTransmogUpdate accountTransmogUpdate;
+    accountTransmogUpdate.IsFullUpdate = true;
+    accountTransmogUpdate.FavoriteAppearances.reserve(_favoriteAppearances.size());
     for (auto itr = _favoriteAppearances.begin(); itr != _favoriteAppearances.end(); ++itr)
         if (itr->second != FavoriteAppearanceState::Removed)
-            transmogCollectionUpdate.FavoriteAppearances.push_back(itr->first);
+            accountTransmogUpdate.FavoriteAppearances.push_back(itr->first);
 
-    _owner->SendPacket(transmogCollectionUpdate.Write());
+    _owner->SendPacket(accountTransmogUpdate.Write());
 }
