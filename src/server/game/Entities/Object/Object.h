@@ -54,6 +54,9 @@ class WorldPacket;
 class ZoneScript;
 struct PositionFullTerrainStatus;
 struct QuaternionData;
+#ifdef ELUNA
+class ElunaEventProcessor;
+#endif
 
 typedef std::unordered_map<Player*, UpdateData> UpdateDataMapType;
 
@@ -145,6 +148,8 @@ class TC_GAME_API Object
         void AddDynamicFlag(uint32 flag) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Object::m_objectData).ModifyValue(&UF::ObjectData::DynamicFlags), flag); }
         void RemoveDynamicFlag(uint32 flag) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Object::m_objectData).ModifyValue(&UF::ObjectData::DynamicFlags), flag); }
         void SetDynamicFlags(uint32 flag) { SetUpdateFieldValue(m_values.ModifyValue(&Object::m_objectData).ModifyValue(&UF::ObjectData::DynamicFlags), flag); }
+
+        //void SetUInt32Value(uint16 index, uint32 value);
 
         TypeID GetTypeId() const { return m_objectTypeId; }
         bool isType(uint16 mask) const { return (mask & m_objectType) != 0; }
@@ -382,7 +387,8 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
     public:
         virtual ~WorldObject();
 
-        virtual void Update (uint32 /*time_diff*/) { }
+        //virtual void Update (uint32 /*time_diff*/) { }
+		virtual void Update(uint32 time_diff);
 
         void AddToWorld() override;
         void RemoveFromWorld() override;
@@ -575,6 +581,10 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         virtual uint16 GetAIAnimKitId() const { return 0; }
         virtual uint16 GetMovementAnimKitId() const { return 0; }
         virtual uint16 GetMeleeAnimKitId() const { return 0; }
+
+#ifdef ELUNA
+        ElunaEventProcessor* ElunaEvents;
+#endif
 
     protected:
         std::string m_name;

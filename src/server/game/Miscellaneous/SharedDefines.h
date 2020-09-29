@@ -1021,11 +1021,19 @@ enum Language
 
 #define LANGUAGES_COUNT   31
 
+enum FactionSelection
+{
+    JOIN_HORDE = 0,
+    JOIN_ALLIANCE = 1
+};
+
 enum TeamId
 {
     TEAM_ALLIANCE = 0,
     TEAM_HORDE,
-    TEAM_NEUTRAL
+    TEAM_NEUTRAL,
+
+    TEAM_MAX = TEAM_NEUTRAL
 };
 
 enum Team

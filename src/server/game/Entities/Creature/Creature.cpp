@@ -23,6 +23,7 @@
 #include "CreatureAI.h"
 #include "CreatureAISelector.h"
 #include "CreatureGroups.h"
+#include "CreatureOutfit.h"
 #include "DatabaseEnv.h"
 #include "DB2Stores.h"
 #include "Formulas.h"
@@ -350,6 +351,25 @@ void Creature::RemoveFromWorld()
     }
 }
 
+void Creature::SetOutfit(std::shared_ptr<CreatureOutfit> const& outfit)
+{
+    // Set new outfit
+    if (m_outfit)
+    {
+        // if had old outfit
+        // then delay displayid setting to allow equipment
+        // to change by using invisible model in between
+        SetDisplayId(CreatureOutfit::invisible_model);
+        m_outfit = outfit;
+    }
+    else
+    {
+        // else set new outfit directly since we change from non-outfit->outfit
+        m_outfit = outfit;
+        SetDisplayId(outfit->GetDisplayId());
+    }
+}
+
 void Creature::DisappearAndDie()
 {
     ForcedDespawn(0);
@@ -560,7 +580,11 @@ bool Creature::InitEntry(uint32 entry, CreatureData const* data /*= nullptr*/)
     SetSpeedRate(MOVE_FLIGHT, 1.0f); // using 1.0 rate
 
     // Will set UNIT_FIELD_BOUNDINGRADIUS, UNIT_FIELD_COMBATREACH and UNIT_FIELD_DISPLAYSCALE
-    SetObjectScale(cinfo->scale);
+    //SetObjectScale(cinfo->scale);
+    if (data && data->size > 0.0f)
+        SetObjectScale(data->size);
+    else
+        SetObjectScale(cinfo->scale);
 
     SetHoverHeight(cinfo->HoverHeight);
 
@@ -607,6 +631,9 @@ bool Creature::UpdateEntry(uint32 entry, CreatureData const* data /*= nullptr*/,
 
     SetUnitFlags(UnitFlags(unitFlags));
     SetUnitFlags2(UnitFlags2(unitFlags2));
+    bool needsflag = m_outfit && Unit::GetDisplayId() == m_outfit->GetDisplayId();
+    if (needsflag)
+        SetMirrorImageFlag(true);
     SetUnitFlags3(UnitFlags3(unitFlags3));
 
     SetDynamicFlags(dynamicFlags);
@@ -668,8 +695,22 @@ bool Creature::UpdateEntry(uint32 entry, CreatureData const* data /*= nullptr*/,
     return true;
 }
 
+// copy paste from ClearChangesMask
+template<typename Derived, typename T, uint32 BlockBit, uint32 Bit>
+static uint32 GetUpdateFieldHolderIndex(UF::UpdateField<T, BlockBit, Bit>(Derived::* /*field*/))
+{
+    return Bit;
+}
+
 void Creature::Update(uint32 diff)
 {
+    if (m_outfit && !m_values.HasChanged(GetUpdateFieldHolderIndex(&UF::UnitData::DisplayID)) && Unit::GetDisplayId() == CreatureOutfit::invisible_model)
+    {
+        // has outfit, displayid is invisible and displayid update already sent to clients
+        // set outfit display
+        SetDisplayId(m_outfit->GetDisplayId());
+    }
+
     if (IsAIEnabled && m_triggerJustAppeared && m_deathState == ALIVE)
     {
         if (m_respawnCompatibilityMode && m_vehicleKit)
@@ -1385,6 +1426,24 @@ void Creature::SaveToDB(uint32 mapid, std::vector<Difficulty> const& spawnDiffic
     data.dynamicflags = dynamicflags;
     if (!data.spawnGroupData)
         data.spawnGroupData = sObjectMgr->GetDefaultSpawnGroup();
+    if (data.size == 0.0f)
+    {
+        // first save, use default if scale matches template or use custom scale if not
+        if (cinfo && cinfo->scale == GetObjectScale())
+            data.size = -1.0f;
+        else
+            data.size = GetObjectScale();
+    }
+    else if (data.size < 0.0f || (cinfo && cinfo->scale == data.size))
+    {
+        // scale is negative or matches template, use default
+        data.size = -1.0f;
+    }
+    else
+    {
+        // scale is positive and does not match template
+        // using data.size or could do data.size = GetObjectScale()
+    }
 
     data.phaseId = GetDBPhase() > 0 ? GetDBPhase() : data.phaseId;
     data.phaseGroup = GetDBPhase() < 0 ? -GetDBPhase() : data.phaseGroup;
@@ -1435,6 +1494,7 @@ void Creature::SaveToDB(uint32 mapid, std::vector<Difficulty> const& spawnDiffic
     stmt->setUInt32(index++, unitFlags2);
     stmt->setUInt32(index++, unitFlags3);
     stmt->setUInt32(index++, dynamicflags);
+    stmt->setFloat(index++, data.size);
     trans->Append(stmt);
 
     WorldDatabase.CommitTransaction(trans);
@@ -3162,7 +3222,45 @@ void Creature::SetObjectScale(float scale)
     }
 }
 
+uint32 Creature::GetDisplayId() const
+{
+    if (m_outfit && m_outfit->GetId())
+        return m_outfit->GetId();
+    return Unit::GetDisplayId();
+}
+
 void Creature::SetDisplayId(uint32 modelId, float displayScale /*= 1.f*/)
+{
+    if (auto const& outfit = sObjectMgr->GetOutfit(modelId))
+    {
+        SetOutfit(outfit);
+        return;
+    }
+    else
+    {
+        if (m_outfit)
+        {
+            // if has outfit
+            if (modelId != m_outfit->GetDisplayId())
+            {
+                // and outfit's real modelid doesnt match modelid being set
+                // remove outfit and continue setting the new model
+                m_outfit.reset();
+                SetMirrorImageFlag(false);
+            }
+            else
+            {
+                // outfit's real modelid being set
+                // add flags and continue setting the model
+                SetMirrorImageFlag(true);
+            }
+        }
+    }
+
+    SetDisplayIdRaw(modelId, displayScale);
+}
+
+void Creature::SetDisplayIdRaw(uint32 modelId, float displayScale /*= 1.f*/)
 {
     Unit::SetDisplayId(modelId, displayScale);
 

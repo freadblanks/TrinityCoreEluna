@@ -318,6 +318,8 @@ class TC_GAME_API ObjectGuid
         bool IsConversation()      const { return GetHigh() == HighGuid::Conversation; }
         bool IsCast()              const { return GetHigh() == HighGuid::Cast; }
 
+        TypeID GetTypeId() const { return GetTypeId(); }
+
         bool operator!() const { return IsEmpty(); }
         bool operator== (ObjectGuid const& guid) const { return _data[0] == guid._data[0] && _data[1] == guid._data[1]; }
         bool operator!= (ObjectGuid const& guid) const { return !(*this == guid); }

@@ -29,6 +29,9 @@
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "PoolMgr.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include "World.h"
 #include "WorldStatePackets.h"
 
@@ -145,6 +148,12 @@ bool GameEventMgr::StartEvent(uint16 event_id, bool overwrite)
 
         // When event is started, set its worldstate to current time
         sWorld->setWorldState(event_id, time(nullptr));
+		
+#ifdef ELUNA
+        if (IsActiveEvent(event_id))
+            sEluna->OnGameEventStart(event_id);
+#endif
+		
         return false;
     }
     else
@@ -167,6 +176,11 @@ bool GameEventMgr::StartEvent(uint16 event_id, bool overwrite)
         // or to scedule another update where the next event will be started
         if (overwrite && conditions_met)
             sWorld->ForceGameEventUpdate();
+
+#ifdef ELUNA
+        if (IsActiveEvent(event_id))
+            sEluna->OnGameEventStart(event_id);
+#endif
 
         return conditions_met;
     }
@@ -213,6 +227,11 @@ void GameEventMgr::StopEvent(uint16 event_id, bool overwrite)
             CharacterDatabase.CommitTransaction(trans);
         }
     }
+	
+#ifdef ELUNA
+    if (IsActiveEvent(event_id))
+        sEluna->OnGameEventStart(event_id);
+#endif
 }
 
 void GameEventMgr::LoadFromDB()

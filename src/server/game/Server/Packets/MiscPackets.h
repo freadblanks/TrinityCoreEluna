@@ -164,6 +164,23 @@ namespace WorldPackets
             int8 ViolenceLvl = -1; ///< 0 - no combat effects, 1 - display some combat effects, 2 - blood, 3 - bloody, 4 - bloodier, 5 - bloodiest
         };
 
+        class PlayerSelectFaction final : public ClientPacket
+        {
+        public:
+            PlayerSelectFaction(WorldPacket&& packet) : ClientPacket(CMSG_NEUTRAL_PLAYER_SELECT_FACTION, std::move(packet)) { }
+
+            void Read() override;
+
+            // DestrinyFrame.xml : lua function NeutralPlayerSelectFaction
+            enum Values
+            {
+                Horde = 0,
+                Alliance = 1
+            };
+
+            uint32 SelectedFaction = -1; ///< 0 - horde, 1 - alliance
+        };
+
         class TimeSyncRequest final : public ServerPacket
         {
         public:
@@ -911,6 +928,24 @@ namespace WorldPackets
             void Read() override;
 
             ObjectGuid SourceGuid;
+        };
+
+        class FactionSelectUI final : public ServerPacket
+        {
+        public:
+            FactionSelectUI() : ServerPacket(SMSG_SHOW_NEUTRAL_PLAYER_FACTION_SELECT_UI, 0) { }
+
+            WorldPacket const* Write() override { return &_worldPacket; }
+        };
+
+        class FactionSelect final : public ClientPacket
+        {
+        public:
+            FactionSelect(WorldPacket&& packet) : ClientPacket(CMSG_NEUTRAL_PLAYER_SELECT_FACTION, std::move(packet)) { }
+
+            void Read() override;
+
+            uint32 FactionChoice = 0;
         };
 
         class StartTimer final : public ServerPacket

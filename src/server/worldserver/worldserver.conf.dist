@@ -948,6 +948,13 @@ RecruitAFriend.MaxDifference = 4
 
 DisableWaterBreath = 4
 
+#    Enable or Disable "Fatigue" timer
+#           default = 1 (enabled)
+#                   = 0 (disabled)
+
+fatigue.enabled = 1
+
+#
 #
 #    AllFlightPaths
 #        Description: Character knows all flight paths (of both factions) after creation.
@@ -2247,6 +2254,18 @@ Rate.Pain.Loss         = 1
 #        Default:     1
 
 Rate.Skill.Discovery = 1
+
+#
+#    Skip pandaren starting area
+#        Enable this if you want to skip the Wandering Isle (pandaren starting area)
+#        You can choose faction instantly and Pandaren characters leveled up to 5 
+#        and get some starting items.
+#
+#    Skip.Pandaren.Enable
+#        Default:     1 (enabled)
+#                     0 (disabled)
+
+Skip.Pandaren.Enable = 1
 
 #
 #    Rate.Drop.Item.Poor
@@ -4186,6 +4205,38 @@ Metric.ConnectionInfo = "127.0.0.1;8086;worldserver"
 #
 
 Metric.OverallStatusInterval = 1
+
+#
+###################################################################################################
+
+###################################################################################################
+# ELUNA SETTINGS
+#
+# These settings control if Eluna is enabled
+#
+#    Eluna.Enabled
+#        Description: If Eluna is enabled on the server
+#        Default:     True
+
+Eluna.Enabled = 1
+
+#
+# These settings control the Eluna scripts path
+#
+#    Eluna.ScriptPath
+#        Description: Eluna script Path
+#        Default:     lua_scripts
+
+Eluna.ScriptPath = "lua_scripts"
+
+#
+# These settings control the Eluna traceback
+#
+#    Eluna.ScriptPath
+#        Description: Eluna Trace back
+#        Default:     0
+
+Eluna.TraceBack = 0
 
 #
 ###################################################################################################
