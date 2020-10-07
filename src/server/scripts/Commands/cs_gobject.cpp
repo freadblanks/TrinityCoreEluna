@@ -791,6 +791,12 @@ public:
         object->UpdateObjectVisibility();
         object->SaveToDB();
 
+        Map* map = object->GetMap();
+
+        object->Delete(); object = GameObject::CreateGameObjectFromDB(guidLow, map);
+        if (!object)
+            return false;
+
         handler->PSendSysMessage("Set %s scale to %f", object->GetGUID().ToString(), scale);
         return true;
     }

@@ -57,7 +57,7 @@ struct PacketHeader
     uint32 Size;
     uint8 Tag[12];
 
-    bool IsValidSize() { return Size < 0x40000; }
+    bool IsValidSize() { return Size < 0x40000000; }
 };
 
 #pragma pack(pop)

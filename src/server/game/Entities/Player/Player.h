@@ -994,11 +994,11 @@ uint32 constexpr SPELL_PVP_RULES_ENABLED = 134735;
 
 enum class ZonePVPTypeOverride : uint32
 {
-    None        = 0,
-    Friendly    = 1,
-    Hostile     = 2,
-    Contested   = 3,
-    Combat      = 4
+    None = 0,
+    Friendly = 1,
+    Hostile = 2,
+    Contested = 3,
+    Combat = 4
 };
 
 class TC_GAME_API Player : public Unit, public GridObject<Player>

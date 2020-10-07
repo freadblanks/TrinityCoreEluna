@@ -34,6 +34,7 @@ EndScriptData */
 #include "World.h"
 #include "WorldSession.h"
 
+
 class account_commandscript : public CommandScript
 {
 public:

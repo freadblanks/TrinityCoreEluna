@@ -7275,16 +7275,16 @@ void Player::UpdateHostileAreaState(AreaTableEntry const* area)
     {
         switch (overrideZonePvpType)
         {
-            case ZonePVPTypeOverride::Friendly:
-                pvpInfo.IsInHostileArea = false;
-                break;
-            case ZonePVPTypeOverride::Hostile:
-            case ZonePVPTypeOverride::Contested:
-            case ZonePVPTypeOverride::Combat:
-                pvpInfo.IsInHostileArea = true;
-                break;
-            default:
-                break;
+        case ZonePVPTypeOverride::Friendly:
+            pvpInfo.IsInHostileArea = false;
+            break;
+        case ZonePVPTypeOverride::Hostile:
+        case ZonePVPTypeOverride::Contested:
+        case ZonePVPTypeOverride::Combat:
+            pvpInfo.IsInHostileArea = true;
+            break;
+        default:
+            break;
         }
     }
 

@@ -952,7 +952,7 @@ enum OpcodeServer : uint16
     SMSG_CALENDAR_INVITE_REMOVED_ALERT                = 0x26C3,
     SMSG_CALENDAR_INVITE_STATUS                       = 0x26BF,
     SMSG_CALENDAR_INVITE_STATUS_ALERT                 = 0x26C2,
-    SMSG_CALENDAR_MODERATOR_STATUS                    = 0x26C0,
+    SMSG_CALENDAR_MODERATOR_STATUS                     = 0x26C0,
     SMSG_CALENDAR_RAID_LOCKOUT_ADDED                  = 0x26C8,
     SMSG_CALENDAR_RAID_LOCKOUT_REMOVED                = 0x26C9,
     SMSG_CALENDAR_RAID_LOCKOUT_UPDATED                = 0x26CA,
