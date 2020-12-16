@@ -434,6 +434,7 @@ void WorldSession::HandleCharEnum(CharacterDatabaseQueryHolder* holder)
         WorldPackets::Character::EnumCharactersResult::RaceUnlock raceUnlock;
         raceUnlock.RaceID = requirement.first;
         raceUnlock.HasExpansion = GetAccountExpansion() >= requirement.second.Expansion;
+        raceUnlock.HasAchievement = requirement.second.AchievementId == 0; //Hack fixed need implement bnet_achievement
         charEnum.RaceUnlockData.push_back(raceUnlock);
     }
 
@@ -1657,7 +1658,7 @@ void WorldSession::HandleAlterAppearance(WorldPackets::Character::AlterApperance
     if (!ValidateAppearance(Races(_player->getRace()), Classes(_player->getClass()), Gender(packet.NewSex), MakeChrCustomizationChoiceRange(packet.Customizations)))
         return;
 
-    GameObject* go = _player->FindNearestGameObjectOfType(GAMEOBJECT_TYPE_BARBER_CHAIR, 5.0f);
+    /*GameObject* go = _player->FindNearestGameObjectOfType(GAMEOBJECT_TYPE_BARBER_CHAIR, 5.0f);
     if (!go)
     {
         SendPacket(WorldPackets::Character::BarberShopResult(WorldPackets::Character::BarberShopResult::ResultEnum::NotOnChair).Write());
@@ -1668,7 +1669,7 @@ void WorldSession::HandleAlterAppearance(WorldPackets::Character::AlterApperance
     {
         SendPacket(WorldPackets::Character::BarberShopResult(WorldPackets::Character::BarberShopResult::ResultEnum::NotOnChair).Write());
         return;
-    }
+    }*/
 
     int64 cost = _player->GetBarberShopCost(MakeChrCustomizationChoiceRange(packet.Customizations));
 
@@ -1683,8 +1684,8 @@ void WorldSession::HandleAlterAppearance(WorldPackets::Character::AlterApperance
 
     SendPacket(WorldPackets::Character::BarberShopResult(WorldPackets::Character::BarberShopResult::ResultEnum::Success).Write());
 
-    _player->ModifyMoney(-cost);                     // it isn't free
-    _player->UpdateCriteria(CRITERIA_TYPE_GOLD_SPENT_AT_BARBER, cost);
+    //_player->ModifyMoney(-cost);                     // it isn't free
+    //_player->UpdateCriteria(CRITERIA_TYPE_GOLD_SPENT_AT_BARBER, cost);
 
     _player->SetNativeSex(packet.NewSex);
     _player->SetCustomizations(Trinity::Containers::MakeIteratorPair(packet.Customizations.begin(), packet.Customizations.end()));
@@ -2155,7 +2156,7 @@ void WorldSession::HandleCharRaceOrFactionChangeCallback(std::shared_ptr<WorldPa
         trans->Append(stmt);
 
         // Race specific languages
-        if (factionChangeInfo->RaceID != RACE_ORC && factionChangeInfo->RaceID != RACE_HUMAN && factionChangeInfo->RaceID != RACE_MAGHAR_ORC)
+        if (factionChangeInfo->RaceID != RACE_ORC && factionChangeInfo->RaceID != RACE_HUMAN && factionChangeInfo->RaceID != RACE_KUL_TIRAN && factionChangeInfo->RaceID != RACE_MAGHAR_ORC)
         {
             stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CHAR_SKILL_LANGUAGE);
             stmt->setUInt64(0, lowGuid);
@@ -2186,6 +2187,7 @@ void WorldSession::HandleCharRaceOrFactionChangeCallback(std::shared_ptr<WorldPa
                 case RACE_HIGHMOUNTAIN_TAUREN:
                     stmt->setUInt16(1, 115);
                     break;
+                case RACE_ZANDALARI_TROLL:
                 case RACE_TROLL:
                     stmt->setUInt16(1, 315);
                     break;

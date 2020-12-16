@@ -95,22 +95,22 @@ namespace LuaQuest
      *
      * @return uint32 level
      */
-    int GetLevel(lua_State* L, Quest* quest)
+    /*int GetLevel(lua_State* L, Quest* quest)
     {
         Eluna::Push(L, quest->GetQuestLevel());
         return 1;
-    }
+    }*/
 
     /**
      * Returns the minimum level required to pick up the [Quest].
      *
      * @return uint32 minLevel
      */
-    int GetMinLevel(lua_State* L, Quest* quest)
+    /*int GetMinLevel(lua_State* L, Quest* quest)
     {
         Eluna::Push(L, quest->GetMinLevel());
         return 1;
-    }
+    }*/
 
     /**
      * Returns the next [Quest] entry ID.

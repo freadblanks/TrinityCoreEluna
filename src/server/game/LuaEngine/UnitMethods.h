@@ -339,7 +339,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetVehicle());
         return 1;
     }
-    
+
     /**
      * Returns true if the [Unit] is in combat.
      *
@@ -350,7 +350,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->IsInCombat());
         return 1;
     }
-    
+
     /**
      * Returns true if the [Unit] is under water.
      *
@@ -361,7 +361,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->IsUnderWater());
         return 1;
     }
-    
+
     /**
      * Returns true if the [Unit] is in water.
      *
@@ -372,7 +372,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->IsInWater());
         return 1;
     }
-    
+
     /**
      * Returns true if the [Unit] is not moving.
      *
@@ -383,7 +383,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->IsStopped());
         return 1;
     }
-    
+
     /**
      * Returns true if the [Unit] is a quest giver.
      *
@@ -394,7 +394,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->IsQuestGiver());
         return 1;
     }
-    
+
     /**
      * Returns true if the [Unit]'s health is below the given percentage.
      *
@@ -406,7 +406,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->HealthBelowPct(Eluna::CHECKVAL<int32>(L, 2)));
         return 1;
     }
-    
+
     /**
      * Returns true if the [Unit]'s health is above the given percentage.
      *
@@ -418,7 +418,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->HealthAbovePct(Eluna::CHECKVAL<int32>(L, 2)));
         return 1;
     }
-    
+
     /**
      * Returns true if the [Unit] has an aura from the given spell entry.
      *
@@ -475,7 +475,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->IsFlying());
         return 1;
     }*/
-    
+
     /**
      * Returns the [Unit]'s owner.
      *
@@ -486,7 +486,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetOwner());
         return 1;
     }
-    
+
     /**
      * Returns the [Unit]'s owner's GUID.
      *
@@ -497,7 +497,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetOwnerGUID());
         return 1;
     }
-    
+
     /**
      * Returns the [Unit]'s mount's modelID.
      *
@@ -508,7 +508,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetMountDisplayId());
         return 1;
     }
-    
+
     /**
      * Returns the [Unit]'s creator's GUID.
      *
@@ -519,7 +519,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetCreatorGUID());
         return 1;
     }
-    
+
     /**
      * Returns the [Unit]'s charmer's GUID.
      *
@@ -530,7 +530,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetCharmerGUID());
         return 1;
     }
-    
+
     /**
      * Returns the GUID of the [Unit]'s charmed entity.
      *
@@ -541,7 +541,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetCharmGUID());
         return 1;
     }
-    
+
     /**
      * Returns the GUID of the [Unit]'s pet.
      *
@@ -552,7 +552,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetPetGUID());
         return 1;
     }
-    
+
     /**
      * Returns the GUID of the [Unit]'s charmer or owner.
      *
@@ -563,7 +563,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetCharmerOrOwnerGUID());
         return 1;
     }
-    
+
     /**
      * Returns the GUID of the [Unit]'s charmer or owner or its own GUID.
      *
@@ -608,7 +608,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->ToPlayer()->GetModDamageDonePos(static_cast<SpellSchools>(spellschool)));
         return 1;
     }
-    
+
     /**
      * Returns the [Unit]'s current victim target or nil.
      *
@@ -645,7 +645,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetCurrentSpell(type));
         return 1;
     }
-    
+
     /**
      * Returns the [Unit]'s current stand state.
      *
@@ -656,7 +656,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetStandState());
         return 1;
     }
-    
+
     /**
      * Returns the [Unit]'s current display ID.
      *
@@ -667,7 +667,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetDisplayId());
         return 1;
     }
-    
+
     /**
      * Returns the [Unit]'s native/original display ID.
      *
@@ -678,7 +678,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->GetNativeDisplayId());
         return 1;
     }
-    
+
     /**
      * Returns the [Unit]'s level.
      *
@@ -689,7 +689,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->getLevel());
         return 1;
     }
-    
+
     /**
      * Returns the [Unit]'s health amount.
      *
@@ -919,7 +919,7 @@ namespace LuaUnit
      *     CREATURE_TYPE_MECHANICAL       = 9,
      *     CREATURE_TYPE_NOT_SPECIFIED    = 10,
      *     CREATURE_TYPE_TOTEM            = 11,
-     *     CREATURE_TYPE_NON_COMBAT_PET   = 12,     // This and below is TBC+ 
+     *     CREATURE_TYPE_NON_COMBAT_PET   = 12,     // This and below is TBC+
      *     CREATURE_TYPE_GAS_CLOUD        = 13
      * };
      * </pre>
@@ -1161,7 +1161,7 @@ namespace LuaUnit
      *     WAYPOINT_MOTION_TYPE            = 2,
      *     MAX_DB_MOTION_TYPE              = 3,
      *     ANIMAL_RANDOM_MOTION_TYPE       = 3, // TC
-     * 
+     *
      *     CONFUSED_MOTION_TYPE            = 4,
      *     CHASE_MOTION_TYPE               = 5,
      *     HOME_MOTION_TYPE                = 6,
@@ -1170,7 +1170,7 @@ namespace LuaUnit
      *     FLEEING_MOTION_TYPE             = 9,
      *     DISTRACT_MOTION_TYPE            = 10,
      *     ASSISTANCE_MOTION_TYPE          = 11,
-     *     ASSISTANCE_DISTRACT_MOTION_TYPE = 12,          
+     *     ASSISTANCE_DISTRACT_MOTION_TYPE = 12,
      *     TIMED_FLEEING_MOTION_TYPE       = 13,
      *     FOLLOW_MOTION_TYPE              = 14,
      *     EFFECT_MOTION_TYPE              = 15, // mangos
@@ -1692,7 +1692,7 @@ namespace LuaUnit
         unit->GetThreatManager().resetAllAggro();
         return 0;
     }
-    
+
     /**
      * Mounts the [Unit] on the given displayID/modelID.
      *
@@ -1705,7 +1705,7 @@ namespace LuaUnit
         unit->Mount(displayId);
         return 0;
     }
-    
+
     /**
      * Dismounts the [Unit].
      */
@@ -1719,7 +1719,7 @@ namespace LuaUnit
 
         return 0;
     }
-    
+
     /**
      * Makes the [Unit] perform the given emote.
      *
@@ -2092,7 +2092,7 @@ namespace LuaUnit
         unit->CastSpell(target, spell, true, castItem ? castItem : nullptr);
         return 0;
     }
-    
+
     /**
      * Makes the [Unit] cast the spell to the given coordinates, used for area effect spells.
      *
@@ -2149,26 +2149,26 @@ namespace LuaUnit
         bool delayed = Eluna::CHECKVAL<bool>(L, 3, true);
         switch (spellType)
         {
-            case 0:
-                spellType = CURRENT_MELEE_SPELL;
-                break;
-            case 1:
-                spellType = CURRENT_GENERIC_SPELL;
-                break;
-            case 2:
-                spellType = CURRENT_CHANNELED_SPELL;
-                break;
-            case 3:
-                spellType = CURRENT_AUTOREPEAT_SPELL;
-                break;
-            default:
-                return luaL_argerror(L, 2, "valid CurrentSpellTypes expected");
+        case 0:
+            spellType = CURRENT_MELEE_SPELL;
+            break;
+        case 1:
+            spellType = CURRENT_GENERIC_SPELL;
+            break;
+        case 2:
+            spellType = CURRENT_CHANNELED_SPELL;
+            break;
+        case 3:
+            spellType = CURRENT_AUTOREPEAT_SPELL;
+            break;
+        default:
+            return luaL_argerror(L, 2, "valid CurrentSpellTypes expected");
         }
 
         unit->InterruptSpell((CurrentSpellTypes)spellType, delayed);
         return 0;
     }
-    
+
     /**
      * Adds the [Aura] of the given spell entry on the given target from the [Unit].
      *
@@ -2189,7 +2189,7 @@ namespace LuaUnit
         Eluna::Push(L, unit->AddAura(spell, target));
         return 1;
     }
-    
+
     /**
      * Removes [Aura] of the given spell entry from the [Unit].
      *
@@ -2201,7 +2201,7 @@ namespace LuaUnit
         unit->RemoveAurasDueToSpell(spellId);
         return 0;
     }
-    
+
     /**
      * Removes all [Aura]'s from the [Unit].
      *
@@ -2212,7 +2212,7 @@ namespace LuaUnit
         unit->RemoveAllAuras();
         return 0;
     }
-    
+
     /**
      * Adds the given unit state for the [Unit].
      *
@@ -2225,7 +2225,7 @@ namespace LuaUnit
         unit->AddUnitState(state);
         return 0;
     }
-    
+
     /**
      * Removes the given unit state from the [Unit].
      *
@@ -2238,7 +2238,7 @@ namespace LuaUnit
         unit->ClearUnitState(state);
         return 0;
     }
-    
+
     /**
      * Makes the [Unit] teleport to given coordinates within same map.
      *
@@ -2290,6 +2290,7 @@ namespace LuaUnit
         uint32 spell = Eluna::CHECKVAL<uint32>(L, 6, 0);
         uint8 difficulty = Eluna::CHECKVAL<uint8>(L, 7);
         SpellInfo* spelnfo = Eluna::CHECKOBJ<SpellInfo>(L, 8);
+        SpellCastVisual spellVisual;
 
         if (school > MAX_SPELL_SCHOOL)
             return luaL_argerror(L, 6, "valid SpellSchool expected");
@@ -2333,7 +2334,7 @@ namespace LuaUnit
         if (!spellInfo)
             return 0;
 
-        SpellNonMeleeDamage dmgInfo(unit, target, spelnfo, 0, spellInfo->GetSchoolMask());
+        SpellNonMeleeDamage dmgInfo(unit, target, spelnfo, spellVisual, spellInfo->GetSchoolMask());
         unit->DealDamageMods(dmgInfo.target, dmgInfo.damage, &dmgInfo.absorb);
 
         unit->SendSpellNonMeleeDamageLog(&dmgInfo);
@@ -2441,7 +2442,6 @@ namespace LuaUnit
     /*int DisableMelee(lua_State* L, Unit* unit)
     {
     bool apply = Eluna::CHECKVAL<bool>(L, 2, true);
-
     if (apply)
     unit->AddUnitState(UNIT_STATE_CANNOT_AUTOATTACK);
     else
@@ -2457,20 +2457,16 @@ namespace LuaUnit
     float z = Eluna::CHECKVAL<float>(L, 5);
     float o = Eluna::CHECKVAL<float>(L, 6);
     uint32 desp = Eluna::CHECKVAL<uint32>(L, 7, 0);
-
     SummonPropertiesEntry const* properties = sSummonPropertiesStore.LookupEntry(61);
     if (!properties)
     return 1;
     Position pos;
     pos.Relocate(x,y,z,o);
     TempSummon* summon = unit->GetMap()->SummonCreature(entry, pos, properties, desp, unit);
-
     if (!summon)
     return 1;
-
     if (summon->HasUnitTypeMask(UNIT_MASK_GUARDIAN))
     ((Guardian*)summon)->InitStatsForLevel(unit->getLevel());
-
     if (properties && properties->category == SUMMON_CATEGORY_ALLY)
     summon->SetFaction(unit->GetFaction());
     if (summon->GetEntry() == 27893)
@@ -2484,7 +2480,6 @@ namespace LuaUnit
     summon->SetDisplayId(1126);
     }
     summon->AI()->EnterEvadeMode();
-
     Eluna::Push(L, summon);
     return 1;
     }*/

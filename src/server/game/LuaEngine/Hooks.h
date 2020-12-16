@@ -204,6 +204,7 @@ namespace Hooks
         // UNUSED                               =     40,       // (event, player)
         // UNUSED                               =     41,       // (event, player)
         PLAYER_EVENT_ON_COMMAND                 =     42,       // (event, player, command) - player is nil if command used from console. Can return false
+        //PLAYER_EVENT_IS_ONLINE                =     43,
 
         PLAYER_EVENT_COUNT
     };

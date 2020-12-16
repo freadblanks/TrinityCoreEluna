@@ -10076,6 +10076,11 @@ Item* Player::GetItemByPos(uint8 bag, uint8 slot) const
     return nullptr;
 }
 
+Item* Player::GetEquippedItem(EquipmentSlots slot) const
+{
+    return GetItemByPos(INVENTORY_SLOT_BAG_0, slot);
+}
+
 //Does additional check for disarmed weapons
 Item* Player::GetUseableItemByPos(uint8 bag, uint8 slot) const
 {
@@ -18064,7 +18069,9 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder* holder)
             numRespecs = fields[i++].GetUInt8();
         }
 
-    } fields(result->Fetch());
+    }
+
+    fields(result->Fetch());
 
     // check if the character's account in the db and the logged in account match.
     // player should be able to load/delete character only with correct account!
@@ -18176,7 +18183,22 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder* holder)
 
     m_fishingSteps = fields.fishingSteps;
 
-    InitDisplayIds();
+    // Perma Morph
+    QueryResult result2 = CharacterDatabase.PQuery("SELECT morph FROM character_morph WHERE guid = %u", fields.guid);
+
+    if (result2)
+
+    {
+
+        Field* fields2 = result2->Fetch();
+
+        SetNativeDisplayId(fields2[0].GetUInt32());
+
+        SetDisplayId(fields2[0].GetUInt32());
+
+    }
+    else
+        InitDisplayIds();
 
     // cleanup inventory related item value fields (it will be filled correctly in _LoadInventory)
     for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)

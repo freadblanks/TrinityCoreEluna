@@ -18,7 +18,7 @@
 #include "WorldSession.h"
 #include "CollectionMgr.h"
 #include "Common.h"
-#include "CreatureOutfit.h"
+//#include "CreatureOutfit.h"
 #include "DatabaseEnv.h"
 #include "GameObjectAI.h"
 #include "GameObjectPackets.h"
@@ -523,7 +523,7 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPackets::Spells::GetMirrorI
     if (!unit)
         return;
 
-    if (Creature* creature = unit->ToCreature())
+    /*if (Creature* creature = unit->ToCreature())
     {
         if (std::shared_ptr<CreatureOutfit> const& outfit_ptr = creature->GetOutfit())
         {
@@ -558,7 +558,7 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPackets::Spells::GetMirrorI
             SendPacket(mirrorImageComponentedData.Write());
             return;
         }
-    }
+    }*/
 
     if (!unit->HasAuraType(SPELL_AURA_CLONE_CASTER))
         return;

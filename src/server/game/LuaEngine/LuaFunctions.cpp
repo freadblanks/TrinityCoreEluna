@@ -628,7 +628,7 @@ ElunaRegister<Player> PlayerMethods[] =
     { "SendTabardVendorActivate", &LuaPlayer::SendTabardVendorActivate },
     { "SendSpiritResurrect", &LuaPlayer::SendSpiritResurrect },
     { "SendTaxiMenu", &LuaPlayer::SendTaxiMenu },
-    { "RewardQuest", &LuaPlayer::RewardQuest },
+    //{ "RewardQuest", &LuaPlayer::RewardQuest },
     { "SendAuctionMenu", &LuaPlayer::SendAuctionMenu },
     { "SendShowMailBox", &LuaPlayer::SendShowMailBox },
     { "StartTaxi", &LuaPlayer::StartTaxi },
@@ -882,9 +882,9 @@ ElunaRegister<Quest> QuestMethods[] =
 {
     // Getters
     { "GetId", &LuaQuest::GetId },
-    { "GetLevel", &LuaQuest::GetLevel },
+    //{ "GetLevel", &LuaQuest::GetLevel },
     // {"GetMaxLevel", &LuaQuest::GetMaxLevel},                   // :GetMaxLevel() - UNDOCUMENTED - Returns the quest's max level
-    { "GetMinLevel", &LuaQuest::GetMinLevel },
+    //{ "GetMinLevel", &LuaQuest::GetMinLevel },
     { "GetNextQuestId", &LuaQuest::GetNextQuestId },
     { "GetPrevQuestId", &LuaQuest::GetPrevQuestId },
     { "GetNextQuestInChain", &LuaQuest::GetNextQuestInChain },

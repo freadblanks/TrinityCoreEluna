@@ -424,6 +424,11 @@ bool ChatHandler::SetDataForCommandInTable(std::vector<ChatCommand>& table, char
 
 bool ChatHandler::_ParseCommands(char const* text)
 {
+#ifdef ELUNA
+    if (!sEluna->OnCommand(GetSession() ? GetSession()->GetPlayer() : NULL, text))
+        return true;
+#endif
+
     if (ExecuteCommandInTable(getCommandTable(), text, text))
         return true;
 

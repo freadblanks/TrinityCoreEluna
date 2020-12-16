@@ -67,8 +67,8 @@ WorldPacket const* WorldPackets::Query::QueryCreatureResponse::Write()
 
         for (CreatureXDisplay const& display : Stats.Display.CreatureDisplay)
         {
-            //_worldPacket << uint32(display.CreatureDisplayID);
-            _worldPacket << uint32(sObjectMgr->GetRealDisplayId(display.CreatureDisplayID));
+            _worldPacket << uint32(display.CreatureDisplayID);
+            //_worldPacket << uint32(sObjectMgr->GetRealDisplayId(display.CreatureDisplayID));
             _worldPacket << float(display.Scale);
             _worldPacket << float(display.Probability);
         }

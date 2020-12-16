@@ -1040,7 +1040,7 @@ class TC_GAME_API ObjectMgr
 
         typedef std::map<uint32, uint32> CharacterConversionMap;
 
-        typedef std::unordered_map<uint32, std::shared_ptr<CreatureOutfit>> CreatureOutfitContainer;
+        //typedef std::unordered_map<uint32, std::shared_ptr<CreatureOutfit>> CreatureOutfitContainer;
 
         GameObjectTemplate const* GetGameObjectTemplate(uint32 entry) const;
         GameObjectTemplateContainer const* GetGameObjectTemplates() const { return &_gameObjectTemplateStore; }
@@ -1575,10 +1575,10 @@ class TC_GAME_API ObjectMgr
         bool AddGameTele(GameTele& data);
         bool DeleteGameTele(std::string const& name);
 
-        const CreatureOutfitContainer& GetCreatureOutfitMap() const { return _creatureOutfitStore; }
+        /*const CreatureOutfitContainer& GetCreatureOutfitMap() const { return _creatureOutfitStore; }
         std::shared_ptr<CreatureOutfit> const& GetOutfit(uint32 modelid) const;
         uint32 GetRealDisplayId(uint32 modelid) const;
-        void LoadCreatureOutfits();
+        void LoadCreatureOutfits();*/
 
         Trainer::Trainer const* GetTrainer(uint32 trainerId) const;
         uint32 GetCreatureDefaultTrainer(uint32 creatureId) const
@@ -1767,7 +1767,7 @@ class TC_GAME_API ObjectMgr
         PageTextContainer _pageTextStore;
         InstanceTemplateContainer _instanceTemplateStore;
 
-        CreatureOutfitContainer _creatureOutfitStore;
+        //CreatureOutfitContainer _creatureOutfitStore;
 
     public:
         PhaseInfoStruct const* GetPhaseInfo(uint32 phaseId) const;

@@ -1822,19 +1822,19 @@ namespace LuaPlayer
      *
      * @param uint32 entry : quest entry
      */
-    int RewardQuest(lua_State* L, Player* player)
-    {
-        uint32 entry = Eluna::CHECKVAL<uint32>(L, 2);
+    //int RewardQuest(lua_State* L, Player* player)
+    //{
+    //    uint32 entry = Eluna::CHECKVAL<uint32>(L, 2);
 
-        Quest const* quest = eObjectMgr->GetQuestTemplate(entry);
+    //    Quest const* quest = eObjectMgr->GetQuestTemplate(entry);
 
-        // If player doesn't have the quest
-        if (!quest || player->GetQuestStatus(entry) != QUEST_STATUS_COMPLETE)
-            return 0;
+    //    // If player doesn't have the quest
+    //    if (!quest || player->GetQuestStatus(entry) != QUEST_STATUS_COMPLETE)
+    //        return 0;
 
-        player->RewardQuest(quest, 0, player);
-        return 0;
-    }
+    //    player->RewardQuest(quest, 0, player);
+    //    return 0;
+    //}
 
     /**
      * Sends an auction house window to the [Player] from the [Unit] specified
