@@ -110,6 +110,14 @@ struct ElunaCreatureAI : ScriptedAI
             ScriptedAI::AttackStart(target);
     }
 
+    // Called for reaction when initially engaged - this will always happen _after_ JustEnteredCombat
+    // Called at creature aggro either by MoveInLOS or Attack Start
+    void EnterCombat(Unit* target) override
+    {
+        if (!sEluna->EnterCombat(me, target))
+            ScriptedAI::EnterCombat(target);
+    }
+
     // Called for reaction at stopping attack at no attackers or targets
     void EnterEvadeMode(EvadeReason /*why*/) override
     {
@@ -118,11 +126,18 @@ struct ElunaCreatureAI : ScriptedAI
     }
 
     // Called when creature appears in the world (spawn, respawn, grid load etc...)
-    // void JustAppeared() override
-    // {
+     //void JustAppeared() override
+     //{
     //     if (!sEluna->JustRespawned(me))
     //         ScriptedAI::JustAppeared();
     // }
+
+     // Called when creature is spawned or respawned (for reseting variables) Not Realize
+     void JustRespawned() override
+     {
+         if (!sEluna->JustRespawned(me))
+             ScriptedAI::JustRespawned();
+     }
 
     // Called at reaching home after evade
     void JustReachedHome() override
@@ -166,11 +181,11 @@ struct ElunaCreatureAI : ScriptedAI
     }
 
     // Called when the creature is summoned successfully by other creature
-    // void IsSummonedBy(WorldObject* summoner) override
-    // {
-    //     if (!summoner->ToUnit() || !sEluna->OnSummoned(me, summoner->ToUnit()))
-    //         ScriptedAI::IsSummonedBy(summoner);
-    // }
+     void IsSummonedBy(Unit* summoner) override
+     {
+         if (!summoner->ToUnit() || !sEluna->OnSummoned(me, summoner->ToUnit()))
+             ScriptedAI::IsSummonedBy(summoner);
+     }
 
     void SummonedCreatureDies(Creature* summon, Unit* killer) override
     {
