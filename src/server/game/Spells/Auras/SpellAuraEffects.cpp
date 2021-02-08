@@ -212,7 +212,7 @@ NonDefaultConstructible<pAuraEffectHandler> AuraEffectHandler[TOTAL_AURAS]=
     &AuraEffect::HandleAuraModRangedHaste,                        //140 SPELL_AURA_MOD_RANGED_HASTE
     &AuraEffect::HandleUnused,                                    //141 SPELL_AURA_141
     &AuraEffect::HandleAuraModBaseResistancePCT,                  //142 SPELL_AURA_MOD_BASE_RESISTANCE_PCT
-    &AuraEffect::HandleNULL,                                      //143 SPELL_AURA_MOD_RECOVERY_RATE
+    &AuraEffect::HandleNULL,                                      //143 SPELL_AURA_MOD_RECOVERY_RATE_BY_SPELL_LABEL
     &AuraEffect::HandleNoImmediateEffect,                         //144 SPELL_AURA_SAFE_FALL                         implemented in WorldSession::HandleMovementOpcodes
     &AuraEffect::HandleNULL,                                      //145 used by 5 spells in 6.2.4 dbc but the meaning of this aura changed (it's used by mind control spells but isn't the control itself)
     &AuraEffect::HandleNoImmediateEffect,                         //146 SPELL_AURA_ALLOW_TAME_PET_TYPE
@@ -339,7 +339,7 @@ NonDefaultConstructible<pAuraEffectHandler> AuraEffectHandler[TOTAL_AURAS]=
     &AuraEffect::HandleNoImmediateEffect,                         //267 SPELL_AURA_MOD_IMMUNE_AURA_APPLY_SCHOOL         implemented in Unit::IsImmunedToSpellEffect
     &AuraEffect::HandleUnused,                                    //268 unused (4.3.4) old SPELL_AURA_MOD_ATTACK_POWER_OF_STAT_PERCENT.
     &AuraEffect::HandleNoImmediateEffect,                         //269 SPELL_AURA_MOD_IGNORE_TARGET_RESIST implemented in Unit::CalcAbsorbResist and CalcArmorReducedDamage
-    &AuraEffect::HandleNULL,                                      //270 SPELL_AURA_MOD_SCHOOL_MASK_DAMAGE_FROM_CASTER
+    &AuraEffect::HandleNoImmediateEffect,                         //270 SPELL_AURA_MOD_SCHOOL_MASK_DAMAGE_FROM_CASTER    implemented in Unit::SpellDamageBonusTaken and Unit::MeleeDamageBonusTaken
     &AuraEffect::HandleNoImmediateEffect,                         //271 SPELL_AURA_MOD_SPELL_DAMAGE_FROM_CASTER    implemented in Unit::SpellDamageBonusTaken and Unit::MeleeDamageBonusTaken
     &AuraEffect::HandleNoImmediateEffect,                         //272 SPELL_AURA_IGNORE_MELEE_RESET
     &AuraEffect::HandleUnused,                                    //273 clientside
@@ -355,7 +355,7 @@ NonDefaultConstructible<pAuraEffectHandler> AuraEffectHandler[TOTAL_AURAS]=
     &AuraEffect::HandleNoImmediateEffect,                         //283 SPELL_AURA_MOD_HEALING_RECEIVED       implemented in Unit::SpellHealingBonus
     &AuraEffect::HandleAuraLinked,                                //284 SPELL_AURA_LINKED
     &AuraEffect::HandleAuraLinked,                                //285 SPELL_AURA_LINKED_2
-    &AuraEffect::HandleNoImmediateEffect,                         //286 SPELL_AURA_ABILITY_PERIODIC_CRIT implemented in AuraEffect::PeriodicTick
+    &AuraEffect::HandleNULL,                                      //286 SPELL_AURA_MOD_RECOVERY_RATE
     &AuraEffect::HandleNoImmediateEffect,                         //287 SPELL_AURA_DEFLECT_SPELLS             implemented in Unit::MagicSpellHitResult and Unit::MeleeSpellHitResult
     &AuraEffect::HandleNoImmediateEffect,                         //288 SPELL_AURA_IGNORE_HIT_DIRECTION  implemented in Unit::MagicSpellHitResult and Unit::MeleeSpellHitResult Unit::RollMeleeOutcomeAgainst
     &AuraEffect::HandleNoImmediateEffect,                         //289 SPELL_AURA_PREVENT_DURABILITY_LOSS implemented in Player::DurabilityPointsLoss
@@ -413,7 +413,7 @@ NonDefaultConstructible<pAuraEffectHandler> AuraEffectHandler[TOTAL_AURAS]=
     &AuraEffect::HandleModSpellCategoryCooldown,                  //341 SPELL_AURA_MOD_SPELL_CATEGORY_COOLDOWN
     &AuraEffect::HandleModMeleeRangedSpeedPct,                    //342 SPELL_AURA_MOD_MELEE_RANGED_HASTE_2
     &AuraEffect::HandleNULL,                                      //343 SPELL_AURA_MOD_MELEE_DAMAGE_FROM_CASTER
-    &AuraEffect::HandleNULL,                                      //344 SPELL_AURA_MOD_AUTOATTACK_DAMAGE
+    &AuraEffect::HandleNoImmediateEffect,                         //344 SPELL_AURA_MOD_AUTOATTACK_DAMAGE - Implemented in Unit::MeleeDamageBonusDone
     &AuraEffect::HandleNoImmediateEffect,                         //345 SPELL_AURA_BYPASS_ARMOR_FOR_CASTER
     &AuraEffect::HandleEnableAltPower,                            //346 SPELL_AURA_ENABLE_ALT_POWER
     &AuraEffect::HandleNoImmediateEffect,                         //347 SPELL_AURA_MOD_SPELL_COOLDOWN_BY_HASTE  implemented in SpellHistory::StartCooldown
@@ -670,7 +670,8 @@ int32 AuraEffect::CalculateAmount(Unit* caster)
     }
 
     GetBase()->CallScriptEffectCalcAmountHandlers(this, amount, m_canBeRecalculated);
-    amount *= GetBase()->GetStackAmount();
+    if (!GetSpellEffectInfo()->EffectAttributes.HasFlag(SpellEffectAttributes::NoScaleWithStack))
+        amount *= GetBase()->GetStackAmount();
     return amount;
 }
 
@@ -1087,13 +1088,6 @@ void AuraEffect::UpdatePeriodic(Unit* caster)
     GetBase()->CallScriptEffectUpdatePeriodicHandlers(this);
 }
 
-bool AuraEffect::CanPeriodicTickCrit(Unit const* caster) const
-{
-    ASSERT(caster);
-
-    return caster->HasAuraTypeWithAffectMask(SPELL_AURA_ABILITY_PERIODIC_CRIT, m_spellInfo);
-}
-
 bool AuraEffect::IsAffectingSpell(SpellInfo const* spell) const
 {
     if (!spell)
@@ -1202,6 +1196,7 @@ bool AuraEffect::CheckEffectProc(AuraApplication* aurApp, ProcEventInfo& eventIn
             if (!eventInfo.GetProcSpell() || !eventInfo.GetProcSpell()->GetCastTime())
                 return false;
             break;
+        case SPELL_AURA_MOD_SCHOOL_MASK_DAMAGE_FROM_CASTER:
         case SPELL_AURA_MOD_SPELL_DAMAGE_FROM_CASTER:
             // Compare casters
             if (GetCasterGUID() != eventInfo.GetActor()->GetGUID())
@@ -5673,10 +5668,7 @@ void AuraEffect::HandlePeriodicDamageAurasTick(Unit* target, Unit* caster) const
         }
     }
 
-    bool crit = false;
-
-    if (CanPeriodicTickCrit(caster))
-        crit = roll_chance_f(isAreaAura ? caster->GetUnitSpellCriticalChance(target, m_spellInfo, m_spellInfo->GetSchoolMask()) : m_critChance);
+    bool crit = roll_chance_f(isAreaAura ? caster->GetUnitSpellCriticalChance(target, m_spellInfo, m_spellInfo->GetSchoolMask()) : m_critChance);
 
     if (crit)
         damage = caster->SpellCriticalDamageBonus(m_spellInfo, damage, target);
@@ -5770,10 +5762,7 @@ void AuraEffect::HandlePeriodicHealthLeechAuraTick(Unit* target, Unit* caster) c
                 damage = int32(float(damage) * target->GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_CREATURE_AOE_DAMAGE_AVOIDANCE, m_spellInfo->SchoolMask));
         }
 
-    bool crit = false;
-
-    if (CanPeriodicTickCrit(caster))
-        crit = roll_chance_f(isAreaAura ? caster->GetUnitSpellCriticalChance(target, m_spellInfo, m_spellInfo->GetSchoolMask()) : m_critChance);
+    bool crit = roll_chance_f(isAreaAura ? caster->GetUnitSpellCriticalChance(target, m_spellInfo, m_spellInfo->GetSchoolMask()) : m_critChance);
 
     if (crit)
         damage = caster->SpellCriticalDamageBonus(m_spellInfo, damage, target);
@@ -5914,10 +5903,7 @@ void AuraEffect::HandlePeriodicHealAurasTick(Unit* target, Unit* caster) const
         damage = target->SpellHealingBonusTaken(caster, GetSpellInfo(), damage, DOT, GetSpellEffectInfo(), GetBase()->GetStackAmount());
     }
 
-    bool crit = false;
-
-    if (CanPeriodicTickCrit(caster))
-        crit = roll_chance_f(isAreaAura ? caster->GetUnitSpellCriticalChance(target, m_spellInfo, m_spellInfo->GetSchoolMask()) : m_critChance);
+    bool crit = roll_chance_f(isAreaAura ? caster->GetUnitSpellCriticalChance(target, m_spellInfo, m_spellInfo->GetSchoolMask()) : m_critChance);
 
     if (crit)
         damage = caster->SpellCriticalHealingBonus(m_spellInfo, damage, target);

@@ -6864,11 +6864,14 @@ uint32 Unit::SpellDamageBonusTaken(Unit* caster, SpellInfo const* spellProto, ui
         TakenTotalMod *= GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, spellProto->GetSchoolMask());
 
         // From caster spells
+        TakenTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_SCHOOL_MASK_DAMAGE_FROM_CASTER, [caster, spellProto](AuraEffect const* aurEff) -> bool
+        {
+            return aurEff->GetCasterGUID() == caster->GetGUID() && (aurEff->GetMiscValue() & spellProto->GetSchoolMask());
+        });
+
         TakenTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_SPELL_DAMAGE_FROM_CASTER, [caster, spellProto](AuraEffect const* aurEff) -> bool
         {
-            if (aurEff->GetCasterGUID() == caster->GetGUID() && aurEff->IsAffectingSpell(spellProto))
-                return true;
-            return false;
+            return aurEff->GetCasterGUID() == caster->GetGUID() && aurEff->IsAffectingSpell(spellProto);
         });
 
         int32 TakenAdvertisedBenefit = SpellBaseDamageBonusTaken(spellProto->GetSchoolMask());
@@ -7626,11 +7629,11 @@ uint32 Unit::MeleeDamageBonusDone(Unit* victim, uint32 pdamage, WeaponAttackType
     // Done total percent damage auras
     float DoneTotalMod = 1.0f;
 
-    // Some spells don't benefit from pct done mods
-    if (spellProto && !spellProto->HasAttribute(SPELL_ATTR6_NO_DONE_PCT_DAMAGE_MODS))
+    if (spellProto)
     {
+        // Some spells don't benefit from pct done mods
         // mods for SPELL_SCHOOL_MASK_NORMAL are already factored in base melee damage calculation
-        if (!(spellProto->GetSchoolMask() & SPELL_SCHOOL_MASK_NORMAL))
+        if (!spellProto->HasAttribute(SPELL_ATTR6_NO_DONE_PCT_DAMAGE_MODS) && !(spellProto->GetSchoolMask() & SPELL_SCHOOL_MASK_NORMAL))
         {
             float maxModDamagePercentSchool = 0.0f;
             if (Player const* thisPlayer = ToPlayer())
@@ -7644,6 +7647,12 @@ uint32 Unit::MeleeDamageBonusDone(Unit* victim, uint32 pdamage, WeaponAttackType
 
             DoneTotalMod *= maxModDamagePercentSchool;
         }
+    }
+    else
+    {
+        // melee attack
+        for (AuraEffect const* autoAttackDamage : GetAuraEffectsByType(SPELL_AURA_MOD_AUTOATTACK_DAMAGE))
+            AddPct(DoneTotalMod, autoAttackDamage->GetAmount());
     }
 
     DoneTotalMod *= GetTotalAuraMultiplierByMiscMask(SPELL_AURA_MOD_DAMAGE_DONE_VERSUS, creatureTypeMask);
@@ -7701,11 +7710,14 @@ uint32 Unit::MeleeDamageBonusTaken(Unit* attacker, uint32 pdamage, WeaponAttackT
     if (spellProto)
     {
         // From caster spells
+        TakenTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_SCHOOL_MASK_DAMAGE_FROM_CASTER, [attacker, spellProto](AuraEffect const* aurEff) -> bool
+        {
+            return aurEff->GetCasterGUID() == attacker->GetGUID() && (aurEff->GetMiscValue() & spellProto->GetSchoolMask());
+        });
+
         TakenTotalMod *= GetTotalAuraMultiplier(SPELL_AURA_MOD_SPELL_DAMAGE_FROM_CASTER, [attacker, spellProto](AuraEffect const* aurEff) -> bool
         {
-            if (aurEff->GetCasterGUID() == attacker->GetGUID() && aurEff->IsAffectingSpell(spellProto))
-                return true;
-            return false;
+            return aurEff->GetCasterGUID() == attacker->GetGUID() && aurEff->IsAffectingSpell(spellProto);
         });
 
         // Mod damage from spell mechanic

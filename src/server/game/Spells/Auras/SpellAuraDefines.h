@@ -215,7 +215,7 @@ enum AuraType : uint32
     SPELL_AURA_MOD_RANGED_HASTE                             = 140,
     SPELL_AURA_141                                          = 141,  // old SPELL_AURA_MOD_RANGED_AMMO_HASTE, unused now
     SPELL_AURA_MOD_BASE_RESISTANCE_PCT                      = 142,
-    SPELL_AURA_MOD_RECOVERY_RATE                            = 143,  // NYI
+    SPELL_AURA_MOD_RECOVERY_RATE_BY_SPELL_LABEL             = 143,  // NYI
     SPELL_AURA_SAFE_FALL                                    = 144,
     SPELL_AURA_MOD_PET_TALENT_POINTS                        = 145,
     SPELL_AURA_ALLOW_TAME_PET_TYPE                          = 146,
@@ -342,7 +342,7 @@ enum AuraType : uint32
     SPELL_AURA_MOD_IMMUNE_AURA_APPLY_SCHOOL                 = 267,
     SPELL_AURA_268                                          = 268,  // old SPELL_AURA_MOD_ATTACK_POWER_OF_STAT_PERCENT. unused 4.3.4
     SPELL_AURA_MOD_IGNORE_TARGET_RESIST                     = 269,
-    SPELL_AURA_MOD_SCHOOL_MASK_DAMAGE_FROM_CASTER           = 270,  // NYI
+    SPELL_AURA_MOD_SCHOOL_MASK_DAMAGE_FROM_CASTER           = 270,
     SPELL_AURA_MOD_SPELL_DAMAGE_FROM_CASTER                 = 271,
     SPELL_AURA_IGNORE_MELEE_RESET                           = 272,
     SPELL_AURA_X_RAY                                        = 273,
@@ -358,7 +358,7 @@ enum AuraType : uint32
     SPELL_AURA_MOD_HEALING_RECEIVED                         = 283,  // Possibly only for some spell family class spells
     SPELL_AURA_LINKED                                       = 284,
     SPELL_AURA_LINKED_2                                     = 285,
-    SPELL_AURA_ABILITY_PERIODIC_CRIT                        = 286,
+    SPELL_AURA_MOD_RECOVERY_RATE                            = 286,
     SPELL_AURA_DEFLECT_SPELLS                               = 287,
     SPELL_AURA_IGNORE_HIT_DIRECTION                         = 288,
     SPELL_AURA_PREVENT_DURABILITY_LOSS                      = 289,
@@ -416,7 +416,7 @@ enum AuraType : uint32
     SPELL_AURA_MOD_SPELL_CATEGORY_COOLDOWN                  = 341,  // Modifies cooldown of all spells using affected category
     SPELL_AURA_MOD_MELEE_RANGED_HASTE_2                     = 342,
     SPELL_AURA_MOD_MELEE_DAMAGE_FROM_CASTER                 = 343,  // NYI
-    SPELL_AURA_MOD_AUTOATTACK_DAMAGE                        = 344,  // NYI
+    SPELL_AURA_MOD_AUTOATTACK_DAMAGE                        = 344,
     SPELL_AURA_BYPASS_ARMOR_FOR_CASTER                      = 345,
     SPELL_AURA_ENABLE_ALT_POWER                             = 346,  // NYI
     SPELL_AURA_MOD_SPELL_COOLDOWN_BY_HASTE                  = 347,
