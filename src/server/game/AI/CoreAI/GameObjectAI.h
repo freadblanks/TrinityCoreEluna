@@ -19,7 +19,8 @@
 #define TRINITY_GAMEOBJECTAI_H
 
 #include "Define.h"
-#include <list>
+#include "ObjectGuid.h"
+#include "Optional.h"
 
 class GameObject;
 class Player;
@@ -45,10 +46,13 @@ class TC_GAME_API GameObjectAI
 
         // Pass parameters between AI
         virtual void DoAction(int32 /*param = 0 */) { }
-        virtual void SetGUID(uint64 /*guid*/, int32 /*id = 0 */) { }
-        virtual uint64 GetGUID(int32 /*id = 0 */) const { return 0; }
+        virtual void SetGUID(ObjectGuid const& /*guid*/, int32 /*id = 0 */) { }
+        virtual ObjectGuid GetGUID(int32 /*id = 0 */) const { return ObjectGuid::Empty; }
 
         static int32 Permissible(GameObject const* go);
+
+        // Called when the dialog status between a player and the gameobject is requested.
+        virtual Optional<QuestGiverStatus> GetDialogStatus(Player* player);
 
         // Called when a player opens a gossip dialog with the gameobject.
         virtual bool GossipHello(Player* /*player*/) { return false; }
@@ -65,9 +69,6 @@ class TC_GAME_API GameObjectAI
         // Called when a player completes a quest and is rewarded, opt is the selected item's index or 0
         virtual void QuestReward(Player* player, Quest const* quest, uint32 opt);
         virtual void QuestReward(Player* /*player*/, Quest const* /*quest*/, LootItemType /*type*/, uint32 /*opt*/) { }
-
-        // Called when the dialog status between a player and the gameobject is requested.
-        virtual QuestGiverStatus GetDialogStatus(Player* player);
 
         // Called when a Player clicks a GameObject, before GossipHello
         // prevents achievement tracking if returning true

@@ -260,8 +260,8 @@ public:
         sDB2Manager.Map2ZoneCoordinates(zoneId, zoneX, zoneY);
 
         Map* map = object->GetMap();
-        float groundZ = map->GetHeight(object->GetPhaseShift(), object->GetPositionX(), object->GetPositionY(), MAX_HEIGHT);
-        float floorZ = map->GetHeight(object->GetPhaseShift(), object->GetPositionX(), object->GetPositionY(), object->GetPositionZ());
+        float groundZ = object->GetMapHeight(object->GetPositionX(), object->GetPositionY(), MAX_HEIGHT);
+        float floorZ = object->GetMapHeight(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ());
 
         GridCoord gridCoord = Trinity::ComputeGridCoord(object->GetPositionX(), object->GetPositionY());
 
@@ -299,7 +299,6 @@ public:
 
         LiquidData liquidStatus;
         ZLiquidStatus status = map->GetLiquidStatus(object->GetPhaseShift(), object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), MAP_ALL_LIQUIDS, &liquidStatus);
-
         if (status)
             handler->PSendSysMessage(LANG_LIQUID_STATUS, liquidStatus.level, liquidStatus.depth_level, liquidStatus.entry, liquidStatus.type_flags, status);
 
@@ -681,7 +680,7 @@ public:
 
     static bool HandleDismountCommand(ChatHandler* handler, char const* /*args*/)
     {
-        Player* player = handler->GetSession()->GetPlayer();
+        Player* player = handler->getSelectedPlayerOrSelf();
 
         // If player is not mounted, so go out :)
         if (!player->IsMounted())
@@ -693,7 +692,7 @@ public:
 
         if (player->IsInFlight())
         {
-            handler->SendSysMessage(LANG_YOU_IN_FLIGHT);
+            handler->SendSysMessage(LANG_CHAR_IN_FLIGHT);
             handler->SetSentErrorMessage(true);
             return false;
         }
@@ -1314,12 +1313,26 @@ public:
         std::vector<int32> bonusListIDs;
         char const* bonuses = strtok(nullptr, " ");
 
+        char const* context = strtok(nullptr, " ");
+
         // semicolon separated bonuslist ids (parse them after all arguments are extracted by strtok!)
         if (bonuses)
         {
             Tokenizer tokens(bonuses, ';');
             for (char const* token : tokens)
-                bonusListIDs.push_back(atoul(token));
+                if (int32 bonusListId = atoi(token))
+                    bonusListIDs.push_back(bonusListId);
+        }
+
+        ItemContext itemContext = ItemContext::NONE;
+        if (context)
+        {
+            itemContext = ItemContext(atoul(context));
+            if (itemContext != ItemContext::NONE && itemContext < ItemContext::Max)
+            {
+                std::set<uint32> contextBonuses = sDB2Manager.GetDefaultItemBonusTree(itemId, itemContext);
+                bonusListIDs.insert(bonusListIDs.begin(), contextBonuses.begin(), contextBonuses.end());
+            }
         }
 
         Player* player = handler->GetSession()->GetPlayer();
@@ -1361,7 +1374,7 @@ public:
             return false;
         }
 
-        Item* item = playerTarget->StoreNewItem(dest, itemId, true, GenerateItemRandomBonusListId(itemId), GuidSet(), ItemContext::NONE, bonusListIDs);
+        Item* item = playerTarget->StoreNewItem(dest, itemId, true, GenerateItemRandomBonusListId(itemId), GuidSet(), itemContext, bonusListIDs);
 
         // remove binding (let GM give it to another player later)
         if (player == playerTarget)
@@ -1404,6 +1417,8 @@ public:
         std::vector<int32> bonusListIDs;
         char const* bonuses = strtok(nullptr, " ");
 
+        char const* context = strtok(nullptr, " ");
+
         // semicolon separated bonuslist ids (parse them after all arguments are extracted by strtok!)
         if (bonuses)
         {
@@ -1411,6 +1426,10 @@ public:
             for (char const* token : tokens)
                 bonusListIDs.push_back(atoul(token));
         }
+
+        ItemContext itemContext = ItemContext::NONE;
+        if (context)
+            itemContext = ItemContext(atoul(context));
 
         Player* player = handler->GetSession()->GetPlayer();
         Player* playerTarget = handler->getSelectedPlayer();
@@ -1430,7 +1449,14 @@ public:
                 InventoryResult msg = playerTarget->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, itr->second.GetId(), 1);
                 if (msg == EQUIP_ERR_OK)
                 {
-                    Item* item = playerTarget->StoreNewItem(dest, itr->second.GetId(), true, {}, GuidSet(), ItemContext::NONE, bonusListIDs);
+                    std::vector<int32> bonusListIDsForItem = bonusListIDs; // copy, bonuses for each depending on context might be different for each item
+                    if (itemContext != ItemContext::NONE && itemContext < ItemContext::Max)
+                    {
+                        std::set<uint32> contextBonuses = sDB2Manager.GetDefaultItemBonusTree(itr->second.GetId(), itemContext);
+                        bonusListIDsForItem.insert(bonusListIDs.begin(), contextBonuses.begin(), contextBonuses.end());
+                    }
+
+                    Item* item = playerTarget->StoreNewItem(dest, itr->second.GetId(), true, {}, GuidSet(), itemContext, bonusListIDsForItem);
 
                     // remove binding (let GM give it to another player later)
                     if (player == playerTarget)
@@ -1843,11 +1869,11 @@ public:
 
         // Output III. LANG_PINFO_BANNED if ban exists and is applied
         if (banTime >= 0)
-            handler->PSendSysMessage(LANG_PINFO_BANNED, banType.c_str(), banReason.c_str(), banTime > 0 ? secsToTimeString(banTime - time(nullptr), true).c_str() : handler->GetTrinityString(LANG_PERMANENTLY), bannedBy.c_str());
+            handler->PSendSysMessage(LANG_PINFO_BANNED, banType.c_str(), banReason.c_str(), banTime > 0 ? secsToTimeString(banTime - GameTime::GetGameTime(), true).c_str() : handler->GetTrinityString(LANG_PERMANENTLY), bannedBy.c_str());
 
         // Output IV. LANG_PINFO_MUTED if mute is applied
         if (muteTime > 0)
-            handler->PSendSysMessage(LANG_PINFO_MUTED, muteReason.c_str(), secsToTimeString(muteTime - time(nullptr), true).c_str(), muteBy.c_str());
+            handler->PSendSysMessage(LANG_PINFO_MUTED, muteReason.c_str(), secsToTimeString(muteTime - GameTime::GetGameTime(), true).c_str(), muteBy.c_str());
 
         // Output V. LANG_PINFO_ACC_ACCOUNT
         handler->PSendSysMessage(LANG_PINFO_ACC_ACCOUNT, userName.c_str(), accId, security);
@@ -2020,7 +2046,7 @@ public:
         if (target)
         {
             // Target is online, mute will be in effect right away.
-            int64 muteTime = time(nullptr) + notSpeakTime * MINUTE;
+            int64 muteTime = GameTime::GetGameTime() + notSpeakTime * MINUTE;
             target->GetSession()->m_muteTime = muteTime;
             stmt->setInt64(0, muteTime);
             std::string nameLink = handler->playerLink(targetName);

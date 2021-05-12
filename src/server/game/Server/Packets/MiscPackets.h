@@ -239,7 +239,7 @@ namespace WorldPackets
 
             WorldPacket const* Write() override;
 
-            uint32 Time = 0; ///< UnixTime
+            Timestamp<> Time;
         };
 
         class TutorialFlags : public ServerPacket
@@ -832,7 +832,9 @@ namespace WorldPackets
         public:
             MountSpecial(WorldPacket&& packet) : ClientPacket(CMSG_MOUNT_SPECIAL_ANIM, std::move(packet)) { }
 
-            void Read() override { }
+            void Read() override;
+
+            Array<int32, 2> SpellVisualKitIDs;
         };
 
         class SpecialMountAnim final : public ServerPacket
@@ -843,6 +845,7 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             ObjectGuid UnitGUID;
+            std::vector<int32> SpellVisualKitIDs;
         };
 
         class CrossedInebriationThreshold final : public ServerPacket
@@ -951,8 +954,8 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             int32 Type = 0;
-            int32 TimeLeft = 0;
-            int32 TotalTime = 0;
+            Duration<Seconds> TimeLeft;
+            Duration<Seconds> TotalTime;
         };
     }
 }

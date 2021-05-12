@@ -270,7 +270,8 @@ enum Spells
     SPELL_TELEPORT_BACK_TO_MAIN_ROOM        = 63992,
     SPELL_INSANE_VISUAL                     = 64464,
     SPELL_CONSTRICTOR_TENTACLE_SUMMON       = 64133,
-    SPELL_SQUEEZE                           = 64125,
+    SPELL_SQUEEZE_10                        = 64125,
+    SPELL_SQUEEZE_25                        = 64126,
     SPELL_FLASH_FREEZE                      = 64175,
     SPELL_LOW_SANITY_SCREEN_EFFECT          = 63752,
 
@@ -507,7 +508,7 @@ class boss_voice_of_yogg_saron : public CreatureScript
                 }
             }
 
-            void EnterCombat(Unit* /*who*/) override
+            void JustEngagedWith(Unit* /*who*/) override
             {
                 if (Creature* sara = instance->GetCreature(DATA_SARA))
                     sara->SetInCombatWith(me);
@@ -518,7 +519,7 @@ class boss_voice_of_yogg_saron : public CreatureScript
 
                 instance->DoStartCriteriaTimer(CRITERIA_TIMED_TYPE_EVENT, ACHIEV_TIMED_START_EVENT);
 
-                me->CastCustomSpell(SPELL_SUMMON_GUARDIAN_2, SPELLVALUE_MAX_TARGETS, 1);
+                DoCastAOE(SPELL_SUMMON_GUARDIAN_2, { SPELLVALUE_MAX_TARGETS, 1 });
                 DoCast(me, SPELL_SANITY_PERIODIC);
 
                 events.ScheduleEvent(EVENT_LOCK_DOOR, 15000);
@@ -562,7 +563,7 @@ class boss_voice_of_yogg_saron : public CreatureScript
                             events.ScheduleEvent(EVENT_EXTINGUISH_ALL_LIFE, 10000);    // cast it again after a short while, players can survive
                             break;
                         case EVENT_SUMMON_GUARDIAN_OF_YOGG_SARON:
-                            me->CastCustomSpell(SPELL_SUMMON_GUARDIAN_2, SPELLVALUE_MAX_TARGETS, 1);
+                            DoCastAOE(SPELL_SUMMON_GUARDIAN_2, { SPELLVALUE_MAX_TARGETS, 1 });
                             ++_guardiansCount;
                             if (_guardiansCount <= 6 && _guardiansCount % 3 == 0)
                                 _guardianTimer -= 5000;
@@ -573,7 +574,7 @@ class boss_voice_of_yogg_saron : public CreatureScript
                             events.ScheduleEvent(EVENT_SUMMON_CORRUPTOR_TENTACLE, 30000, EVENT_GROUP_SUMMON_TENTACLES, PHASE_TWO);
                             break;
                         case EVENT_SUMMON_CONSTRICTOR_TENTACLE:
-                            me->CastCustomSpell(SPELL_CONSTRICTOR_TENTACLE, SPELLVALUE_MAX_TARGETS, 1);
+                            DoCastAOE(SPELL_CONSTRICTOR_TENTACLE, { SPELLVALUE_MAX_TARGETS, 1 });
                             events.ScheduleEvent(EVENT_SUMMON_CONSTRICTOR_TENTACLE, 25000, EVENT_GROUP_SUMMON_TENTACLES, PHASE_TWO);
                             break;
                         case EVENT_SUMMON_CRUSHER_TENTACLE:
@@ -760,7 +761,7 @@ class boss_sara : public CreatureScript
                     Talk(SAY_SARA_KILL);
             }
 
-            void EnterCombat(Unit* /*who*/) override
+            void JustEngagedWith(Unit* /*who*/) override
             {
                 Talk(SAY_SARA_AGGRO);
                 _events.ScheduleEvent(EVENT_SARAS_FERVOR, 5000, 0, PHASE_ONE);
@@ -795,15 +796,15 @@ class boss_sara : public CreatureScript
                     switch (eventId)
                     {
                         case EVENT_SARAS_FERVOR:
-                            me->CastCustomSpell(SPELL_SARAS_FERVOR_TARGET_SELECTOR, SPELLVALUE_MAX_TARGETS, 1);
+                            DoCastAOE(SPELL_SARAS_FERVOR_TARGET_SELECTOR, { SPELLVALUE_MAX_TARGETS, 1 });
                             _events.ScheduleEvent(EVENT_SARAS_FERVOR, 6000, 0, PHASE_ONE);
                             break;
                         case EVENT_SARAS_ANGER:
-                            me->CastCustomSpell(SPELL_SARAS_ANGER_TARGET_SELECTOR, SPELLVALUE_MAX_TARGETS, 1);
+                            DoCastAOE(SPELL_SARAS_ANGER_TARGET_SELECTOR, { SPELLVALUE_MAX_TARGETS, 1 });
                             _events.ScheduleEvent(EVENT_SARAS_ANGER, urand(6000, 8000), 0, PHASE_ONE);
                             break;
                         case EVENT_SARAS_BLESSING:
-                            me->CastCustomSpell(SPELL_SARAS_BLESSING_TARGET_SELECTOR, SPELLVALUE_MAX_TARGETS, 1);
+                            DoCastAOE(SPELL_SARAS_BLESSING_TARGET_SELECTOR, { SPELLVALUE_MAX_TARGETS, 1 });
                             _events.ScheduleEvent(EVENT_SARAS_BLESSING, urand(6000, 30000), 0, PHASE_ONE);
                             break;
                         case EVENT_TRANSFORM_1:
@@ -837,15 +838,15 @@ class boss_sara : public CreatureScript
                             _events.ScheduleEvent(EVENT_DEATH_RAY, 21000, 0, PHASE_TWO);
                             break;
                         case EVENT_MALADY_OF_THE_MIND:
-                            me->CastCustomSpell(SPELL_MALADY_OF_THE_MIND, SPELLVALUE_MAX_TARGETS, 1);
+                            DoCastAOE(SPELL_MALADY_OF_THE_MIND, { SPELLVALUE_MAX_TARGETS, 1 });
                             _events.ScheduleEvent(EVENT_MALADY_OF_THE_MIND, urand(18000, 25000), 0, PHASE_TWO);
                             break;
                         case EVENT_PSYCHOSIS:
-                            me->CastCustomSpell(SPELL_PSYCHOSIS, SPELLVALUE_MAX_TARGETS, 1);
+                            DoCastAOE(SPELL_PSYCHOSIS, { SPELLVALUE_MAX_TARGETS, 1 });
                             _events.ScheduleEvent(EVENT_PSYCHOSIS, 4000, 0, PHASE_TWO);
                             break;
                         case EVENT_BRAIN_LINK:
-                            me->CastCustomSpell(SPELL_BRAIN_LINK, SPELLVALUE_MAX_TARGETS, 2);
+                            DoCastAOE(SPELL_BRAIN_LINK, { SPELLVALUE_MAX_TARGETS, 2 });
                             _events.ScheduleEvent(EVENT_BRAIN_LINK, urand(23000, 26000), 0, PHASE_TWO);
                             break;
                         default:
@@ -1307,7 +1308,7 @@ class npc_constrictor_tentacle : public CreatureScript
             void PassengerBoarded(Unit* passenger, int8 /*seatId*/, bool apply) override
             {
                 if (!apply)
-                    passenger->RemoveAurasDueToSpell(SPELL_SQUEEZE);
+                    passenger->RemoveAurasDueToSpell(RAID_MODE(SPELL_SQUEEZE_10, SPELL_SQUEEZE_25));
             }
 
             void UpdateAI(uint32 /*diff*/) override
@@ -1605,7 +1606,7 @@ class npc_yogg_saron_keeper : public CreatureScript
                 }
             }
 
-            void EnterCombat(Unit* /*who*/) override
+            void JustEngagedWith(Unit* /*who*/) override
             {
                 switch (me->GetEntry())
                 {
@@ -1641,7 +1642,7 @@ class npc_yogg_saron_keeper : public CreatureScript
                     switch (eventId)
                     {
                         case EVENT_DESTABILIZATION_MATRIX:
-                            me->CastCustomSpell(SPELL_DESTABILIZATION_MATRIX, SPELLVALUE_MAX_TARGETS, 1);
+                            DoCastAOE(SPELL_DESTABILIZATION_MATRIX, { SPELLVALUE_MAX_TARGETS, 1 });
                             _events.ScheduleEvent(EVENT_DESTABILIZATION_MATRIX, urand(15000, 25000), 0, PHASE_TWO);
                             break;
                         case EVENT_HODIRS_PROTECTIVE_GAZE:
@@ -2397,14 +2398,18 @@ class spell_yogg_saron_lunge : public SpellScriptLoader    // 64131
 
             bool Validate(SpellInfo const* /*spellInfo*/) override
             {
-                return ValidateSpellInfo({ SPELL_SQUEEZE });
+                return ValidateSpellInfo({ SPELL_SQUEEZE_10, SPELL_SQUEEZE_25 });
             }
 
             void HandleScript(SpellEffIndex /*effIndex*/)
             {
                 if (Unit* target = GetHitUnit())
                 {
-                    target->CastSpell(target, SPELL_SQUEEZE, true);
+                    if (target->GetMap()->Is25ManRaid())
+                        target->CastSpell(target, SPELL_SQUEEZE_25, true);
+                    else
+                        target->CastSpell(target, SPELL_SQUEEZE_10, true);
+
                     target->CastSpell(GetCaster(), uint32(GetEffectValue()), true);
                 }
             }
@@ -2421,7 +2426,7 @@ class spell_yogg_saron_lunge : public SpellScriptLoader    // 64131
         }
 };
 
-class spell_yogg_saron_squeeze : public SpellScriptLoader     // 64125
+class spell_yogg_saron_squeeze : public SpellScriptLoader     // 64125, 64126
 {
     public:
         spell_yogg_saron_squeeze() : SpellScriptLoader("spell_yogg_saron_squeeze") { }
@@ -2495,7 +2500,9 @@ class spell_yogg_saron_empowered : public SpellScriptLoader     // 64161
 
             void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
             {
-                GetTarget()->CastCustomSpell(SPELL_EMPOWERED_BUFF, SPELLVALUE_AURA_STACK, 9, GetTarget(), TRIGGERED_FULL_MASK);
+                CastSpellExtraArgs args(TRIGGERED_FULL_MASK);
+                args.SpellValueOverrides.AddMod(SPELLVALUE_AURA_STACK, 9);
+                GetTarget()->CastSpell(GetTarget(), SPELL_EMPOWERED_BUFF, args);
             }
 
             void OnPeriodic(AuraEffect const* /*aurEff*/)
@@ -2507,7 +2514,9 @@ class spell_yogg_saron_empowered : public SpellScriptLoader     // 64161
                 if (stack)
                 {
                     target->RemoveAurasDueToSpell(SPELL_WEAKENED);
-                    target->CastCustomSpell(SPELL_EMPOWERED_BUFF, SPELLVALUE_AURA_STACK, stack, target, TRIGGERED_FULL_MASK);
+                    CastSpellExtraArgs args(TRIGGERED_FULL_MASK);
+                    args.SpellValueOverrides.AddMod(SPELLVALUE_AURA_STACK, stack);
+                    target->CastSpell(target, SPELL_EMPOWERED_BUFF, args);
                 }
                 else if (!target->HealthAbovePct(1) && !target->HasAura(SPELL_WEAKENED))
                     target->CastSpell(target, SPELL_WEAKENED, true);
@@ -2735,8 +2744,9 @@ class spell_yogg_saron_grim_reprisal : public SpellScriptLoader     // 63305
                 if (!damageInfo || !damageInfo->GetDamage())
                     return;
 
-                int32 damage = CalculatePct(static_cast<int32>(damageInfo->GetDamage()), 60);
-                GetTarget()->CastCustomSpell(SPELL_GRIM_REPRISAL_DAMAGE, SPELLVALUE_BASE_POINT0, damage, damageInfo->GetAttacker(), true, nullptr, aurEff);
+                CastSpellExtraArgs args(aurEff);
+                args.SpellValueOverrides.AddBP0(CalculatePct(damageInfo->GetDamage(), 60));
+                GetTarget()->CastSpell(damageInfo->GetAttacker(), SPELL_GRIM_REPRISAL_DAMAGE, args);
             }
 
             void Register() override

@@ -70,6 +70,12 @@ enum DAMAGE_ABSORB_TYPE
     ONLY_MAGIC_ABSORB       = -1
 };
 
+enum class AuraTriggerOnPowerChangeDirection : int32
+{
+    Gain    = 0,
+    Loss    = 1
+};
+
 enum AuraType : uint32
 {
     SPELL_AURA_NONE                                         = 0,
@@ -143,7 +149,7 @@ enum AuraType : uint32
     SPELL_AURA_MOD_STALKED                                  = 68,
     SPELL_AURA_SCHOOL_ABSORB                                = 69,
     SPELL_AURA_PERIODIC_WEAPON_PERCENT_DAMAGE               = 70,
-    SPELL_AURA_STORE_TELEPORT_RETURN_POINT                  = 71,   // NYI
+    SPELL_AURA_STORE_TELEPORT_RETURN_POINT                  = 71,
     SPELL_AURA_MOD_POWER_COST_SCHOOL_PCT                    = 72,
     SPELL_AURA_MOD_POWER_COST_SCHOOL                        = 73,
     SPELL_AURA_REFLECT_SPELLS_SCHOOL                        = 74,
@@ -340,7 +346,7 @@ enum AuraType : uint32
     SPELL_AURA_265                                          = 265,
     SPELL_AURA_SET_VIGNETTE                                 = 266,  // NYI
     SPELL_AURA_MOD_IMMUNE_AURA_APPLY_SCHOOL                 = 267,
-    SPELL_AURA_268                                          = 268,  // old SPELL_AURA_MOD_ATTACK_POWER_OF_STAT_PERCENT. unused 4.3.4
+    SPELL_AURA_MOD_ARMOR_PCT_FROM_STAT                      = 268,
     SPELL_AURA_MOD_IGNORE_TARGET_RESIST                     = 269,
     SPELL_AURA_MOD_SCHOOL_MASK_DAMAGE_FROM_CASTER           = 270,
     SPELL_AURA_MOD_SPELL_DAMAGE_FROM_CASTER                 = 271,
@@ -400,7 +406,7 @@ enum AuraType : uint32
     SPELL_AURA_LEARN_PVP_TALENT                             = 325,  // NYI
     SPELL_AURA_PHASE_GROUP                                  = 326,  // Puts the player in all the phases that are in the group with id = miscB
     SPELL_AURA_PHASE_ALWAYS_VISIBLE                         = 327,  // Sets PhaseShiftFlags::AlwaysVisible
-    SPELL_AURA_TRIGGER_SPELL_ON_POWER_PCT                   = 328,  // NYI Triggers spell when power goes above (MiscB = 0) or falls below (MiscB = 1) specified percent value (once, not every time condition has meet)
+    SPELL_AURA_TRIGGER_SPELL_ON_POWER_PCT                   = 328,  // Triggers spell when power goes above (MiscB = 0) or falls below (MiscB = 1) specified percent value (once, not every time condition has meet)
     SPELL_AURA_MOD_POWER_GAIN_PCT                           = 329,
     SPELL_AURA_CAST_WHILE_WALKING                           = 330,
     SPELL_AURA_FORCE_WEATHER                                = 331,
@@ -418,7 +424,7 @@ enum AuraType : uint32
     SPELL_AURA_MOD_MELEE_DAMAGE_FROM_CASTER                 = 343,  // NYI
     SPELL_AURA_MOD_AUTOATTACK_DAMAGE                        = 344,
     SPELL_AURA_BYPASS_ARMOR_FOR_CASTER                      = 345,
-    SPELL_AURA_ENABLE_ALT_POWER                             = 346,  // NYI
+    SPELL_AURA_ENABLE_ALT_POWER                             = 346,
     SPELL_AURA_MOD_SPELL_COOLDOWN_BY_HASTE                  = 347,
     SPELL_AURA_MOD_MONEY_GAIN                               = 348,  // Modifies gold gains from source: [Misc = 0, Quests][Misc = 1, Loot]
     SPELL_AURA_MOD_CURRENCY_GAIN                            = 349,
@@ -426,7 +432,7 @@ enum AuraType : uint32
     SPELL_AURA_MOD_CURRENCY_CATEGORY_GAIN_PCT               = 351,  // NYI
     SPELL_AURA_352                                          = 352,
     SPELL_AURA_MOD_CAMOUFLAGE                               = 353,  // NYI
-    SPELL_AURA_MOD_HEALING_DONE_PCT_VERSUS_TARGET_HEALTH    = 354,  // NYI Restoration Shaman mastery - mod healing based on target's health (less = more healing)
+    SPELL_AURA_MOD_HEALING_DONE_PCT_VERSUS_TARGET_HEALTH    = 354,  // Restoration Shaman mastery - mod healing based on target's health (less = more healing)
     SPELL_AURA_MOD_CASTING_SPEED                            = 355,  // NYI
     SPELL_AURA_PROVIDE_TOTEM_CATEGORY                       = 356,
     SPELL_AURA_ENABLE_BOSS1_UNIT_FRAME                      = 357,
@@ -468,7 +474,7 @@ enum AuraType : uint32
     SPELL_AURA_BLOCK_SPELLS_IN_FRONT                        = 393,  // NYI
     SPELL_AURA_SHOW_CONFIRMATION_PROMPT                     = 394,
     SPELL_AURA_AREA_TRIGGER                                 = 395,  // NYI
-    SPELL_AURA_TRIGGER_SPELL_ON_POWER_AMOUNT                = 396,  // NYI Triggers spell when health goes above (MiscA = 0) or falls below (MiscA = 1) specified percent value (once, not every time condition has meet)
+    SPELL_AURA_TRIGGER_SPELL_ON_POWER_AMOUNT                = 396,  // Triggers spell when power goes above (MiscA = 0) or falls below (MiscA = 1) specified percent value (once, not every time condition has meet)
     SPELL_AURA_BATTLEGROUND_PLAYER_POSITION_FACTIONAL       = 397,
     SPELL_AURA_BATTLEGROUND_PLAYER_POSITION                 = 398,
     SPELL_AURA_MOD_TIME_RATE                                = 399,
@@ -556,7 +562,7 @@ enum AuraType : uint32
     SPELL_AURA_CONVERT_CONSUMED_RUNE                        = 481,
     SPELL_AURA_482                                          = 482,
     SPELL_AURA_SUPPRESS_TRANSFORMS                          = 483,  // NYI
-    SPELL_AURA_484                                          = 484,
+    SPELL_AURA_ALLOW_INTERRUPT_SPELL                        = 484,  // NYI
     SPELL_AURA_MOD_MOVEMENT_FORCE_MAGNITUDE                 = 485,
     SPELL_AURA_486                                          = 486,
     SPELL_AURA_487                                          = 487,
@@ -583,6 +589,54 @@ enum AuraObjectType
 {
     UNIT_AURA_TYPE,
     DYNOBJ_AURA_TYPE
+};
+
+// high byte (3 from 0..3) of UNIT_FIELD_BYTES_2
+enum ShapeshiftForm
+{
+    FORM_NONE                       = 0,
+    FORM_CAT_FORM                   = 1,
+    FORM_TREE_OF_LIFE               = 2,
+    FORM_TRAVEL_FORM                = 3,
+    FORM_AQUATIC_FORM               = 4,
+    FORM_BEAR_FORM                  = 5,
+    FORM_AMBIENT                    = 6,
+    FORM_GHOUL                      = 7,
+    FORM_DIRE_BEAR_FORM             = 8,
+    FORM_CRANE_STANCE               = 9,
+    FORM_THARONJA_SKELETON          = 10,
+    FORM_DARKMOON_TEST_OF_STRENGTH  = 11,
+    FORM_BLB_PLAYER                 = 12,
+    FORM_SHADOW_DANCE               = 13,
+    FORM_CREATURE_BEAR              = 14,
+    FORM_CREATURE_CAT               = 15,
+    FORM_GHOST_WOLF                 = 16,
+    FORM_BATTLE_STANCE              = 17,
+    FORM_DEFENSIVE_STANCE           = 18,
+    FORM_BERSERKER_STANCE           = 19,
+    FORM_SERPENT_STANCE             = 20,
+    FORM_ZOMBIE                     = 21,
+    FORM_METAMORPHOSIS              = 22,
+    FORM_OX_STANCE                  = 23,
+    FORM_TIGER_STANCE               = 24,
+    FORM_UNDEAD                     = 25,
+    FORM_FRENZY                     = 26,
+    FORM_FLIGHT_FORM_EPIC           = 27,
+    FORM_SHADOWFORM                 = 28,
+    FORM_FLIGHT_FORM                = 29,
+    FORM_STEALTH                    = 30,
+    FORM_MOONKIN_FORM               = 31,
+    FORM_SPIRIT_OF_REDEMPTION       = 32,
+    FORM_GLADIATOR_STANCE           = 33,
+    FORM_METAMORPHOSIS_2            = 34,
+    FORM_MOONKIN_FORM_RESTORATION   = 35,
+    FORM_TREANT_FORM                = 36,
+    FORM_SPIRIT_OWL_FORM            = 37,
+    FORM_SPIRIT_OWL_FORM_2          = 38,
+    FORM_WISP_FORM                  = 39,
+    FORM_WISP_FORM_2                = 40,
+    FORM_SOULSHAPE                  = 41,
+    FORM_FORGEBORNE_REVERIES        = 42
 };
 
 #endif

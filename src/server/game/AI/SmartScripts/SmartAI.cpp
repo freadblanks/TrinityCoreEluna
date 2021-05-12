@@ -242,14 +242,15 @@ void SmartAI::EndPath(bool fail)
     if (fail)
         return;
 
-    GetScript()->ProcessEventsFor(SMART_EVENT_WAYPOINT_ENDED, nullptr, _currentWaypointNode, GetScript()->GetPathId());
+    uint32 pathid = GetScript()->GetPathId();
+    GetScript()->ProcessEventsFor(SMART_EVENT_WAYPOINT_ENDED, nullptr, _currentWaypointNode, pathid);
 
     if (_repeatWaypointPath)
     {
         if (IsAIControlled())
             StartPath(mRun, GetScript()->GetPathId(), _repeatWaypointPath);
     }
-    else
+    else if (pathid == GetScript()->GetPathId()) // if it's not the same pathid, our script wants to start another path; don't override it
         GetScript()->SetPathId(0);
 
     if (mDespawnState == 1)
@@ -341,11 +342,12 @@ bool SmartAI::IsEscortInvokerInRange()
 }
 
 ///@todo move escort related logic
-void SmartAI::WaypointPathStarted(uint32 nodeId, uint32 pathId)
+void SmartAI::WaypointPathStarted(uint32 pathId)
 {
     if (!HasEscortState(SMART_ESCORT_ESCORTING))
     {
-        GetScript()->ProcessEventsFor(SMART_EVENT_WAYPOINT_START, nullptr, nodeId, pathId);
+        // @todo remove the constant 1 at some point, it's never anything different
+        GetScript()->ProcessEventsFor(SMART_EVENT_WAYPOINT_START, nullptr, 1, pathId);
         return;
     }
 }
@@ -557,7 +559,7 @@ void SmartAI::JustReachedHome()
         me->GetMotionMaster()->MoveIdle(); // wait the order of leader
 }
 
-void SmartAI::EnterCombat(Unit* enemy)
+void SmartAI::JustEngagedWith(Unit* enemy)
 {
     if (IsAIControlled())
         me->InterruptNonMeleeSpells(false); // must be before ProcessEvents
@@ -709,7 +711,7 @@ void SmartAI::SetData(uint32 id, uint32 value)
     GetScript()->ProcessEventsFor(SMART_EVENT_DATA_SET, nullptr, id, value);
 }
 
-void SmartAI::SetGUID(ObjectGuid /*guid*/, int32 /*id*/) { }
+void SmartAI::SetGUID(ObjectGuid const& /*guid*/, int32 /*id*/) { }
 
 ObjectGuid SmartAI::GetGUID(int32 /*id*/) const
 {
@@ -1164,9 +1166,53 @@ public:
     }
 };
 
+class SmartQuest : public QuestScript
+{
+public:
+    SmartQuest() : QuestScript("SmartQuest") { }
+
+    // Called when a quest status change
+    void OnQuestStatusChange(Player* player, Quest const* quest, QuestStatus /*oldStatus*/, QuestStatus newStatus) override
+    {
+        SmartScript smartScript;
+        smartScript.OnInitialize(nullptr, nullptr, nullptr, quest);
+        switch (newStatus)
+        {
+            case QUEST_STATUS_INCOMPLETE:
+                smartScript.ProcessEventsFor(SMART_EVENT_QUEST_ACCEPTED, player);
+                break;
+            case QUEST_STATUS_COMPLETE:
+                smartScript.ProcessEventsFor(SMART_EVENT_QUEST_COMPLETION, player);
+                break;
+            case QUEST_STATUS_FAILED:
+                smartScript.ProcessEventsFor(SMART_EVENT_QUEST_FAIL, player);
+                break;
+            case QUEST_STATUS_REWARDED:
+                smartScript.ProcessEventsFor(SMART_EVENT_QUEST_REWARDED, player);
+                break;
+            case QUEST_STATUS_NONE:
+            default:
+                break;
+        }
+    }
+
+    // Called when a quest objective data change
+    void OnQuestObjectiveChange(Player* player, Quest const* quest, QuestObjective const& objective, int32 /*oldAmount*/, int32 /*newAmount*/) override
+    {
+        uint16 slot = player->FindQuestSlot(quest->GetQuestId());
+        if (slot < MAX_QUEST_LOG_SIZE && player->IsQuestObjectiveComplete(slot, quest, objective))
+        {
+            SmartScript smartScript;
+            smartScript.OnInitialize(nullptr, nullptr, nullptr, quest);
+            smartScript.ProcessEventsFor(SMART_EVENT_QUEST_OBJ_COPLETETION, player, objective.ID);
+        }
+    }
+};
+
 void AddSC_SmartScripts()
 {
     new SmartTrigger();
     new SmartAreaTriggerEntityScript();
     new SmartScene();
+    new SmartQuest();
 }

@@ -375,7 +375,7 @@ enum CriteriaAdditionalCondition
     CRITERIA_ADDITIONAL_CONDITION_TIME_IN_RANGE                 = 109, // NYI, packed time between asset and secondaryAsset
     CRITERIA_ADDITIONAL_CONDITION_REWARDED_QUEST                = 110,
     CRITERIA_ADDITIONAL_CONDITION_COMPLETED_QUEST               = 111,
-    CRITERIA_ADDITIONAL_CONDITION_COMPLETED_QUEST_OBJECTIVE     = 112, // NYI, QuestObjectiveID
+    CRITERIA_ADDITIONAL_CONDITION_COMPLETED_QUEST_OBJECTIVE     = 112, // QuestObjectiveID
     CRITERIA_ADDITIONAL_CONDITION_EXPLORED_AREA                 = 113,
     CRITERIA_ADDITIONAL_CONDITION_ITEM_COUNT_INCLUDING_BANK     = 114,
     //CRITERIA_ADDITIONAL_CONDITION_UNK_115                     = 115, // NYI
@@ -451,7 +451,7 @@ enum CriteriaAdditionalCondition
     //CRITERIA_ADDITIONAL_CONDITION_UNK_185                     = 185, // NYI
     //CRITERIA_ADDITIONAL_CONDITION_UNK_186                     = 186, // NYI
     CRITERIA_ADDITIONAL_CONDITION_GARRISON_FOLLOWER_TYPE        = 187, // NYI
-    //CRITERIA_ADDITIONAL_CONDITION_UNK_188                     = 188, // NYI
+    CRITERIA_ADDITIONAL_CONDITION_USED_LEVEL_BOOST_LESS_THAN_HOURS_AGO = 188, // NYI
     //CRITERIA_ADDITIONAL_CONDITION_UNK_189                     = 189, // NYI
     //CRITERIA_ADDITIONAL_CONDITION_UNK_190                     = 190, // NYI
     //CRITERIA_ADDITIONAL_CONDITION_UNK_191                     = 191, // NYI
@@ -1105,65 +1105,95 @@ enum ItemBonusType
 
 enum class ItemContext : uint8
 {
-    NONE                    = 0,
-    Dungeon_Normal          = 1,
-    Dungeon_Heroic          = 2,
-    Raid_Normal             = 3,
-    Raid_Raid_Finder        = 4,
-    Raid_Heroic             = 5,
-    Raid_Mythic             = 6,
-    PVP_Unranked_1          = 7,
-    PVP_Ranked_1            = 8,
-    Scenario_Normal         = 9,
-    Scenario_Heroic         = 10,
-    Quest_Reward            = 11,
-    Store                   = 12,
-    Trade_Skill             = 13,
-    Vendor                  = 14,
-    Black_Market            = 15,
-    Challenge_Mode_1        = 16,
-    Dungeon_Lvl_Up_1        = 17,
-    Dungeon_Lvl_Up_2        = 18,
-    Dungeon_Lvl_Up_3        = 19,
-    Dungeon_Lvl_Up_4        = 20,
-    Force_to_NONE           = 21,
-    TimeWalker              = 22,
-    Dungeon_Mythic          = 23,
-    Pvp_Honor_Reward        = 24,
-    World_Quest_1           = 25,
-    World_Quest_2           = 26,
-    World_Quest_3           = 27,
-    World_Quest_4           = 28,
-    World_Quest_5           = 29,
-    World_Quest_6           = 30,
-    Mission_Reward_1        = 31,
-    Mission_Reward_2        = 32,
-    Challenge_Mode_2        = 33,
-    Challenge_Mode_3        = 34,
-    Challenge_Mode_Jackpot  = 35,
-    World_Quest_7           = 36,
-    World_Quest_8           = 37,
-    PVP_Ranked_2            = 38,
-    PVP_Ranked_3            = 39,
-    PVP_Ranked_4            = 40,
-    PVP_Unranked_2          = 41,
-    World_Quest_9           = 42,
-    World_Quest_10          = 43,
-    PVP_Ranked_5            = 44,
-    PVP_Ranked_6            = 45,
-    PVP_Ranked_7            = 46,
-    PVP_Unranked_3          = 47,
-    PVP_Unranked_4          = 48,
-    PVP_Unranked_5          = 49,
-    PVP_Unranked_6          = 50,
-    PVP_Unranked_7          = 51,
-    PVP_Ranked_8            = 52,
-    World_Quest_11          = 53,
-    World_Quest_12          = 54,
-    World_Quest_13          = 55,
-    PVP_Ranked_Jackpot      = 56,
-    Tournament_Realm        = 57,
-    Relinquished            = 58,
+    NONE                                = 0,
+    Dungeon_Normal                      = 1,
+    Dungeon_Heroic                      = 2,
+    Raid_Normal                         = 3,
+    Raid_Raid_Finder                    = 4,
+    Raid_Heroic                         = 5,
+    Raid_Mythic                         = 6,
+    PVP_Unranked_1                      = 7,
+    PVP_Ranked_1_Unrated                = 8,
+    Scenario_Normal                     = 9,
+    Scenario_Heroic                     = 10,
+    Quest_Reward                        = 11,
+    In_Game_Store                       = 12,
+    Trade_Skill                         = 13,
+    Vendor                              = 14,
+    Black_Market                        = 15,
+    MythicPlus_End_of_Run               = 16,
+    Dungeon_Lvl_Up_1                    = 17,
+    Dungeon_Lvl_Up_2                    = 18,
+    Dungeon_Lvl_Up_3                    = 19,
+    Dungeon_Lvl_Up_4                    = 20,
+    Force_to_NONE                       = 21,
+    Timewalking                         = 22,
+    Dungeon_Mythic                      = 23,
+    Pvp_Honor_Reward                    = 24,
+    World_Quest_1                       = 25,
+    World_Quest_2                       = 26,
+    World_Quest_3                       = 27,
+    World_Quest_4                       = 28,
+    World_Quest_5                       = 29,
+    World_Quest_6                       = 30,
+    Mission_Reward_1                    = 31,
+    Mission_Reward_2                    = 32,
+    MythicPlus_End_of_Run_Time_Chest    = 33,
+    zzChallenge_Mode_3                  = 34,
+    MythicPlus_Jackpot                  = 35,
+    World_Quest_7                       = 36,
+    World_Quest_8                       = 37,
+    PVP_Ranked_2_Combatant              = 38,
+    PVP_Ranked_3_Challenger             = 39,
+    PVP_Ranked_4_Rival                  = 40,
+    PVP_Unranked_2                      = 41,
+    World_Quest_9                       = 42,
+    World_Quest_10                      = 43,
+    PVP_Ranked_5_Duelist                = 44,
+    PVP_Ranked_6_Elite                  = 45,
+    PVP_Ranked_7                        = 46,
+    PVP_Unranked_3                      = 47,
+    PVP_Unranked_4                      = 48,
+    PVP_Unranked_5                      = 49,
+    PVP_Unranked_6                      = 50,
+    PVP_Unranked_7                      = 51,
+    PVP_Ranked_8                        = 52,
+    World_Quest_11                      = 53,
+    World_Quest_12                      = 54,
+    World_Quest_13                      = 55,
+    PVP_Ranked_Jackpot                  = 56,
+    Tournament_Realm                    = 57,
+    Relinquished                        = 58,
+    Legendary_Forge                     = 59,
+    Quest_Bonus_Loot                    = 60,
+    Character_Boost_BFA                 = 61,
+    Character_Boost_Shadowlands         = 62,
+    Legendary_Crafting_1                = 63,
+    Legendary_Crafting_2                = 64,
+    Legendary_Crafting_3                = 65,
+    Legendary_Crafting_4                = 66,
+    Legendary_Crafting_5                = 67,
+    Legendary_Crafting_6                = 68,
+    Legendary_Crafting_7                = 69,
+    Legendary_Crafting_8                = 70,
+    Legendary_Crafting_9                = 71,
+    Weekly_Rewards_Additional           = 72,
+    Weekly_Rewards_Concession           = 73,
+    World_Quest_Jackpot                 = 74,
+    New_Character                       = 75,
+    War_Mode                            = 76,
+    PvP_Brawl_1                         = 77,
+    PvP_Brawl_2                         = 78,
+    Torghast                            = 79,
+    Corpse_Recovery                     = 80,
+    World_Boss                          = 81,
+    Raid_Normal_Extended                = 82,
+    Raid_Raid_Finder_Extended           = 83,
+    Raid_Heroic_Extended                = 84,
+    Raid_Mythic_Extended                = 85,
+    Character_Template_9_1              = 86,
+
+    Max
 };
 
 enum ItemLimitCategoryMode
@@ -1359,18 +1389,28 @@ enum SpellProcsPerMinuteModType
 
 constexpr std::size_t MAX_POWERS_PER_SPELL = 4;
 
-enum SpellShapeshiftFormFlags
+enum class SpellShapeshiftFormFlags : int32
 {
-    SHAPESHIFT_FORM_IS_NOT_A_SHAPESHIFT         = 0x0001,
-    SHAPESHIFT_FORM_CANNOT_CANCEL               = 0x0002,   // player cannot cancel the aura giving this shapeshift
-    SHAPESHIFT_FORM_CAN_INTERACT                = 0x0008,   // if the form does not have SHAPESHIFT_FORM_IS_NOT_A_SHAPESHIFT then this flag must be present to allow NPC interaction
-    SHAPESHIFT_FORM_CAN_EQUIP_ITEMS             = 0x0040,   // if the form does not have SHAPESHIFT_FORM_IS_NOT_A_SHAPESHIFT then this flag allows equipping items without ITEM_FLAG_USABLE_WHEN_SHAPESHIFTED
-    SHAPESHIFT_FORM_CAN_USE_ITEMS               = 0x0080,   // if the form does not have SHAPESHIFT_FORM_IS_NOT_A_SHAPESHIFT then this flag allows using items without ITEM_FLAG_USABLE_WHEN_SHAPESHIFTED
-    SHAPESHIFT_FORM_CAN_AUTO_UNSHIFT            = 0x0100,   // clientside
-    SHAPESHIFT_FORM_PREVENT_LFG_TELEPORT        = 0x0200,
-    SHAPESHIFT_FORM_PREVENT_USING_OWN_SKILLS    = 0x0400,   // prevents using spells that don't have any shapeshift requirement
-    SHAPESHIFT_FORM_PREVENT_EMOTE_SOUNDS        = 0x1000
+    Stance                      = 0x00000001,
+    NotToggleable               = 0x00000002,   // player cannot cancel the aura giving this shapeshift
+    PersistOnDeath              = 0x00000004,
+    CanInteractNPC              = 0x00000008,   // if the form does not have SHAPESHIFT_FORM_IS_NOT_A_SHAPESHIFT then this flag must be present to allow NPC interaction
+    DontUseWeapon               = 0x00000010,
+
+    CanUseEquippedItems         = 0x00000040,   // if the form does not have SHAPESHIFT_FORM_IS_NOT_A_SHAPESHIFT then this flag allows equipping items without ITEM_FLAG_USABLE_WHEN_SHAPESHIFTED
+    CanUseItems                 = 0x00000080,   // if the form does not have SHAPESHIFT_FORM_IS_NOT_A_SHAPESHIFT then this flag allows using items without ITEM_FLAG_USABLE_WHEN_SHAPESHIFTED
+    DontAutoUnshift             = 0x00000100,   // clientside
+    ConsideredDead              = 0x00000200,
+    CanOnlyCastShapeshiftSpells = 0x00000400,   // prevents using spells that don't have any shapeshift requirement
+    StanceCancelsAtFlightmaster = 0x00000800,
+    NoEmoteSounds               = 0x00001000,
+    NoTriggerTeleport           = 0x00002000,
+    CannotChangeEquippedItems   = 0x00004000,
+
+    CannotUseGameObjects        = 0x00010000
 };
+
+DEFINE_ENUM_FLAG(SpellShapeshiftFormFlags);
 
 #define TaxiMaskSize 337
 typedef std::array<uint8, TaxiMaskSize> TaxiMask;
@@ -1423,7 +1463,7 @@ enum SummonPropFlags
     SUMMON_PROP_FLAG_UNK2            = 0x00000002,          // 616 spells in 3.0.3, something friendly
     SUMMON_PROP_FLAG_UNK3            = 0x00000004,          // 22 spells in 3.0.3, no idea...
     SUMMON_PROP_FLAG_UNK4            = 0x00000008,          // 49 spells in 3.0.3, some mounts
-    SUMMON_PROP_FLAG_PERSONAL_SPAWN  = 0x00000010,          // Personal Spawn (creature visible only by summoner)
+    SUMMON_PROP_FLAG_PERSONAL_SPAWN  = 0x00000010,          // Only Visible to Summoner
     SUMMON_PROP_FLAG_UNK6            = 0x00000020,          // 0 spells in 3.3.5, unused
     SUMMON_PROP_FLAG_UNK7            = 0x00000040,          // 12 spells in 3.0.3, no idea
     SUMMON_PROP_FLAG_UNK8            = 0x00000080,          // 4 spells in 3.0.3, no idea
@@ -1435,7 +1475,7 @@ enum SummonPropFlags
     SUMMON_PROP_FLAG_UNK14           = 0x00002000,          // Guides, player follows
     SUMMON_PROP_FLAG_UNK15           = 0x00004000,          // Force of Nature, Shadowfiend, Feral Spirit, Summon Water Elemental
     SUMMON_PROP_FLAG_UNK16           = 0x00008000,          // Light/Dark Bullet, Soul/Fiery Consumption, Twisted Visage, Twilight Whelp. Phase related?
-    SUMMON_PROP_FLAG_UNK17           = 0x00010000,
+    SUMMON_PROP_FLAG_PERSONAL_GROUP_SPAWN = 0x00010000,     // Only Visible to Summoner's Group
     SUMMON_PROP_FLAG_UNK18           = 0x00020000,
     SUMMON_PROP_FLAG_UNK19           = 0x00040000,
     SUMMON_PROP_FLAG_UNK20           = 0x00080000,
@@ -1547,6 +1587,7 @@ enum VehicleSeatFlagsB
     VEHICLE_SEAT_FLAG_B_EJECTABLE                = 0x00000020,           // ejectable
     VEHICLE_SEAT_FLAG_B_USABLE_FORCED_2          = 0x00000040,
     VEHICLE_SEAT_FLAG_B_USABLE_FORCED_3          = 0x00000100,
+    VEHICLE_SEAT_FLAG_B_PASSENGER_MIRRORS_ANIMS  = 0x00010000,           // Passenger forced to repeat all vehicle animations
     VEHICLE_SEAT_FLAG_B_KEEP_PET                 = 0x00020000,
     VEHICLE_SEAT_FLAG_B_USABLE_FORCED_4          = 0x02000000,
     VEHICLE_SEAT_FLAG_B_CAN_SWITCH               = 0x04000000,

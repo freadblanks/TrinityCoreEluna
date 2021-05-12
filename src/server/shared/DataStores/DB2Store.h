@@ -95,7 +95,6 @@ public:
 
     T const* LookupEntry(uint32 id) const { return (id >= _indexTableSize) ? nullptr : _indexTable.AsT[id]; }
     T const* AssertEntry(uint32 id) const { return ASSERT_NOTNULL(LookupEntry(id)); }
-    T const* operator[](uint32 id) const { return LookupEntry(id); }
 
 #ifdef ELUNA
     void SetEntry(uint32 id, T* t)

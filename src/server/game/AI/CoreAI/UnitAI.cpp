@@ -18,7 +18,6 @@
 #include "UnitAI.h"
 #include "Creature.h"
 #include "CreatureAIImpl.h"
-#include "LootMgr.h"
 #include "Map.h"
 #include "MotionMaster.h"
 #include "Player.h"
@@ -96,7 +95,7 @@ bool UnitAI::DoSpellAttackIfReady(uint32 spellId)
     {
         if (me->IsWithinCombatRange(me->GetVictim(), spellInfo->GetMaxRange(false)))
         {
-            me->CastSpell(me->GetVictim(), spellInfo, TRIGGERED_NONE);
+            me->CastSpell(me->GetVictim(), spellId, me->GetMap()->GetDifficultyID());
             me->resetAttackTimer();
             return true;
         }
@@ -154,7 +153,7 @@ void UnitAI::DoCast(uint32 spellId)
                 float range = spellInfo->GetMaxRange(false);
 
                 DefaultTargetSelector targetSelector(me, range, playerOnly, true, -(int32)spellId);
-                if (!spellInfo->HasAuraInterruptFlag(AURA_INTERRUPT_FLAG_NOT_VICTIM) && targetSelector(me->GetVictim()))
+                if (!spellInfo->HasAuraInterruptFlag(SpellAuraInterruptFlags::NOT_VICTIM) && targetSelector(me->GetVictim()))
                     target = me->GetVictim();
                 else
                     target = SelectTarget(SELECT_TARGET_RANDOM, 0, targetSelector);
@@ -167,28 +166,18 @@ void UnitAI::DoCast(uint32 spellId)
         me->CastSpell(target, spellId, false);
 }
 
-void UnitAI::DoCast(Unit* victim, uint32 spellId, bool triggered)
+void UnitAI::DoCast(Unit* victim, uint32 spellId, CastSpellExtraArgs const& args)
 {
-    if (!victim || (me->HasUnitState(UNIT_STATE_CASTING) && !triggered))
+    if (me->HasUnitState(UNIT_STATE_CASTING) && !(args.TriggerFlags & TRIGGERED_IGNORE_CAST_IN_PROGRESS))
         return;
 
-    me->CastSpell(victim, spellId, triggered);
+    me->CastSpell(victim, spellId, args);
 }
 
-void UnitAI::DoCastVictim(uint32 spellId, bool triggered)
+void UnitAI::DoCastVictim(uint32 spellId, CastSpellExtraArgs const& args)
 {
-    if (!me->GetVictim() || (me->HasUnitState(UNIT_STATE_CASTING) && !triggered))
-        return;
-
-    me->CastSpell(me->GetVictim(), spellId, triggered);
-}
-
-void UnitAI::DoCastAOE(uint32 spellId, bool triggered)
-{
-    if (!triggered && me->HasUnitState(UNIT_STATE_CASTING))
-        return;
-
-    me->CastSpell(nullptr, spellId, triggered);
+    if (Unit* victim = me->GetVictim())
+        DoCast(victim, spellId, args);
 }
 
 #define UPDATE_TARGET(a) {if (AIInfo->target<a) AIInfo->target=a;}
@@ -311,16 +300,6 @@ void UnitAI::FillAISpellInfo()
                 AIInfo->Effects |= 1 << (SELECT_EFFECT_AURA - 1);
         }
     });
-}
-
-void UnitAI::QuestReward(Player* player, Quest const* quest, uint32 opt)
-{
-    QuestReward(player, quest, LootItemType::Item, opt);
-}
-
-QuestGiverStatus UnitAI::GetDialogStatus(Player* /*player*/)
-{
-    return QuestGiverStatus::ScriptedDefault;
 }
 
 ThreatManager& UnitAI::GetThreatManager()
