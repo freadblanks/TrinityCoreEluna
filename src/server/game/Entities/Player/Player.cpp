@@ -1826,6 +1826,7 @@ void Player::Regenerate(Powers power)
     else
         return;
 
+    bool forcesSetPower = false;
     if (addvalue < 0.0f)
     {
         if (curValue > minPower + integerValue)
@@ -1837,6 +1838,7 @@ void Player::Regenerate(Powers power)
         {
             curValue = minPower;
             m_powerFraction[powerIndex] = 0;
+            forcesSetPower = true;
         }
     }
     else
@@ -1850,13 +1852,14 @@ void Player::Regenerate(Powers power)
         {
             curValue = maxPower;
             m_powerFraction[powerIndex] = 0;
+            forcesSetPower = true;
         }
     }
 
     if (GetCommandStatus(CHEAT_POWER))
         curValue = maxPower;
 
-    if (m_regenTimerCount >= 2000)
+    if (m_regenTimerCount >= 2000 || forcesSetPower)
         SetPower(power, curValue);
     else
     {
