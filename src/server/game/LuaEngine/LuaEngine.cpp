@@ -13,6 +13,7 @@
 #include "ElunaUtility.h"
 #include "ElunaCreatureAI.h"
 #include "ElunaInstanceAI.h"
+#include <iostream>
 
 #ifdef TRINITY_PLATFORM && defined(TRINITY_PLATFORM_WINDOWS)
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
@@ -1052,16 +1053,19 @@ int Eluna::Register(lua_State* L, uint8 regtype, uint32 entry, ObjectGuid guid, 
         case Hooks::REGTYPE_GAMEOBJECT:
             if (event_id < Hooks::GAMEOBJECT_EVENT_COUNT)
             {
-                if (!eObjectMgr->GetGameObjectTemplate(entry))
+                if (entry != 0)
                 {
-                    luaL_unref(L, LUA_REGISTRYINDEX, functionRef);
-                    luaL_error(L, "Couldn't find a gameobject with (ID: %d)!", entry);
-                    return 0; // Stack: (empty)
-                }
+                    if (!eObjectMgr->GetGameObjectTemplate(entry))
+                    {
+                        luaL_unref(L, LUA_REGISTRYINDEX, functionRef);
+                        luaL_error(L, "Couldn't find a gameobject with (ID: %d)!", entry);
+                        return 0; // Stack: (empty)
+                    }
 
-                auto key = EntryKey<Hooks::GameObjectEvents>((Hooks::GameObjectEvents)event_id, entry);
-                bindingID = GameObjectEventBindings->Insert(key, functionRef, shots);
-                createCancelCallback(L, bindingID, GameObjectEventBindings);
+                    auto key = EntryKey<Hooks::GameObjectEvents>((Hooks::GameObjectEvents)event_id, entry);
+                    bindingID = GameObjectEventBindings->Insert(key, functionRef, shots);
+                    createCancelCallback(L, bindingID, GameObjectEventBindings);
+                }
                 return 1; // Stack: callback
             }
             break;

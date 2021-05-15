@@ -32,13 +32,13 @@ EndScriptData */
 #include "Chat.h"
 #include "ConversationDataStore.h"
 #include "Creature.h"
-//#include "CreatureOutfit.h"
+#include "CreatureOutfit.h"
 #include "CreatureTextMgr.h"
 #include "DatabaseEnv.h"
 #include "DisableMgr.h"
 #include "ItemEnchantmentMgr.h"
-#include "Language.h"
 #include "LFGMgr.h"
+#include "Language.h"
 #include "Log.h"
 #include "LootMgr.h"
 #include "MapManager.h"
@@ -51,6 +51,34 @@ EndScriptData */
 #include "WardenCheckMgr.h"
 #include "WaypointManager.h"
 #include "World.h"
+
+// new include
+#include "DB2Store.h"
+#include "DB2Stores.h"
+#include "DB2LoadInfo.h"
+#include "DB2DatabaseLoader.h"
+#include "HotfixPackets.h"
+#include "WorldSession.h"
+#include "PacketUtilities.h"
+#include "WorldSocket.h"
+#include "ClientConfigPackets.h"
+#include "WorldSession.h"
+#include "WorldPacket.h"
+#include "WorldSocket.h"
+#include "ObjectAccessor.h"
+#include "Corpse.h"
+#include "Creature.h"
+#include "DynamicObject.h"
+#include "GameObject.h"
+#include "GridNotifiers.h"
+#include "Item.h"
+#include "Map.h"
+#include "ObjectDefines.h"
+#include "Pet.h"
+#include "Player.h"
+#include "Transport.h"
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/locks.hpp>
 
 class reload_commandscript : public CommandScript
 {
@@ -97,7 +125,8 @@ public:
             { "creature_onkill_reputation",    rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_ONKILL_REPUTATION,       true,  &HandleReloadOnKillReputationCommand,           "" },
             { "creature_queststarter",         rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_QUESTSTARTER,            true,  &HandleReloadCreatureQuestStarterCommand,       "" },
             { "creature_summon_groups",        rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_SUMMON_GROUPS,           true,  &HandleReloadCreatureSummonGroupsCommand,       "" },
-            //{ "creature_template_outfits",     rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_TEMPLATE,                true,  &HandleReloadCreatureTemplateOutfitsCommand,    "" },
+            { "creature_template_outfits",     rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_TEMPLATE,                true,  &HandleReloadCreatureTemplateOutfitsCommand,    "" },
+            { "creature_template_all",         rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_TEMPLATE,                true,  &HandleReloadCreatureTemplateAllCommand,        "" },
             { "creature_template",             rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_TEMPLATE,                true,  &HandleReloadCreatureTemplateCommand,           "" },
             { "criteria_data",                 rbac::RBAC_PERM_COMMAND_RELOAD_CRITERIA_DATA,                    true,  &HandleReloadCriteriaDataCommand,               "" },
             { "disables",                      rbac::RBAC_PERM_COMMAND_RELOAD_DISABLES,                         true,  &HandleReloadDisablesCommand,                   "" },
@@ -153,6 +182,7 @@ public:
             { "spell_linked_spell",            rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_LINKED_SPELL,               true,  &HandleReloadSpellLinkedSpellCommand,           "" },
             { "spell_pet_auras",               rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_PET_AURAS,                  true,  &HandleReloadSpellPetAurasCommand,              "" },
             { "spell_proc",                    rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_PROC,                       true,  &HandleReloadSpellProcsCommand,                 "" },
+            { "spell_script_names",            rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_SCRIPTS,                    true,  &HandleReloadScriptNamesCommand,                "" },
             { "spell_scripts",                 rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_SCRIPTS,                    true,  &HandleReloadSpellScriptsCommand,               "" },
             { "spell_target_position",         rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_TARGET_POSITION,            true,  &HandleReloadSpellTargetPositionCommand,        "" },
             { "spell_threats",                 rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_THREATS,                    true,  &HandleReloadSpellThreatsCommand,               "" },
@@ -166,6 +196,11 @@ public:
             { "vehicle_template",              rbac::RBAC_PERM_COMMAND_RELOAD_VEHICLE_TEMPLATE,                 true,  &HandleReloadVehicleTemplateCommand,            "" },
             { "vehicle_accessory",             rbac::RBAC_PERM_COMMAND_RELOAD_VEHICLE_ACCESORY,                 true,  &HandleReloadVehicleAccessoryCommand,           "" },
             { "vehicle_template_accessory",    rbac::RBAC_PERM_COMMAND_RELOAD_VEHICLE_TEMPLATE_ACCESSORY,       true,  &HandleReloadVehicleTemplateAccessoryCommand,   "" },
+            { "hotfixes",	                   rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadHotfixesCommand,				   "" },
+            { "creature_equip_template",	   rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadCreatureEquipTemplateCommand,	   "" },
+            { "gameobject_template",		   rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadGameObjectTemplateCommand,		   "" },
+            { "creature_template_addons",      rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadCreatureTemplateAddCommand,		   "" },
+            { "creature_addons",			   rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadCreatureAddonsCommand,			   "" },
         };
         static std::vector<ChatCommand> commandTable =
         {
@@ -207,7 +242,7 @@ public:
         HandleReloadGameTeleCommand(handler, "");
 
         HandleReloadCreatureSummonGroupsCommand(handler, "");
-        //HandleReloadCreatureTemplateOutfitsCommand(handler, "");
+        HandleReloadCreatureTemplateOutfitsCommand(handler, "");
 
         HandleReloadVehicleAccessoryCommand(handler, "");
         HandleReloadVehicleTemplateAccessoryCommand(handler, "");
@@ -426,6 +461,16 @@ public:
         return true;
     }
 
+    static bool HandleReloadCreatureTemplateAllCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        TC_LOG_INFO("misc", "Reloading creature template...");
+        sObjectMgr->LoadCreatureTemplates();
+        handler->SendGlobalGMSysMessage("DB table `creature_template` reloaded.");
+        TC_LOG_INFO("server.loading", "Initialize query data...");
+        sObjectMgr->InitializeQueriesData(QUERY_DATA_CREATURES);
+        return true;
+    }
+
     static bool HandleReloadCreatureTemplateCommand(ChatHandler* handler, char const* args)
     {
         if (!*args)
@@ -467,23 +512,23 @@ public:
         return true;
     }
 
-    //static bool HandleReloadCreatureTemplateOutfitsCommand(ChatHandler* handler, const char* /*args*/)
-    //{
-    //    /*TC_LOG_INFO("misc", "Loading Creature Outfits... (`creature_template_outfits`)");
-    //    sObjectMgr->LoadCreatureOutfits();
-    //    sMapMgr->DoForAllMaps([](Map* map)
-    //    {
-    //        for (auto e : map->GetCreatureBySpawnIdStore())
-    //        {
-    //            auto const& outfit = e.second->GetOutfit();
-    //            if (outfit && outfit->GetId())
-    //                e.second->SetDisplayId(outfit->GetId());
-    //        }
-    //    });
+    static bool HandleReloadCreatureTemplateOutfitsCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        TC_LOG_INFO("misc", "Loading Creature Outfits... (`creature_template_outfits`)");
+        sObjectMgr->LoadCreatureOutfits();
+        sMapMgr->DoForAllMaps([](Map* map)
+        {
+            for (auto e : map->GetCreatureBySpawnIdStore())
+            {
+                auto const& outfit = e.second->GetOutfit();
+                if (outfit && outfit->GetId())
+                    e.second->SetDisplayId(outfit->GetId());
+            }
+        });
 
-    //    handler->SendGlobalGMSysMessage("DB table `creature_template_outfits` reloaded.");
-    //    return true;*/
-    //}
+        handler->SendGlobalGMSysMessage("DB table `creature_template_outfits` reloaded.");
+        return true;
+    }
 
     static bool HandleReloadCreatureQuestStarterCommand(ChatHandler* handler, char const* /*args*/)
     {
@@ -1193,6 +1238,233 @@ public:
         sAccountMgr->LoadRBAC();
         sWorld->ReloadRBAC();
         handler->SendGlobalGMSysMessage("RBAC data reloaded.");
+        return true;
+    }
+
+    static bool HandleReloadHotfixesCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        // hotfix_data
+        TC_LOG_INFO("misc", "Reloading hotfix info...");
+        sDB2Manager.LoadHotfixData();
+
+        // DB2
+        sAnimKitStore.LoadFromDB();
+        sAreaTableStore.LoadFromDB();
+        sAreaTriggerStore.LoadFromDB();
+        sArmorLocationStore.LoadFromDB();
+        sArtifactStore.LoadFromDB();
+        sArtifactAppearanceStore.LoadFromDB();
+        sArtifactAppearanceSetStore.LoadFromDB();
+        sArtifactCategoryStore.LoadFromDB();
+        sArtifactPowerStore.LoadFromDB();
+        sArtifactPowerPickerStore.LoadFromDB();
+        sAuctionHouseStore.LoadFromDB();
+        sBankBagSlotPricesStore.LoadFromDB();
+        sBarberShopStyleStore.LoadFromDB();
+        sBattlePetBreedQualityStore.LoadFromDB();
+        sBattlePetBreedStateStore.LoadFromDB();
+        sBattlePetSpeciesStore.LoadFromDB();
+        sBattlePetSpeciesStateStore.LoadFromDB();
+        sBattlemasterListStore.LoadFromDB();
+        sBroadcastTextStore.LoadFromDB();
+        sCharTitlesStore.LoadFromDB();
+        sChatChannelsStore.LoadFromDB();
+        sChrClassesStore.LoadFromDB();
+        sChrRacesStore.LoadFromDB();
+        sChrSpecializationStore.LoadFromDB();
+        sCinematicCameraStore.LoadFromDB();
+        sCinematicSequencesStore.LoadFromDB();
+        sConversationLineStore.LoadFromDB();
+        sCreatureDisplayInfoExtraStore.LoadFromDB();
+        sCreatureFamilyStore.LoadFromDB();
+        sCreatureModelDataStore.LoadFromDB();
+        sCreatureTypeStore.LoadFromDB();
+        sCriteriaStore.LoadFromDB();
+        sCriteriaTreeStore.LoadFromDB();
+        sCurrencyTypesStore.LoadFromDB();
+        sCurveStore.LoadFromDB();
+        sDestructibleModelDataStore.LoadFromDB();
+        sDifficultyStore.LoadFromDB();
+        sDungeonEncounterStore.LoadFromDB();
+        sDurabilityCostsStore.LoadFromDB();
+        sDurabilityQualityStore.LoadFromDB();
+        sEmotesStore.LoadFromDB();
+        sEmotesTextStore.LoadFromDB();
+        sFactionStore.LoadFromDB();
+        sFactionTemplateStore.LoadFromDB();
+        sGameObjectsStore.LoadFromDB();
+        sGameObjectDisplayInfoStore.LoadFromDB();
+        sGarrAbilityStore.LoadFromDB();
+        sGarrBuildingStore.LoadFromDB();
+        sGarrBuildingPlotInstStore.LoadFromDB();
+        sGarrClassSpecStore.LoadFromDB();
+        sGarrFollowerStore.LoadFromDB();
+        sGarrFollowerXAbilityStore.LoadFromDB();
+        sGarrPlotBuildingStore.LoadFromDB();
+        sGarrPlotStore.LoadFromDB();
+        sGarrPlotInstanceStore.LoadFromDB();
+        sGarrSiteLevelStore.LoadFromDB();
+        sGarrSiteLevelPlotInstStore.LoadFromDB();
+        sGemPropertiesStore.LoadFromDB();
+        sGlyphPropertiesStore.LoadFromDB();
+        sGuildColorBackgroundStore.LoadFromDB();
+        sGuildColorBorderStore.LoadFromDB();
+        sGuildColorEmblemStore.LoadFromDB();
+        sGuildPerkSpellsStore.LoadFromDB();
+        sHolidaysStore.LoadFromDB();
+        sImportPriceArmorStore.LoadFromDB();
+        sImportPriceQualityStore.LoadFromDB();
+        sImportPriceShieldStore.LoadFromDB();
+        sImportPriceWeaponStore.LoadFromDB();
+        sItemAppearanceStore.LoadFromDB();
+        sItemArmorQualityStore.LoadFromDB();
+        sItemArmorShieldStore.LoadFromDB();
+        sItemArmorTotalStore.LoadFromDB();
+        sItemBagFamilyStore.LoadFromDB();
+        sItemDamageAmmoStore.LoadFromDB();
+        sItemDamageOneHandStore.LoadFromDB();
+        sItemDamageOneHandCasterStore.LoadFromDB();
+        sItemDamageTwoHandStore.LoadFromDB();
+        sItemDamageTwoHandCasterStore.LoadFromDB();
+        sItemDisenchantLootStore.LoadFromDB();
+        sItemEffectStore.LoadFromDB();
+        sItemStore.LoadFromDB();
+        sItemExtendedCostStore.LoadFromDB();
+        sItemLimitCategoryStore.LoadFromDB();
+        sItemModifiedAppearanceStore.LoadFromDB();
+        sItemPriceBaseStore.LoadFromDB();
+        sItemSearchNameStore.LoadFromDB();
+        sItemSetStore.LoadFromDB();
+        sItemSetSpellStore.LoadFromDB();
+        sItemSparseStore.LoadFromDB();
+        sItemSparseStore.LoadStringsFromDB(LocaleConstant::LOCALE_ruRU); // locale ruRU
+        sItemSpecStore.LoadFromDB();
+        sItemSpecOverrideStore.LoadFromDB();
+        sLFGDungeonsStore.LoadFromDB();
+        sLiquidTypeStore.LoadFromDB();
+        sLockStore.LoadFromDB();
+        sMailTemplateStore.LoadFromDB();
+        sMapStore.LoadFromDB();
+        sModifierTreeStore.LoadFromDB();
+        sMountCapabilityStore.LoadFromDB();
+        sMountStore.LoadFromDB();
+        sMovieStore.LoadFromDB();
+        sOverrideSpellDataStore.LoadFromDB();
+        sPhaseStore.LoadFromDB();
+        sPlayerConditionStore.LoadFromDB();
+        sPowerDisplayStore.LoadFromDB();
+        sQuestFactionRewardStore.LoadFromDB();
+        sQuestMoneyRewardStore.LoadFromDB();
+        sQuestSortStore.LoadFromDB();
+        sQuestXPStore.LoadFromDB();
+        sRandPropPointsStore.LoadFromDB();
+        sRewardPackStore.LoadFromDB();
+        sScenarioStore.LoadFromDB();
+        sScenarioStepStore.LoadFromDB();
+        sSceneScriptPackageStore.LoadFromDB();
+        sSkillLineStore.LoadFromDB();
+        sSkillLineAbilityStore.LoadFromDB();
+        sSkillRaceClassInfoStore.LoadFromDB();
+        sSoundKitStore.LoadFromDB();
+        sSpellAuraOptionsStore.LoadFromDB();
+        sSpellAuraRestrictionsStore.LoadFromDB();
+        sSpellCastTimesStore.LoadFromDB();
+        sSpellCastingRequirementsStore.LoadFromDB();
+        sSpellCategoriesStore.LoadFromDB();
+        sSpellCategoryStore.LoadFromDB();
+        sSpellClassOptionsStore.LoadFromDB();
+        sSpellCooldownsStore.LoadFromDB();
+        sSpellDurationStore.LoadFromDB();
+        sSpellEffectStore.LoadFromDB();
+        sSpellEquippedItemsStore.LoadFromDB();
+        sSpellFocusObjectStore.LoadFromDB();
+        sSpellInterruptsStore.LoadFromDB();
+        sSpellItemEnchantmentStore.LoadFromDB();
+        sSpellItemEnchantmentConditionStore.LoadFromDB();
+        sSpellLearnSpellStore.LoadFromDB();
+        sSpellLevelsStore.LoadFromDB();
+        sSpellMiscStore.LoadFromDB();
+        sSpellPowerStore.LoadFromDB();
+        sSpellProcsPerMinuteStore.LoadFromDB();
+        sSpellRadiusStore.LoadFromDB();
+        sSpellRangeStore.LoadFromDB();
+        sSpellReagentsStore.LoadFromDB();
+        sSpellScalingStore.LoadFromDB();
+        sSpellShapeshiftStore.LoadFromDB();
+        sSpellShapeshiftFormStore.LoadFromDB();
+        sSpellTargetRestrictionsStore.LoadFromDB();
+        sSpellTotemsStore.LoadFromDB();
+        sSpellXSpellVisualStore.LoadFromDB();
+        sSummonPropertiesStore.LoadFromDB();
+        sTalentStore.LoadFromDB();
+        sTaxiNodesStore.LoadFromDB();
+        sTaxiPathStore.LoadFromDB();
+        sTransportAnimationStore.LoadFromDB();
+        sTransportRotationStore.LoadFromDB();
+        sUnitPowerBarStore.LoadFromDB();
+        sVehicleStore.LoadFromDB();
+        sVehicleSeatStore.LoadFromDB();
+        sWorldMapOverlayStore.LoadFromDB();
+
+        // For items.
+        sObjectMgr->LoadItemTemplates();
+        sObjectMgr->LoadItemTemplateAddon();
+        sObjectMgr->LoadItemScriptNames();
+
+
+        // Send Packet
+        boost::shared_lock<boost::shared_mutex> lock(*HashMapHolder<Player>::GetLock());
+
+        HashMapHolder<Player>::MapType const& m = ObjectAccessor::GetPlayers();
+        for (HashMapHolder<Player>::MapType::const_iterator itr = m.begin(); itr != m.end(); ++itr)
+            itr->second->GetSession()->SendAvailableHotfixes();
+
+        handler->SendGlobalGMSysMessage("163 DB2 reloaded.");
+        handler->SendGlobalGMSysMessage("Hotfixes data reloaded.");
+
+        return true;
+    }
+
+    static bool HandleReloadCreatureEquipTemplateCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        TC_LOG_INFO("misc", "Reloading Creature Equipment Templates tables...");
+        sObjectMgr->LoadEquipmentTemplates();
+        handler->SendGlobalGMSysMessage("Creature Equip Template reloaded.");
+        return true;
+    }
+
+    static bool HandleReloadGameObjectTemplateCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        TC_LOG_INFO("misc", "Reloading GameObject Templates tables...");
+        sObjectMgr->LoadGameObjectTemplate();
+        TC_LOG_INFO("server.loading", "Initialize query data...");
+        sObjectMgr->InitializeQueriesData(QUERY_DATA_GAMEOBJECTS);
+        handler->SendGlobalGMSysMessage("GameObject Template reloaded.");
+        return true;
+    }
+
+    static bool HandleReloadCreatureTemplateAddCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        TC_LOG_INFO("misc", "Reloading Creature Templates Addons tables...");
+        sObjectMgr->LoadCreatureTemplateAddons();
+        handler->SendGlobalGMSysMessage("Creature Template Addons reloaded.");
+        return true;
+    }
+
+    static bool HandleReloadCreatureAddonsCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        TC_LOG_INFO("misc", "Reloading Creature Addons tables...");
+        sObjectMgr->LoadCreatureAddons();
+        handler->SendGlobalGMSysMessage("Creature Addons reloaded.");
+        return true;
+    }
+
+    static bool HandleReloadScriptNamesCommand(ChatHandler* handler, const char* args)
+    {
+        TC_LOG_INFO("misc", "Reloading spell_script_names...");
+        sObjectMgr->LoadSpellScriptNames();
+        sObjectMgr->ValidateSpellScripts();
+        handler->SendGlobalGMSysMessage("spell script names reloaded.");
         return true;
     }
 };

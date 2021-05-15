@@ -328,9 +328,9 @@ public:
 
     /* Creature */
     void OnDummyEffect(WorldObject* pCaster, uint32 spellId, SpellEffIndex effIndex, Creature* pTarget);
-    //bool GossipHello(Player* pPlayer);
-    bool OnGossipSelect(Player* pPlayer, uint32 menu_id, uint32 sender, uint32 action);
-    bool OnGossipSelectCode(Player* pPlayer, uint32 menu_id, uint32 sender, uint32 action, const char* code);
+    bool OnGossipHello(Player* pPlayer, Creature* pCreature);
+    bool OnGossipSelect(Player* pPlayer, Creature* pCreature, uint32 sender, uint32 action);
+    bool OnGossipSelectCode(Player* pPlayer, Creature* pCreature, uint32 sender, uint32 action, const char* code);
     bool OnQuestAccept(Player* pPlayer, Creature* pCreature, Quest const* pQuest);
     bool OnQuestReward(Player* pPlayer, Creature* pCreature, Quest const* pQuest, uint32 opt);
     void GetDialogStatus(const Player* pPlayer, const Creature* pCreature);
@@ -361,17 +361,17 @@ public:
     /* GameObject */
     void OnDummyEffect(WorldObject* pCaster, uint32 spellId, SpellEffIndex effIndex, GameObject* pTarget);
     bool OnGameObjectUse(Player* pPlayer, GameObject* pGameObject);
-    bool GossipHello(Player* pPlayer, GameObject* pGameObject);
-    bool GossipSelect(Player* pPlayer, GameObject* pGameObject, uint32 sender, uint32 action);
-    bool GossipSelectCode(Player* pPlayer, GameObject* pGameObject, uint32 sender, uint32 action, const char* code);
+    bool OnGossipHello(Player* pPlayer, GameObject* pGameObject);
+    bool OnGossipSelect(Player* pPlayer, GameObject* pGameObject, uint32 sender, uint32 action);
+    bool OnGossipSelectCode(Player* pPlayer, GameObject* pGameObject, uint32 sender, uint32 action, const char* code);
     bool OnQuestAccept(Player* pPlayer, GameObject* pGameObject, Quest const* pQuest);
     bool OnQuestReward(Player* pPlayer, GameObject* pGameObject, Quest const* pQuest, uint32 opt);
     void GetDialogStatus(const Player* pPlayer, const GameObject* pGameObject);
     void OnDestroyed(GameObject* pGameObject, WorldObject* attacker);
     void OnDamaged(GameObject* pGameObject, WorldObject* attacker);
-    void OnLootStateChanged(GameObject* pGameObject, uint32 state);
+    void OnLootStateChanged(GameObject* pGameObject, uint32 state, Unit* unit);
     void OnGameObjectStateChanged(GameObject* pGameObject, uint32 state);
-    void UpdateAI(GameObject* pGameObject, uint32 diff);
+    void UpdateAI(GameObject* pGameObject, const uint32 diff);
     void OnSpawn(GameObject* gameobject);
 
     /* Packet */

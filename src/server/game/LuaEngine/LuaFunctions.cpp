@@ -77,6 +77,7 @@ luaL_Reg GlobalMethods[] =
     // Getters
     { "GetLuaEngine", &LuaGlobalFunctions::GetLuaEngine },
     { "GetCoreName", &LuaGlobalFunctions::GetCoreName },
+    { "GetRealmID", &LuaGlobalFunctions::GetRealmID },
     { "GetCoreVersion", &LuaGlobalFunctions::GetCoreVersion },
     { "GetCoreExpansion", &LuaGlobalFunctions::GetCoreExpansion },
     { "GetQuest", &LuaGlobalFunctions::GetQuest },
@@ -119,6 +120,7 @@ luaL_Reg GlobalMethods[] =
 
     // Other
     { "ReloadEluna", &LuaGlobalFunctions::ReloadEluna },
+    { "ReloadCreatureTemplate", &LuaGlobalFunctions::ReloadCreatureTemplate },
     { "SendWorldMessage", &LuaGlobalFunctions::SendWorldMessage },
     { "WorldDBQuery", &LuaGlobalFunctions::WorldDBQuery },
     { "WorldDBExecute", &LuaGlobalFunctions::WorldDBExecute },
@@ -177,6 +179,9 @@ ElunaRegister<WorldObject> WorldObjectMethods[] =
     // Getters
     { "GetName", &LuaWorldObject::GetName },
     { "GetMap", &LuaWorldObject::GetMap },
+    { "SetPhaseId", &LuaWorldObject::SetPhaseId },
+    { "RemoveAllPhase", &LuaWorldObject::RemoveAllPhase },
+    { "RemovePhaseId", &LuaWorldObject::RemovePhaseId },
     { "GetInstanceId", &LuaWorldObject::GetInstanceId },
     { "GetAreaId", &LuaWorldObject::GetAreaId },
     { "GetZoneId", &LuaWorldObject::GetZoneId },
@@ -295,7 +300,8 @@ ElunaRegister<Unit> UnitMethods[] =
     { "SetPvP", &LuaUnit::SetPvP },
     { "SetFFA", &LuaUnit::SetFFA },
     { "SetSanctuary", &LuaUnit::SetSanctuary },
-    // {"SetCanFly", &LuaUnit::SetCanFly},                             // :SetCanFly(apply) - UNDOCUMENTED
+    { "SetCanFly", &LuaUnit::SetCanFly},                             // :SetCanFly(apply) - Test
+    { "SetCanTransitionBetweenSwimAndFly", &LuaUnit::SetCanTransitionBetweenSwimAndFly},                             // :SetCanTransitionBetweenSwimAndFly(apply) - Test
     // {"SetVisible", &LuaUnit::SetVisible},                           // :SetVisible(x) - UNDOCUMENTED
     { "SetOwnerGUID", &LuaUnit::SetOwnerGUID },
     { "SetName", &LuaUnit::SetName },

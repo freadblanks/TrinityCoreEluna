@@ -428,7 +428,11 @@ public:
         Map* map = object->GetMap();
 
         object->Relocate(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), oz);
+        object->RelocateStationaryPosition(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), object->GetOrientation());
         object->SetWorldRotationAngles(oz, oy, ox);
+        object->DestroyForNearbyPlayers();
+        object->UpdateObjectVisibility();
+
         object->SaveToDB();
 
         // Generate a completely new spawn with new guid
@@ -494,7 +498,10 @@ public:
 
         Map* map = object->GetMap();
 
-        object->Relocate(x, y, z, object->GetOrientation());
+        object->DestroyForNearbyPlayers();
+        object->RelocateStationaryPosition(x, y, z, object->GetOrientation());
+        object->GetMap()->GameObjectRelocation(object, x, y, z, object->GetOrientation());
+        //object->Relocate(x, y, z, object->GetOrientation());
         object->SaveToDB();
 
         // Generate a completely new spawn with new guid
@@ -512,9 +519,9 @@ public:
     }
 
     //set phasemask for selected object
-    static bool HandleGameObjectSetPhaseCommand(ChatHandler* /*handler*/, char const* /*args*/)
+    static bool HandleGameObjectSetPhaseCommand(ChatHandler* handler, char const* args)
     {
-        /*// number or [name] Shift-click form |color|Hgameobject:go_id|h[name]|h|r
+        // number or [name] Shift-click form |color|Hgameobject:go_id|h[name]|h|r
         char* id = handler->extractKeyFromLink((char*)args, "Hgameobject");
         if (!id)
             return false;
@@ -531,7 +538,7 @@ public:
             return false;
         }
 
-        char* phase = strtok (nullptr, " ");
+        char* phase = strtok(nullptr, " ");
         uint32 phaseMask = phase ? atoul(phase) : 0;
         if (phaseMask == 0)
         {
@@ -540,8 +547,8 @@ public:
             return false;
         }
 
-        object->SetPhaseMask(phaseMask, true);
-        object->SaveToDB();*/
+        object->GetPhaseShift().AddPhase(phaseMask, PhaseFlags::None, nullptr);
+        object->SaveToDB();
         return true;
     }
 

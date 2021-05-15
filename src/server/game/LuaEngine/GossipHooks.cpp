@@ -30,7 +30,7 @@ using namespace Hooks;
         return RETVAL;\
     LOCK_ELUNA
 
-bool Eluna::GossipHello(Player* pPlayer, GameObject* pGameObject)
+bool Eluna::OnGossipHello(Player* pPlayer, GameObject* pGameObject)
 {
     START_HOOK_WITH_RETVAL(GameObjectGossipBindings, GOSSIP_EVENT_ON_HELLO, pGameObject->GetEntry(), false);
     pPlayer->PlayerTalkClass->ClearMenus();
@@ -39,7 +39,7 @@ bool Eluna::GossipHello(Player* pPlayer, GameObject* pGameObject)
     return CallAllFunctionsBool(GameObjectGossipBindings, key, true);
 }
 
-bool Eluna::GossipSelect(Player* pPlayer, GameObject* pGameObject, uint32 sender, uint32 action)
+bool Eluna::OnGossipSelect(Player* pPlayer, GameObject* pGameObject, uint32 sender, uint32 action)
 {
     START_HOOK_WITH_RETVAL(GameObjectGossipBindings, GOSSIP_EVENT_ON_SELECT, pGameObject->GetEntry(), false);
     pPlayer->PlayerTalkClass->ClearMenus();
@@ -50,7 +50,7 @@ bool Eluna::GossipSelect(Player* pPlayer, GameObject* pGameObject, uint32 sender
     return CallAllFunctionsBool(GameObjectGossipBindings, key, true);
 }
 
-bool Eluna::GossipSelectCode(Player* pPlayer, GameObject* pGameObject, uint32 sender, uint32 action, const char* code)
+bool Eluna::OnGossipSelectCode(Player* pPlayer, GameObject* pGameObject, uint32 sender, uint32 action, const char* code)
 {
     START_HOOK_WITH_RETVAL(GameObjectGossipBindings, GOSSIP_EVENT_ON_SELECT, pGameObject->GetEntry(), false);
     pPlayer->PlayerTalkClass->ClearMenus();
@@ -105,31 +105,32 @@ void Eluna::HandleGossipSelectOption(Player* pPlayer, Item* pItem, uint32 sender
     CallAllFunctions(ItemGossipBindings, key);
 }
 
-//bool Eluna::GossipHello(Player* pPlayer)
-//{
-//    START_HOOK_WITH_RETVAL(CreatureGossipBindings, GOSSIP_EVENT_ON_HELLO, pCreature->GetEntry(), false);
-//    pPlayer->PlayerTalkClass->ClearMenus();
-//    Push(pPlayer);
-//    return CallAllFunctionsBool(CreatureGossipBindings, key, true);
-//}
-//
-bool Eluna::OnGossipSelect(Player* pPlayer, uint32 menu_id, uint32 sender, uint32 action)
+bool Eluna::OnGossipHello(Player* pPlayer, Creature* pCreature)
 {
-    START_HOOK_WITH_RETVAL(CreatureGossipBindings, GOSSIP_EVENT_ON_SELECT, menu_id, false);
+    START_HOOK_WITH_RETVAL(CreatureGossipBindings, GOSSIP_EVENT_ON_HELLO, pCreature->GetEntry(), false);
     pPlayer->PlayerTalkClass->ClearMenus();
     Push(pPlayer);
-    Push(menu_id);
+    Push(pCreature);
+    return CallAllFunctionsBool(CreatureGossipBindings, key, true);
+}
+
+bool Eluna::OnGossipSelect(Player* pPlayer, Creature* pCreature, uint32 sender, uint32 action)
+{
+    START_HOOK_WITH_RETVAL(CreatureGossipBindings, GOSSIP_EVENT_ON_SELECT, pCreature->GetEntry(), false);
+    pPlayer->PlayerTalkClass->ClearMenus();
+    Push(pPlayer);
+    Push(pCreature);
     Push(sender);
     Push(action);
     return CallAllFunctionsBool(CreatureGossipBindings, key, true);
 }
 
-bool Eluna::OnGossipSelectCode(Player* pPlayer, uint32 menu_id, uint32 sender, uint32 action, const char* code)
+bool Eluna::OnGossipSelectCode(Player* pPlayer, Creature* pCreature, uint32 sender, uint32 action, const char* code)
 {
-    START_HOOK_WITH_RETVAL(CreatureGossipBindings, GOSSIP_EVENT_ON_SELECT, menu_id, false);
+    START_HOOK_WITH_RETVAL(CreatureGossipBindings, GOSSIP_EVENT_ON_SELECT, pCreature->GetEntry(), false);
     pPlayer->PlayerTalkClass->ClearMenus();
     Push(pPlayer);
-    Push(menu_id);
+    Push(pCreature);
     Push(sender);
     Push(action);
     Push(code);

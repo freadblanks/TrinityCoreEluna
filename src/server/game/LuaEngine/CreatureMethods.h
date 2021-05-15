@@ -394,7 +394,7 @@ namespace LuaCreature
      */
     int GetCurrentWaypointId(lua_State* L, Creature* creature)
     {
-        Eluna::Push(L, creature->GetCurrentWaypointID());
+        Eluna::Push(L, creature->GetCurrentWaypointInfo().first);
         return 1;
     }
 

@@ -6,6 +6,8 @@
 
 #ifndef PLAYERMETHODS_H
 #define PLAYERMETHODS_H
+#include "WorldSession.h"
+#include <iostream>
 
 /***
  * Inherits all methods from: [Object], [WorldObject], [Unit]
@@ -2898,7 +2900,6 @@ namespace LuaPlayer
         return 0;
     }
 
-
     /**
      * Sends a Notification to the [Player]
      *
@@ -2931,31 +2932,27 @@ namespace LuaPlayer
         return 0;
     }
 
-    /**
+     /*
      * Sends addon message to the [Player] receiver
      *
      * @param string prefix
      * @param string message
-     * @param [ChatMsg] channel
-     * @param [Player] receiver
      *
      */
     int SendAddonMessage(lua_State* L, Player* player)
     {
         std::string prefix = Eluna::CHECKVAL<std::string>(L, 2);
-        std::string message = Eluna::CHECKVAL<std::string>(L, 3);
-        uint8 channel = Eluna::CHECKVAL<uint8>(L, 4);
-        Player* receiver = Eluna::CHECKOBJ<Player>(L, 5);
 
-        if (Channel* channel = ChannelMgr::GetChannelForPlayerByNamePart(receiver->GetName().c_str(), player))
-            channel->AddonSay(player->GET_GUID(), prefix, message.c_str(), false);
+        std::string message = Eluna::CHECKVAL<std::string>(L, 3);
+
+        player->WhisperAddon(message, prefix, false, player);
 
         return 0;
     }
 
-    /**
+    /*
      * Kicks the [Player] from the server
-     */
+    */
     int KickPlayer(lua_State* /*L*/, Player* player)
     {
         player->GetSession()->KickPlayer();

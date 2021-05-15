@@ -4,6 +4,7 @@
 * Please see the included DOCS/LICENSE.md for more information
 */
 
+#include "PhasingHandler.h"
 #ifndef WORLDOBJECTMETHODS_H
 #define WORLDOBJECTMETHODS_H
 
@@ -1055,7 +1056,6 @@ namespace LuaWorldObject
         return 0;
     }
 
-
     /**
      * Returns the [ObjectGuid] for worldobject
      *
@@ -1065,6 +1065,52 @@ namespace LuaWorldObject
     {
         Eluna::Push(L, obj->GET_GUID());
         return 1;
+    }
+
+    /**
+    * Sets the [WorldObject]'s phase Id.
+    *
+    * @param [Player] player = nil : [Player] set phase
+    * @param uint32 phaseId
+    * @param bool update = true : update visibility to nearby objects
+    */
+    int SetPhaseId(lua_State* L, WorldObject* /*obj*/)
+    {
+        Player* player = Eluna::CHECKOBJ<Player>(L, 2, false);
+        uint32 phaseId = Eluna::CHECKVAL<uint32>(L, 3);
+        bool update = Eluna::CHECKVAL<bool>(L, 4, true);
+
+        PhasingHandler::AddPhase(player, phaseId, update);
+        return 0;
+    }
+
+    /**
+    * Remove the [WorldObject]'s all phase.
+    *
+    * @return remove phase
+    * 
+    */
+    int RemoveAllPhase(lua_State* L, WorldObject* obj)
+    {
+        obj->GetPhaseShift().ClearPhases();
+        return 1;
+    }
+
+    /**
+    * Remove the [WorldObject]'s phase Id.
+    *
+    * @param [Player] player = nil : [Player] set phase
+    * @param uint32 phaseId
+    * @param bool update = true : update visibility to nearby objects
+    */
+    int RemovePhaseId(lua_State* L, WorldObject* /*obj*/)
+    {
+        Player* player = Eluna::CHECKOBJ<Player>(L, 2, false);
+        uint32 phaseId = Eluna::CHECKVAL<uint32>(L, 3);
+        bool update = Eluna::CHECKVAL<bool>(L, 4, true);
+
+        PhasingHandler::RemovePhase(player, phaseId, update);
+        return 0;
     }
 };
 #endif

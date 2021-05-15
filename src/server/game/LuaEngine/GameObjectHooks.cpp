@@ -76,8 +76,6 @@ void Eluna::GetDialogStatus(const Player* pPlayer, const GameObject* pGameObject
     CallAllFunctions(GameObjectEventBindings, key);
 }
 
-#ifndef CLASSIC
-#ifndef TBC
 void Eluna::OnDestroyed(GameObject* pGameObject, WorldObject* attacker)
 {
     START_HOOK(GAMEOBJECT_EVENT_ON_DESTROYED, pGameObject->GetEntry());
@@ -93,14 +91,13 @@ void Eluna::OnDamaged(GameObject* pGameObject, WorldObject* attacker)
     Push(attacker);
     CallAllFunctions(GameObjectEventBindings, key);
 }
-#endif
-#endif
 
-void Eluna::OnLootStateChanged(GameObject* pGameObject, uint32 state)
+void Eluna::OnLootStateChanged(GameObject* pGameObject, uint32 state, Unit* unit)
 {
     START_HOOK(GAMEOBJECT_EVENT_ON_LOOT_STATE_CHANGE, pGameObject->GetEntry());
     Push(pGameObject);
     Push(state);
+    Push(unit);
     CallAllFunctions(GameObjectEventBindings, key);
 }
 

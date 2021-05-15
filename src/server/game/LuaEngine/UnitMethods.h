@@ -7,6 +7,8 @@
 #ifndef UNITMETHODS_H
 #define UNITMETHODS_H
 
+#include "Language.h"
+
 /***
  * Inherits all methods from: [Object], [WorldObject]
  */
@@ -1215,6 +1217,32 @@ namespace LuaUnit
     }
 
     /**
+     * Sets the [Unit]'s SetCanFly on or off.
+     *
+     * @param bool apply = true : true if set on, false if off
+     */
+    int SetCanFly(lua_State* L, Unit* unit)
+    {
+        bool apply = Eluna::CHECKVAL<bool>(L, 2, true);
+
+        unit->SetCanFly(apply);
+        return 0;
+    }
+
+        /**
+         * Sets the [Unit]'s SetCanTransitionBetweenSwimAndFly on or off.
+         *
+         * @param bool apply = true : true if set on, false if off
+         */
+        int SetCanTransitionBetweenSwimAndFly(lua_State* L, Unit* unit)
+    {
+        bool apply = Eluna::CHECKVAL<bool>(L, 2, true);
+
+        unit->SetCanTransitionBetweenSwimAndFly(apply);
+        return 0;
+    }
+
+    /**
      * Sets the [Unit]'s sheath state.
      *
      *     enum SheathState
@@ -1783,7 +1811,7 @@ namespace LuaUnit
 
         if (type >= MAX_CHAT_MSG_TYPE)
             return luaL_argerror(L, 2, "valid ChatMsg expected");
-        if (lang >= LANGUAGES_COUNT)
+        if (lang >= 34)
             return luaL_argerror(L, 3, "valid Language expected");
 
         WorldPackets::Chat::Chat packet;

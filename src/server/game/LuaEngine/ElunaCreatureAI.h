@@ -126,18 +126,18 @@ struct ElunaCreatureAI : ScriptedAI
     }
 
     // Called when creature appears in the world (spawn, respawn, grid load etc...)
-     //void JustAppeared() override
-     //{
-    //     if (!sEluna->JustRespawned(me))
-    //         ScriptedAI::JustAppeared();
-    // }
+     void JustAppeared() override
+     {
+         if (!sEluna->JustRespawned(me))
+             ScriptedAI::JustAppeared();
+     }
 
      // Called when creature is spawned or respawned (for reseting variables) Not Realize
-     void JustRespawned() override
+     /*void JustRespawned() override
      {
          if (!sEluna->JustRespawned(me))
              ScriptedAI::JustRespawned();
-     }
+     }*/
 
     // Called at reaching home after evade
     void JustReachedHome() override

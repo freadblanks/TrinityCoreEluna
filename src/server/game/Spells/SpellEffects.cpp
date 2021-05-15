@@ -1587,6 +1587,12 @@ void Spell::SendLoot(ObjectGuid guid, LootType loottype)
         }
 
         player->PlayerTalkClass->ClearMenus();
+#ifdef ELUNA
+        if (sEluna->OnGossipHello(player, gameObjTarget))
+            return;
+        if (sEluna->OnGameObjectUse(player, gameObjTarget))
+            return;
+#endif
         if (gameObjTarget->AI()->GossipHello(player))
             return;
 

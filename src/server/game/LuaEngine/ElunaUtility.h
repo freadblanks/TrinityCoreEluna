@@ -24,6 +24,7 @@ typedef QueryResult ElunaQuery;
 #define GET_GUID                GetGUID
 
 #define HIGHGUID_PLAYER         HighGuid::Player
+#define HIGHGUID_PLAYER         HighGuid::Player
 #define HIGHGUID_UNIT           HighGuid::Creature
 #define HIGHGUID_ITEM           HighGuid::Item
 #define HIGHGUID_GAMEOBJECT     HighGuid::GameObject

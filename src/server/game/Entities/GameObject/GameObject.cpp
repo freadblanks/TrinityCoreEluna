@@ -45,6 +45,9 @@
 #include "SpellMgr.h"
 #include "Transport.h"
 #include "World.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include <G3D/Quat.h>
 #include <sstream>
 
@@ -1513,6 +1516,12 @@ void GameObject::Use(Unit* user)
             playerUser->Dismount();
 
         playerUser->PlayerTalkClass->ClearMenus();
+
+#ifdef ELUNA
+        if (sEluna->OnGossipHello(playerUser, this))
+            return;
+#endif
+
         if (AI()->GossipHello(playerUser))
             return;
     }
@@ -2481,6 +2490,10 @@ void GameObject::SetLootState(LootState state, Unit* unit)
         m_lootStateUnitGUID = unit->GetGUID();
     else
         m_lootStateUnitGUID.Clear();
+
+#ifdef ELUNA
+    sEluna->OnLootStateChanged(this, state, unit);
+#endif
 
     AI()->OnLootStateChanged(state, unit);
 

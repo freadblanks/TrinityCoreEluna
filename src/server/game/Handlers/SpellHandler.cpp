@@ -18,7 +18,7 @@
 #include "WorldSession.h"
 #include "CollectionMgr.h"
 #include "Common.h"
-//#include "CreatureOutfit.h"
+#include "CreatureOutfit.h"
 #include "DatabaseEnv.h"
 #include "GameObjectAI.h"
 #include "GameObjectPackets.h"
@@ -521,7 +521,7 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPackets::Spells::GetMirrorI
     if (!unit)
         return;
 
-    /*if (Creature* creature = unit->ToCreature())
+    if (Creature* creature = unit->ToCreature())
     {
         if (std::shared_ptr<CreatureOutfit> const& outfit_ptr = creature->GetOutfit())
         {
@@ -533,15 +533,9 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPackets::Spells::GetMirrorI
             mirrorImageComponentedData.Gender = outfit.GetGender();
             mirrorImageComponentedData.ClassID = outfit.Class;
 
-            mirrorImageComponentedData.SkinColor = outfit.skin;
-            mirrorImageComponentedData.FaceVariation = outfit.face;
-            mirrorImageComponentedData.HairVariation = outfit.hair;
-            mirrorImageComponentedData.HairColor = outfit.haircolor;
-            mirrorImageComponentedData.BeardVariation = outfit.facialhair;
+            mirrorImageComponentedData.Customizations.resize(outfit.Customizations.size());
+            std::copy(outfit.Customizations.begin(), outfit.Customizations.end(), mirrorImageComponentedData.Customizations.begin());
 
-            static_assert(CreatureOutfit::max_custom_displays == PLAYER_CUSTOM_DISPLAY_SIZE, "Amount of custom displays for player has changed - change it for dressnpcs as well");
-            for (uint32 i = 0; i < PLAYER_CUSTOM_DISPLAY_SIZE; ++i)
-                mirrorImageComponentedData.CustomDisplay[i] = outfit.customdisplay[i];
             mirrorImageComponentedData.GuildGUID = ObjectGuid::Empty;
             if (outfit.guild)
             {
@@ -556,7 +550,7 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPackets::Spells::GetMirrorI
             SendPacket(mirrorImageComponentedData.Write());
             return;
         }
-    }*/
+    }
 
     if (!unit->HasAuraType(SPELL_AURA_CLONE_CASTER))
         return;

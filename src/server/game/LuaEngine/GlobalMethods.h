@@ -8,6 +8,9 @@
 #define GLOBALMETHODS_H
 
 #include "BindingMap.h"
+#include "Object.h"
+#include <iostream>
+#include <ostream>
 
 /***
  * These functions can be used anywhere at any time, including at start-up.
@@ -37,6 +40,20 @@ namespace LuaGlobalFunctions
     int GetCoreName(lua_State* L)
     {
         Eluna::Push(L, CORE_NAME);
+        return 1;
+    }
+
+    /**
+     * Returns emulator .conf RealmID
+     *
+     * - for MaNGOS returns the realmID as it is stored in the core.
+     * - for TrinityCore returns the realmID as it is in the conf file.
+     * @return uint32 realm ID
+     */
+
+    int GetRealmID(lua_State* L)
+    {
+        Eluna::Push(L, sConfigMgr->GetIntDefault("RealmID", 1));
         return 1;
     }
 
@@ -2787,6 +2804,18 @@ namespace LuaGlobalFunctions
             Eluna::GetEluna(L)->InstanceEventBindings->Clear(Key((Hooks::InstanceEvents)event_type, entry));
         }
 
+        return 0;
+    }
+
+    /**
+     * Reloads creature_template.
+     */
+    int ReloadCreatureTemplate(lua_State* /*L*/)
+    {
+        TC_LOG_INFO("misc", "Reloading creature template...");
+        sObjectMgr->LoadCreatureTemplates();
+        TC_LOG_INFO("server.loading", "Initialize query data...");
+        sObjectMgr->InitializeQueriesData(QUERY_DATA_CREATURES);
         return 0;
     }
 }

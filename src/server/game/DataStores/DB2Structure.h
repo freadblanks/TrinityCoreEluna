@@ -2404,11 +2404,11 @@ struct NamesReservedLocaleEntry
     uint8 LocaleMask;
 };
 
-//struct CreatureDisplayInfoStore
-//{
-//    bool HasRecord(uint32 id) const;
-//    const CreatureDisplayInfoEntry* LookupEntry(uint32 id) const;
-//};
+struct CreatureDisplayInfoStore
+{
+    bool HasRecord(uint32 id) const;
+    const CreatureDisplayInfoEntry* LookupEntry(uint32 id) const;
+};
 
 struct NumTalentsAtLevelEntry
 {
