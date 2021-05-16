@@ -703,6 +703,13 @@ bool Creature::UpdateEntry(uint32 entry, CreatureData const* data /*= nullptr*/,
     return true;
 }
 
+// copy paste from ClearChangesMask
+template<typename Derived, typename T, uint32 BlockBit, uint32 Bit>
+static uint32 GetUpdateFieldHolderIndex(UF::UpdateField<T, BlockBit, Bit>(Derived::* /*field*/))
+{
+    return Bit;
+}
+
 void Creature::Update(uint32 diff)
 {
 	if (m_outfit && !m_values.HasChanged(GetUpdateFieldHolderIndex(&UF::UnitData::DisplayID)) && Unit::GetDisplayId() == CreatureOutfit::invisible_model)
@@ -3266,6 +3273,7 @@ uint32 Creature::GetDisplayId() const
     return Unit::GetDisplayId();
 }
 
+void Creature::SetDisplayId(uint32 modelId, float displayScale /*= 1.f*/)
 {
     if (auto const& outfit = sObjectMgr->GetOutfit(modelId))
     {
