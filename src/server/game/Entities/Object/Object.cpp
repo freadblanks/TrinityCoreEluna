@@ -49,6 +49,7 @@
 #include "World.h"
 #include "WorldSession.h"
 #include <G3D/Vector3.h>
+#include <boost/stacktrace.hpp>
 #ifdef ELUNA
 #include "LuaEngine.h"
 #include "ElunaEventMgr.h"
