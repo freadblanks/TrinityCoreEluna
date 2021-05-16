@@ -27,8 +27,6 @@ master
 
 ## Introduction
 
-NEED COMPILE FIX (AND REVERSE TEST-TEST5)
-
 TrinityCore is a *MMORPG* Framework based mostly in C++.
 
 It is derived from *MaNGOS*, the *Massive Network Game Object Server*, and is
