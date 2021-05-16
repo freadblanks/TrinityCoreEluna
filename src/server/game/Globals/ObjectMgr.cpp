@@ -2270,8 +2270,8 @@ void ObjectMgr::LoadGameObjects()
     QueryResult result = WorldDatabase.Query("SELECT gameobject.guid, id, map, position_x, position_y, position_z, orientation, "
     //   7          8          9          10         11             12            13     14                 15          16
         "rotation0, rotation1, rotation2, rotation3, spawntimesecs, animprogress, state, spawnDifficulties, eventEntry, pool_entry, "
-    //   17             18       19          20              21          22
-        "phaseUseFlags, phaseid, phasegroup, terrainSwapMap, ScriptName, size "
+    //   17             18       19          20              21          22     23          24
+        "phaseUseFlags, phaseid, phasegroup, terrainSwapMap, ScriptName, size, hasDoodads, visibility "
         "FROM gameobject LEFT OUTER JOIN game_event_gameobject ON gameobject.guid = game_event_gameobject.guid "
         "LEFT OUTER JOIN pool_gameobject ON gameobject.guid = pool_gameobject.guid");
 
@@ -2393,6 +2393,8 @@ void ObjectMgr::LoadGameObjects()
         data.phaseId        = fields[18].GetUInt32();
         data.phaseGroup     = fields[19].GetUInt32();
         data.size           = fields[22].GetFloat();
+        data.hasDoodads     = fields[23].GetBool();
+        data.visibility     = fields[24].GetFloat();
 
         if (data.phaseUseFlags & ~PHASE_USE_FLAGS_ALL)
         {

@@ -244,11 +244,13 @@ void GameObject::RemoveFromWorld()
 
         if (m_spawnId)
             Trinity::Containers::MultimapErasePair(GetMap()->GetGameObjectBySpawnIdStore(), m_spawnId, this);
+
+        GetMap()->RemoveInfiniteGameObject(GetGUID());
         GetMap()->GetObjectsStore().Remove<GameObject>(GetGUID());
     }
 }
 
-bool GameObject::Create(uint32 entry, Map* map, Position const& pos, QuaternionData const& rotation, uint32 animProgress, GOState goState, uint32 artKit, bool dynamic, ObjectGuid::LowType spawnid, float size /*= -1*/)
+bool GameObject::Create(uint32 entry, Map* map, Position const& pos, QuaternionData const& rotation, uint32 animProgress, GOState goState, uint32 artKit, bool dynamic, ObjectGuid::LowType spawnid, float size /*= -1*/, bool hasDoodads, float visibility)
 {
     ASSERT(map);
     SetMap(map);
@@ -323,6 +325,8 @@ bool GameObject::Create(uint32 entry, Map* map, Position const& pos, QuaternionD
         SetObjectScale(size);
     else
         SetObjectScale(goInfo->size);
+
+    SetDoodads(hasDoodads);
 
     if (m_goTemplateAddon)
     {
@@ -486,6 +490,12 @@ bool GameObject::Create(uint32 entry, Map* map, Position const& pos, QuaternionD
     // Check if GameObject is Large
     if (goInfo->IsLargeGameObject())
         SetVisibilityDistanceOverride(VisibilityDistanceType::Large);
+
+    SetVisibilityDistanceOverride(visibility);
+
+    if (GetVisibilityRange() > SIZE_OF_GRIDS) {
+        GetMap()->AddInfiniteGameObject(this->GetGUID());
+    }
 
     return true;
 }
@@ -1120,6 +1130,8 @@ void GameObject::SaveToDB(uint32 mapid, std::vector<Difficulty> const& spawnDiff
     stmt->setUInt8(index++, GetGoAnimProgress());
     stmt->setUInt8(index++, uint8(GetGoState()));
     stmt->setFloat(index++, data.size);
+    stmt->setBool(index++, HasDoodads());
+    stmt->setFloat(index++, GetVisibilityRange());
     trans->Append(stmt);
 
     WorldDatabase.CommitTransaction(trans);
@@ -1141,10 +1153,12 @@ bool GameObject::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap
     GOState go_state = data->goState;
     uint32 artKit = data->artKit;
     float size = data->size;
+    bool hasDoodads = data->hasDoodads;
+    float visibility = data->visibility;
 
     m_spawnId = spawnId;
     m_respawnCompatibilityMode = ((data->spawnGroupData->flags & SPAWNGROUP_FLAG_COMPATIBILITY_MODE) != 0);
-    if (!Create(entry, map, data->spawnPoint, data->rotation, animprogress, go_state, artKit, !m_respawnCompatibilityMode, spawnId, size))
+    if (!Create(entry, map, data->spawnPoint, data->rotation, animprogress, go_state, artKit, !m_respawnCompatibilityMode, spawnId, size, hasDoodads, visibility))
         return false;
 
     PhasingHandler::InitDbPhaseShift(GetPhaseShift(), data->phaseUseFlags, data->phaseId, data->phaseGroup);
@@ -2852,6 +2866,11 @@ public:
 private:
     GameObject* _owner;
 };
+
+void GameObject::SetDoodads(bool hasDoodads)
+{
+    m_hasDoodads = hasDoodads;
+}
 
 void GameObject::CreateModel()
 {

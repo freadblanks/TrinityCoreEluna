@@ -2271,13 +2271,17 @@ void ScriptMgr::OnPlayerUpdateZone(Player* player, uint32 newZone, uint32 newAre
 
 void ScriptMgr::OnGossipSelect(Player* player, uint32 menu_id, uint32 sender, uint32 action)
 {
+#ifdef ELUNA
+    sEluna->HandleGossipSelectOption(player, menu_id, sender, action, "");
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnGossipSelect(player, menu_id, sender, action);
 }
 
 void ScriptMgr::OnGossipSelectCode(Player* player, uint32 menu_id, uint32 sender, uint32 action, const char* code)
 {
 #ifdef ELUNA
-    sEluna->OnGossipSelectCode(player, menu_id, sender, action, code); //Changed item->creature; 
+    sEluna->HandleGossipSelectOption(player, menu_id, sender, action, code);
 #endif
 
     FOREACH_SCRIPT(PlayerScript)->OnGossipSelectCode(player, menu_id, sender, action, code);

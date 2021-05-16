@@ -77,6 +77,8 @@ public:
             { "despawngroup", rbac::RBAC_PERM_COMMAND_GOBJECT_DESPAWNGROUP, false, &HandleNpcDespawnGroup,            ""       },
             { "add",          rbac::RBAC_PERM_COMMAND_GOBJECT_ADD,          false, nullptr,         "", gobjectAddCommandTable },
             { "set",          rbac::RBAC_PERM_COMMAND_GOBJECT_SET,          false, nullptr,         "", gobjectSetCommandTable },
+            { "doodad",       rbac::RBAC_PERM_COMMAND_GOBJECT_DELETE,       false, &HandleGameDoodadCommand,          ""       },
+            { "visibility",   rbac::RBAC_PERM_COMMAND_GOBJECT_DELETE,       false, &HandleGameVisibilityCommand,      ""       },
         };
         static std::vector<ChatCommand> commandTable =
         {
@@ -807,6 +809,141 @@ public:
 
         handler->PSendSysMessage("Set %s scale to %f", object->GetGUID().ToString(), scale);
         return true;
+    }
+
+    static bool HandleGameDoodadCommand(ChatHandler* handler, char const* args)
+    {
+        // number or [name] Shift-click form |color|Hgameobject:go_id|h[name]|h|r
+        char* id = handler->extractKeyFromLink((char*)args, "Hgameobject");
+        if (!id)
+            return false;
+
+        ObjectGuid::LowType guidLow = atoull(id);
+        if (!guidLow)
+            return false;
+
+        char const* boolArg = strtok(NULL, "");
+        if (!boolArg)
+            return false;
+
+
+        GameObject* object = handler->GetObjectFromPlayerMapByDbGuid(guidLow);
+        if (!object)
+        {
+            handler->PSendSysMessage(LANG_COMMAND_OBJNOTFOUND, guidLow);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        bool resultBool = true;
+
+        if (strncmp(boolArg, "on", 3) == 0)
+        {
+            resultBool = true;
+        }
+        else if (strncmp(boolArg, "off", 4) == 0) {
+            resultBool = false;
+        }
+        else
+        {
+            handler->SendSysMessage(LANG_USE_BOL);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        const_cast<GameObjectData*>(object->GetGameObjectData())->hasDoodads = resultBool;
+
+        Map* map = object->GetMap();
+
+        object->SetDoodads(resultBool);
+        object->Relocate(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), object->GetOrientation());
+        object->SaveToDB(map->GetId(), { map->GetDifficultyID() });
+
+        // Generate a completely new spawn with new guid
+        // 3.3.5a client caches recently deleted objects and brings them back to life
+        // when CreateObject block for this guid is received again
+        // however it entirely skips parsing that block and only uses already known location
+        object->Delete();
+
+        object = GameObject::CreateGameObjectFromDB(guidLow, map);
+        if (!object)
+            return false;
+
+        handler->PSendSysMessage("Doodad for object %s %s \n", object->GetGUID().ToString().c_str(), object->HasDoodads() ? "ON" : "OFF");
+    }
+
+    static bool HandleGameVisibilityCommand(ChatHandler* handler, char const* args)
+    {
+        // number or [name] Shift-click form |color|Hgameobject:go_id|h[name]|h|r
+
+        std::string trinityArgs(args);
+        Tokenizer dataArgs(trinityArgs, ' ', 0, false);
+
+        if (dataArgs.size() < 2) {
+            handler->PSendSysMessage("Not enough arguments");
+            return false;
+        }
+
+        std::string id = handler->extractKeyFromLink((char*)(dataArgs[0]), "Hgameobject");
+
+        if (!std::all_of(id.begin(), id.end(), ::isdigit))
+            return false;
+
+        ObjectGuid::LowType guidLow = std::stoull(id);
+        if (!guidLow)
+            return false;
+
+        float distance;
+
+        try {
+            distance = std::atof(dataArgs[1]);
+        }
+        catch (...) {
+            return false;
+        }
+
+        GameObject* object = handler->GetObjectFromPlayerMapByDbGuid(guidLow);
+        if (!object)
+        {
+            handler->PSendSysMessage(LANG_COMMAND_OBJNOTFOUND, guidLow);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        if (distance >= 5000)
+            return false;
+
+        if (distance > SIZE_OF_GRIDS) {
+            object->GetMap()->AddInfiniteGameObject(object->GetGUID());
+            //handler->PSendSysMessage("Visibles : %d \n", object->GetMap()->GetInfiniteGameObjects().size());
+        }
+        else {
+            std::set<ObjectGuid> infinites = object->GetMap()->GetInfiniteGameObjects();
+            if (std::find(infinites.begin(), infinites.end(), object->GetGUID()) != infinites.end())
+                object->GetMap()->RemoveInfiniteGameObject(object->GetGUID());
+
+            //handler->PSendSysMessage("Visibles : %d \n", object->GetMap()->GetInfiniteGameObjects().size());
+        }
+
+        float oldVisibility = const_cast<GameObjectData*>(object->GetGameObjectData())->visibility;
+
+        const_cast<GameObjectData*>(object->GetGameObjectData())->visibility = distance;
+
+        Map* map = object->GetMap();
+        object->SetVisibilityDistanceOverride(distance);
+        object->Relocate(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), object->GetOrientation());
+        object->SaveToDB(map->GetId(), { map->GetDifficultyID() });
+        object->Delete();
+
+        object = GameObject::CreateGameObjectFromDB(guidLow, map);
+
+        if (!object)
+            return false;
+
+        for (Map::PlayerList::const_iterator itr = map->GetPlayers().begin(); itr != map->GetPlayers().end(); ++itr)
+            itr->GetSource()->UpdateVisibilityOf(object);
+
+        handler->PSendSysMessage("Visibility set for object %s to %f\n", object->GetGUID().ToString().c_str(), distance);
     }
 
 };

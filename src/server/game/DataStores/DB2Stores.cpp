@@ -201,11 +201,14 @@ DB2Storage<LanguageWordsEntry>                  sLanguageWordsStore("LanguageWor
 DB2Storage<LanguagesEntry>                      sLanguagesStore("Languages.db2", LanguagesLoadInfo::Instance());
 DB2Storage<LFGDungeonsEntry>                    sLFGDungeonsStore("LFGDungeons.db2", LfgDungeonsLoadInfo::Instance());
 DB2Storage<LightEntry>                          sLightStore("Light.db2", LightLoadInfo::Instance());
+DB2Storage<LightSkyboxEntry>                    sLightSkyboxStore("LightSkybox.db2", LightSkyboxLoadInfo::Instance());
+DB2Storage<LightParamsEntry>                    sLightParamsStore("LightParams.db2", LightParamsLoadInfo::Instance());
 DB2Storage<LiquidTypeEntry>                     sLiquidTypeStore("LiquidType.db2", LiquidTypeLoadInfo::Instance());
 DB2Storage<LockEntry>                           sLockStore("Lock.db2", LockLoadInfo::Instance());
 DB2Storage<MailTemplateEntry>                   sMailTemplateStore("MailTemplate.db2", MailTemplateLoadInfo::Instance());
 DB2Storage<MapEntry>                            sMapStore("Map.db2", MapLoadInfo::Instance());
 DB2Storage<MapDifficultyEntry>                  sMapDifficultyStore("MapDifficulty.db2", MapDifficultyLoadInfo::Instance());
+DB2Storage<ModelFileDataEntry>                  sModelFileDataStore("ModelFileData.db2", ModelFileDataLoadInfo::Instance());
 DB2Storage<MapDifficultyXConditionEntry>        sMapDifficultyXConditionStore("MapDifficultyXCondition.db2", MapDifficultyXConditionLoadInfo::Instance());
 DB2Storage<ModifierTreeEntry>                   sModifierTreeStore("ModifierTree.db2", ModifierTreeLoadInfo::Instance());
 DB2Storage<MountCapabilityEntry>                sMountCapabilityStore("MountCapability.db2", MountCapabilityLoadInfo::Instance());
@@ -217,6 +220,7 @@ DB2Storage<NameGenEntry>                        sNameGenStore("NameGen.db2", Nam
 DB2Storage<NamesProfanityEntry>                 sNamesProfanityStore("NamesProfanity.db2", NamesProfanityLoadInfo::Instance());
 DB2Storage<NamesReservedEntry>                  sNamesReservedStore("NamesReserved.db2", NamesReservedLoadInfo::Instance());
 DB2Storage<NamesReservedLocaleEntry>            sNamesReservedLocaleStore("NamesReservedLocale.db2", NamesReservedLocaleLoadInfo::Instance());
+DB2Storage<NPCModelItemSlotDisplayInfoEntry>    sNPCModelItemSlotDisplayInfoStore("NPCModelItemSlotDisplayInfo.db2", NPCModelItemSlotDisplayInfoLoadInfo::Instance());
 DB2Storage<NumTalentsAtLevelEntry>              sNumTalentsAtLevelStore("NumTalentsAtLevel.db2", NumTalentsAtLevelLoadInfo::Instance());
 DB2Storage<OverrideSpellDataEntry>              sOverrideSpellDataStore("OverrideSpellData.db2", OverrideSpellDataLoadInfo::Instance());
 DB2Storage<PhaseEntry>                          sPhaseStore("Phase.db2", PhaseLoadInfo::Instance());
@@ -292,6 +296,7 @@ DB2Storage<TalentEntry>                         sTalentStore("Talent.db2", Talen
 DB2Storage<TaxiNodesEntry>                      sTaxiNodesStore("TaxiNodes.db2", TaxiNodesLoadInfo::Instance());
 DB2Storage<TaxiPathEntry>                       sTaxiPathStore("TaxiPath.db2", TaxiPathLoadInfo::Instance());
 DB2Storage<TaxiPathNodeEntry>                   sTaxiPathNodeStore("TaxiPathNode.db2", TaxiPathNodeLoadInfo::Instance());
+DB2Storage<TextureFileDataEntry>                sTextureFileDataStore("TextureFileData.db2", TextureFileDataLoadInfo::Instance());
 DB2Storage<TotemCategoryEntry>                  sTotemCategoryStore("TotemCategory.db2", TotemCategoryLoadInfo::Instance());
 DB2Storage<ToyEntry>                            sToyStore("Toy.db2", ToyLoadInfo::Instance());
 DB2Storage<TransmogHolidayEntry>                sTransmogHolidayStore("TransmogHoliday.db2", TransmogHolidayLoadInfo::Instance());
@@ -404,6 +409,7 @@ namespace
     std::array<ChrClassUIDisplayEntry const*, MAX_CLASSES> _uiDisplayByClass;
     std::array<std::array<uint32, MAX_POWERS>, MAX_CLASSES> _powersByClass;
     std::unordered_map<uint32 /*chrCustomizationOptionId*/, std::vector<ChrCustomizationChoiceEntry const*>> _chrCustomizationChoicesByOption;
+    std::unordered_map<uint32 /*chrCustomizationChoiceId*/, uint32 /*chrCustomizationOptionId*/> _chrCustomizationOptionByChoice;
     std::unordered_map<std::pair<uint8, uint8>, ChrModelEntry const*> _chrModelsByRaceAndGender;
     std::map<std::tuple<uint8 /*race*/, uint8/*gender*/, uint8/*shapeshift*/>, ShapeshiftFormModelData> _chrCustomizationChoicesForShapeshifts;
     std::unordered_map<std::pair<uint8 /*race*/, uint8/*gender*/>, std::vector<ChrCustomizationOptionEntry const*>> _chrCustomizationOptionsByRaceAndGender;
@@ -739,11 +745,14 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sLanguagesStore);
     LOAD_DB2(sLFGDungeonsStore);
     LOAD_DB2(sLightStore);
+    LOAD_DB2(sLightParamsStore);
+    LOAD_DB2(sLightSkyboxStore);
     LOAD_DB2(sLiquidTypeStore);
     LOAD_DB2(sLockStore);
     LOAD_DB2(sMailTemplateStore);
     LOAD_DB2(sMapStore);
     LOAD_DB2(sMapDifficultyStore);
+    LOAD_DB2(sModelFileDataStore);
     LOAD_DB2(sMapDifficultyXConditionStore);
     LOAD_DB2(sModifierTreeStore);
     LOAD_DB2(sMountCapabilityStore);
@@ -755,6 +764,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sNamesProfanityStore);
     LOAD_DB2(sNamesReservedStore);
     LOAD_DB2(sNamesReservedLocaleStore);
+    LOAD_DB2(sNPCModelItemSlotDisplayInfoStore);
     LOAD_DB2(sNumTalentsAtLevelStore);
     LOAD_DB2(sOverrideSpellDataStore);
     LOAD_DB2(sPhaseStore);
@@ -830,6 +840,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sTaxiNodesStore);
     LOAD_DB2(sTaxiPathStore);
     LOAD_DB2(sTaxiPathNodeStore);
+    LOAD_DB2(sTextureFileDataStore);
     LOAD_DB2(sTotemCategoryStore);
     LOAD_DB2(sToyStore);
     LOAD_DB2(sTransmogHolidayStore);
@@ -2482,6 +2493,102 @@ uint32 DB2Manager::GetDefaultMapLight(uint32 mapId)
     }
 
     return 0;
+}
+
+uint32 DB2Manager::GetMapLightId(uint32 mapId)
+{
+    for (int32 i = 0; i <= sLightStore.GetNumRows(); ++i)
+    {
+        LightEntry const* light = sLightStore.LookupEntry(uint32(i));
+        if (!light)
+            continue;
+
+        if (light->ContinentID == int16(mapId))
+            return light->ID;
+    }
+
+    return 0;
+}
+
+std::vector<LightEntry const*> DB2Manager::GetMapLights(uint32 mapId)
+{
+    std::vector<LightEntry const*> mapLights;
+
+    for (int32 i = 0; i <= sLightStore.GetNumRows(); ++i)
+    {
+        LightEntry const* light = sLightStore.LookupEntry(uint32(i));
+        if (!light)
+            continue;
+
+        if (light->ContinentID == int16(mapId))
+            mapLights.emplace_back(light);
+    }
+
+    return mapLights;
+}
+
+std::map<uint32, uint32> DB2Manager::GetMapParamsIds()
+{
+    std::map<uint32, uint32> lightIds;
+    for (int32 i = sLightStore.GetNumRows(); i >= 0; --i)
+    {
+        LightEntry const* light = sLightStore.LookupEntry(uint32(i));
+
+        if (!light)
+            continue;
+
+        for (uint32 j = 0; j < 8; j++) {
+            if (light->LightParamsID[j] != 0) {
+                lightIds.insert(std::make_pair(light->LightParamsID[j], light->ID));
+            }
+        }
+    }
+
+    return lightIds;
+}
+
+
+std::map<uint16, uint32> DB2Manager::GetMapLightSkyboxIds()
+{
+    std::map<uint16, uint32>  lightSkyboxsIds;
+    std::map<uint32, uint32> lightIds = GetMapParamsIds();
+
+    for (int32 i = sLightParamsStore.GetNumRows(); i >= 0; --i)
+    {
+        LightParamsEntry const* lightParams = sLightParamsStore.LookupEntry(uint32(i));
+        if (!lightParams)
+            continue;
+
+        if (lightParams->LightSkyboxID == 0)
+            continue;
+
+        auto paramsIterator = lightIds.find(lightParams->ID);
+        if (paramsIterator != lightIds.end()) {
+            lightSkyboxsIds.insert(std::make_pair(lightParams->LightSkyboxID, paramsIterator->second));
+        }
+    }
+
+    return lightSkyboxsIds;
+}
+
+std::map<uint32, std::string> DB2Manager::GetMapSkyboxs()
+{
+    std::map<uint32, std::string> mapSkyboxs;
+    std::map<uint16, uint32> lightSkyboxsIds = GetMapLightSkyboxIds();
+
+    for (int32 i = sLightSkyboxStore.GetNumRows(); i >= 0; --i)
+    {
+        LightSkyboxEntry const* lightSkybox = sLightSkyboxStore.LookupEntry(uint32(i));
+        if (!lightSkybox)
+            continue;
+
+        auto paramsIterator = lightSkyboxsIds.find(lightSkybox->ID);
+        if (paramsIterator != lightSkyboxsIds.end()) {
+            mapSkyboxs.insert(std::make_pair(paramsIterator->second, lightSkybox->Name));
+        }
+    }
+
+    return mapSkyboxs;
 }
 
 uint32 DB2Manager::GetLiquidFlags(uint32 liquidType)

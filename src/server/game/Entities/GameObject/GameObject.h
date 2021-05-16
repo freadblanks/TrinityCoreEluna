@@ -98,7 +98,7 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
         void CleanupsBeforeDelete(bool finalCleanup = true) override;
 
     private:
-        bool Create(uint32 entry, Map* map, Position const& pos, QuaternionData const& rotation, uint32 animProgress, GOState goState, uint32 artKit, bool dynamic, ObjectGuid::LowType spawnid, float size = -1.0f);
+        bool Create(uint32 entry, Map* map, Position const& pos, QuaternionData const& rotation, uint32 animProgress, GOState goState, uint32 artKit, bool dynamic, ObjectGuid::LowType spawnid, float size = -1.0f, bool hasDoodads = true, float visibility = SIZE_OF_GRIDS);
     public:
         static GameObject* CreateGameObject(uint32 entry, Map* map, Position const& pos, QuaternionData const& rotation, uint32 animProgress, GOState goState, uint32 artKit = 0);
         static GameObject* CreateGameObjectFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap = true);
@@ -286,6 +286,8 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
 
         Transport* ToTransport() { if (GetGOInfo()->type == GAMEOBJECT_TYPE_MAP_OBJ_TRANSPORT) return reinterpret_cast<Transport*>(this); else return nullptr; }
         Transport const* ToTransport() const { if (GetGOInfo()->type == GAMEOBJECT_TYPE_MAP_OBJ_TRANSPORT) return reinterpret_cast<Transport const*>(this); else return nullptr; }
+        bool HasDoodads() const { return m_hasDoodads; }
+        void SetDoodads(bool hasDoodads);
 
         float GetStationaryX() const override { return m_stationaryPosition.GetPositionX(); }
         float GetStationaryY() const override { return m_stationaryPosition.GetPositionY(); }
@@ -309,6 +311,8 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
         bool AIM_Initialize();
 
         UF::UpdateField<UF::GameObjectData, 0, TYPEID_GAMEOBJECT> m_gameObjectData;
+
+        bool m_hasDoodads;
 
     protected:
         void CreateModel();

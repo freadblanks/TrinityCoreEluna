@@ -1078,6 +1078,8 @@ struct GameObjectData : public SpawnData
     GOState goState = GO_STATE_ACTIVE;
     uint8 artKit = 0;
     float size = 0.0f;
+    bool hasDoodads;
+    float visibility = 533.3333f;
 };
 
 #endif // GameObjectData_h__

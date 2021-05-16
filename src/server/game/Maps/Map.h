@@ -647,6 +647,11 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
             _updateObjects.erase(obj);
         }
 
+        std::set<ObjectGuid>& GetInfiniteGameObjects() { return m_infiniteGameObjects; };
+
+        void AddInfiniteGameObject(ObjectGuid object) { m_infiniteGameObjects.insert(object); };
+        void RemoveInfiniteGameObject(ObjectGuid object) { m_infiniteGameObjects.erase(object); };
+
     private:
         void LoadMapAndVMap(int gx, int gy);
         void LoadVMap(int gx, int gy);
@@ -730,6 +735,10 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         MapRefManager::iterator m_mapRefIter;
 
         int32 m_VisibilityNotifyPeriod;
+
+        typedef std::set<ObjectGuid> InfiniteGameObjects;
+        InfiniteGameObjects m_infiniteGameObjects;
+        InfiniteGameObjects::iterator m_infiniteGameObjectsIter;
 
         typedef std::set<WorldObject*> ActiveNonPlayers;
         ActiveNonPlayers m_activeNonPlayers;

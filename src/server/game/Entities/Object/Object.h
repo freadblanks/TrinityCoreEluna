@@ -35,6 +35,7 @@
 #include <list>
 #include <unordered_map>
 
+
 class AreaTrigger;
 class Conversation;
 class Corpse;
@@ -56,6 +57,9 @@ class WorldPacket;
 class ZoneScript;
 struct PositionFullTerrainStatus;
 struct QuaternionData;
+#ifdef ELUNA
+class ElunaEventProcessor;
+#endif
 
 typedef std::unordered_map<Player*, UpdateData> UpdateDataMapType;
 
@@ -400,7 +404,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
     public:
         virtual ~WorldObject();
 
-        virtual void Update (uint32 /*time_diff*/) { }
+        virtual void Update(uint32 time_diff);
 
         void AddToWorld() override;
         void RemoveFromWorld() override;
@@ -564,6 +568,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         void setActive(bool isActiveObject);
         bool IsVisibilityOverridden() const { return m_visibilityDistanceOverride.is_initialized(); }
         void SetVisibilityDistanceOverride(VisibilityDistanceType type);
+        void SetVisibilityDistanceOverride(float distance);
         void SetWorldObject(bool apply);
         bool IsPermanentWorldObject() const { return m_isWorldObject; }
         bool IsWorldObject() const;
@@ -604,6 +609,10 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         ObjectGuid GetPrivateObjectOwner() const { return _privateObjectOwner; }
         void SetPrivateObjectOwner(ObjectGuid const& owner) { _privateObjectOwner = owner; }
         bool CheckPrivateObjectOwnerVisibility(WorldObject const* seer) const;
+
+#ifdef ELUNA
+        ElunaEventProcessor* ElunaEvents;
+#endif
 
     protected:
         std::string m_name;

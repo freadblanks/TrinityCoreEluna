@@ -3497,6 +3497,49 @@ struct LightLoadInfo
     }
 };
 
+struct LightParamsLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_FLOAT, "OverrideCelestialSphere1" },
+            { false, FT_FLOAT, "OverrideCelestialSphere2" },
+            { false, FT_FLOAT, "OverrideCelestialSphere3" },
+            { false, FT_INT, "ID" },
+            { false, FT_BYTE, "HighlightSky" },
+            { false, FT_SHORT,"LightSkyboxID" },
+            { false, FT_BYTE, "CloudTypeID" },
+            { false, FT_FLOAT, "Glow" },
+            { false, FT_FLOAT, "WaterShallowAlpha" },
+            { false, FT_FLOAT, "WaterDeepAlpha" },
+            { false, FT_FLOAT, "OceanShallowAlpha" },
+            { false, FT_FLOAT, "OceanDeepAlpha" },
+            { true, FT_INT, "Flags" },
+            { true, FT_INT, "SsaoSettingsID" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, LightParamsMeta::Instance(), HOTFIX_SEL_LIGHT_PARAMS);
+        return &loadInfo;
+    }
+};
+
+struct LightSkyboxLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { false, FT_STRING_NOT_LOCALIZED, "Name" },
+            { false, FT_BYTE, "Flags" },
+            { true, FT_INT, "SkyboxFileDataID" },
+            { true, FT_INT, "CelestialSkyboxFileDataID" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, LightSkyboxMeta::Instance(), HOTFIX_SEL_LIGHT_SKYBOX);
+        return &loadInfo;
+    }
+};
+
 struct LiquidTypeLoadInfo
 {
     static DB2LoadInfo const* Instance()
@@ -3683,6 +3726,22 @@ struct MapDifficultyLoadInfo
             { false, FT_INT, "MapID" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, MapDifficultyMeta::Instance(), HOTFIX_SEL_MAP_DIFFICULTY);
+        return &loadInfo;
+    }
+};
+
+struct ModelFileDataLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { false, FT_BYTE, "Flags" },
+            { false, FT_BYTE, "LogCount" },
+            { false, FT_INT, "ModelID" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, ModelFileDataMeta::Instance(), HOTFIX_SEL_MODEL_FILE_DATA);
         return &loadInfo;
     }
 };
@@ -3875,6 +3934,22 @@ struct NamesReservedLocaleLoadInfo
             { false, FT_BYTE, "LocaleMask" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, NamesReservedLocaleMeta::Instance(), HOTFIX_SEL_NAMES_RESERVED);
+        return &loadInfo;
+    }
+};
+
+struct NPCModelItemSlotDisplayInfoLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { true, FT_INT, "DisplayID" },
+            { true, FT_BYTE, "Slot" },
+            { false, FT_INT, "ExtendedDisplayID" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, NPCModelItemSlotDisplayInfoMeta::Instance(), HOTFIX_SEL_NPC_MODEL_ITEM_SLOT_DISPLAY_INFO);
         return &loadInfo;
     }
 };
@@ -5596,6 +5671,21 @@ struct TaxiPathNodeLoadInfo
             { true, FT_INT, "DepartureEventID" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, TaxiPathNodeMeta::Instance(), HOTFIX_SEL_TAXI_PATH_NODE);
+        return &loadInfo;
+    }
+};
+
+struct TextureFileDataLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { false, FT_BYTE, "UsageType" },
+            { true, FT_INT, "TextureID" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, TextureFileDataMeta::Instance(), HOTFIX_SEL_TEXTURE_FILE_DATA);
         return &loadInfo;
     }
 };

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -33,7 +33,11 @@ EndScriptData */
 #include "Map.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
+#include "MapManager.h"
 #include "Pet.h"
+#include "SpellAuras.h"
+#include "SpellMgr.h"
+#include "Spell.h"
 #include "PhasingHandler.h"
 #include "Player.h"
 #include "RBAC.h"
@@ -330,6 +334,9 @@ public:
             { "spawndist",  rbac::RBAC_PERM_COMMAND_NPC_SET_SPAWNDIST, false, &HandleNpcSetSpawnDistCommand,     "" },
             { "spawntime",  rbac::RBAC_PERM_COMMAND_NPC_SET_SPAWNTIME, false, &HandleNpcSetSpawnTimeCommand,     "" },
             { "data",       rbac::RBAC_PERM_COMMAND_NPC_SET_DATA,      false, &HandleNpcSetDataCommand,          "" },
+            { "anim",       rbac::RBAC_PERM_COMMAND_NPC_ADD,           false, &HandleNpcSetAnimCommand,          "" },
+            { "aura",       rbac::RBAC_PERM_COMMAND_NPC_ADD,           false, &HandleNpcSetAuraCommand,          "" },
+            { "mount",      rbac::RBAC_PERM_COMMAND_NPC_ADD,           false, &HandleNpcSetMountCommand,         "" },
         };
         static std::vector<ChatCommand> npcCommandTable =
         {
@@ -1888,6 +1895,160 @@ public:
             return true;
         }
         */
+        return true;
+    }
+
+    // npc set anim
+    static bool HandleNpcSetAnimCommand(ChatHandler* handler, char const* args)
+    {
+        if (!*args)
+            return false;
+
+        uint32 emote = atoi((char*)args);
+
+        Creature* target = handler->getSelectedCreature();
+        ObjectGuid::LowType guidLow = UI64LIT(0);
+
+        if (!target)
+        {
+            handler->SendSysMessage(LANG_SELECT_CREATURE);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+        target->SetEmoteState(Emote(emote));
+
+        //Cot� SQL
+        guidLow = target->GetSpawnId();
+        QueryResult guidSql = WorldDatabase.PQuery("SELECT guid FROM creature_addon WHERE guid = %u", guidLow);
+        if (!guidSql)
+        {
+            WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_INS_SET_ANIM);
+            stmt->setUInt64(0, guidLow);
+            stmt->setUInt32(1, emote);
+            WorldDatabase.Execute(stmt);
+        }
+        else
+        {
+            WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_UPD_SET_ANIM);
+            stmt->setUInt32(0, emote);
+            stmt->setUInt64(1, guidLow);
+            WorldDatabase.Execute(stmt);
+        }
+
+        return true;
+    }
+
+    // npc set aura
+    static bool HandleNpcSetAuraCommand(ChatHandler* handler, char const* args)
+    {
+        if (!*args)
+            return false;
+
+
+        Creature* target = handler->getSelectedCreature();
+        ObjectGuid::LowType guidLow = UI64LIT(0);
+
+        if (!target)
+        {
+            handler->SendSysMessage(LANG_SELECT_CREATURE);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        uint32 spellId = handler->extractSpellIdFromLink((char*)args);
+
+        if (spellId == 172036 || spellId == 142873 || spellId == 163465 ||
+            spellId == 187998 || spellId == 190430 || spellId == 190429 ||
+            spellId == 190426 || spellId == 188438 || spellId == 185298 ||
+            spellId == 184452 || spellId == 185297 || spellId == 182669 ||
+            spellId == 181864 || spellId == 181827 || spellId == 66141 ||
+            spellId == 9454 || spellId == 1852)
+        {
+
+            handler->PSendSysMessage("You just encountered an crash spell. Thankfully, it's off!");
+            return true;
+        }
+
+
+        if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId, target->GetMap()->GetDifficultyID()))
+        {
+            ObjectGuid castId = ObjectGuid::Create<HighGuid::Cast>(SPELL_CAST_SOURCE_NORMAL, target->GetMapId(), spellId, target->GetMap()->GenerateLowGuid<HighGuid::Cast>());
+            Aura::TryRefreshStackOrCreate(spellInfo, castId, MAX_EFFECT_MASK, target, target, target->GetMap()->GetDifficultyID());
+        }
+
+        //.ToString().c_str()
+
+        //Cot� SQL
+        guidLow = target->GetSpawnId();
+        std::string auraString = std::to_string(uint32(spellId));
+        QueryResult guidSql = WorldDatabase.PQuery("SELECT auras FROM creature_addon WHERE guid = %u", guidLow);
+        if (!guidSql && spellId != 0)
+        {
+            WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_INS_SET_AURA);
+            stmt->setUInt64(0, guidLow);
+            stmt->setString(1, auraString);
+            WorldDatabase.Execute(stmt);
+        }
+        else
+        {
+            std::string auras = "";
+
+            if (spellId != 0)
+            {
+                Field* fsheat = guidSql->Fetch();
+                auras = fsheat[0].GetString() + ' ' + auraString;
+            }
+
+            WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_UPD_SET_AURA);
+            stmt->setString(0, auras);
+            stmt->setUInt64(1, guidLow);
+            WorldDatabase.Execute(stmt);
+        }
+
+        return true;
+
+
+    }
+
+    static bool HandleNpcSetMountCommand(ChatHandler* handler, char const* args)
+    {
+        if (!*args)
+            return false;
+
+        uint32 mount = atoi((char*)args);
+
+        Creature* target = handler->getSelectedCreature();
+        ObjectGuid::LowType guidLow = UI64LIT(0);
+
+        if (!target)
+        {
+            handler->SendSysMessage(LANG_SELECT_CREATURE);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        target->Mount(mount);
+
+
+        //Cot� SQL
+        guidLow = target->GetSpawnId();
+        QueryResult guidSql = WorldDatabase.PQuery("SELECT guid FROM creature_addon WHERE guid = %u", guidLow);
+        if (!guidSql)
+        {
+            WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_INS_SET_MOUNT);
+            stmt->setUInt64(0, guidLow);
+            stmt->setUInt32(1, mount);
+            WorldDatabase.Execute(stmt);
+        }
+        else
+        {
+            WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_UPD_SET_MOUNT);
+            stmt->setUInt32(0, mount);
+            stmt->setUInt64(1, guidLow);
+            WorldDatabase.Execute(stmt);
+        }
+
+
         return true;
     }
 };

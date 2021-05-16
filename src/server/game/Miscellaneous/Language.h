@@ -1160,6 +1160,18 @@ enum TrinityStrings
     LANG_SHUTDOWN_CANCELLED                       = 11018,
     LANG_YOU_CHANGE_POWER                         = 11019,
     LANG_YOUR_POWER_CHANGED                       = 11020,
-    LANG_INVALID_POWER_NAME                       = 11021
+    LANG_INVALID_POWER_NAME                       = 11021,
+    LANG_RANDOM_MESSAGE                           = 65002, // %s
+    LANG_WP_MOVE_1                                = 65003, // WP MOVE DONE 1 WALK
+    LANG_WP_MOVE_2                                = 65004, // WP MOVE DONE 2 RUN
+    LANG_WP_MOVE_3                                = 65005, // WP MOVE DONE 3 FLYING
+    LANG_WP_DELAY                                 = 65006, // WP DELAY DONE
+    // LOOKUP SKYBOX
+    LANG_LOOKUP_SKYBOX                            = 70005, // return list of skybox name
+    LANG_LOOKUP_SKYBOX_ERROR                      = 70006, // return error of listing
+
+    // LOOKUP SOUND
+    LANG_LOOKUP_SOUND = 70011, // return list of sounds
+    LANG_LOOKUP_SOUND_ERROR = 70012, // return error of listing
 };
 #endif

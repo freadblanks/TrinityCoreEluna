@@ -2115,9 +2115,28 @@ namespace LuaUnit
         Unit* target = Eluna::CHECKOBJ<Unit>(L, 2, false);
         uint32 spell = Eluna::CHECKVAL<uint32>(L, 3);
         bool triggered = Eluna::CHECKVAL<bool>(L, 4, false);
+        bool has_bp0 = !lua_isnoneornil(L, 5);
+        int32 bp0 = Eluna::CHECKVAL<int32>(L, 5, 0);
+        bool has_bp1 = !lua_isnoneornil(L, 6);
+        int32 bp1 = Eluna::CHECKVAL<int32>(L, 6, 0);
+        bool has_bp2 = !lua_isnoneornil(L, 7);
+        int32 bp2 = Eluna::CHECKVAL<int32>(L, 7, 0);
         Item* castItem = Eluna::CHECKOBJ<Item>(L, 8, false);
 
-        unit->CastSpell(target, spell, true, castItem ? castItem : nullptr);
+        CastSpellExtraArgs args;
+
+        if (has_bp0)
+            args.AddSpellMod(SPELLVALUE_BASE_POINT0, bp0);
+        if (has_bp1)
+            args.AddSpellMod(SPELLVALUE_BASE_POINT1, bp1);
+        if (has_bp2)
+            args.AddSpellMod(SPELLVALUE_BASE_POINT2, bp2);
+        if (triggered)
+            args.TriggerFlags = TRIGGERED_FULL_MASK;
+        if (castItem)
+            args.SetCastItem(castItem);
+
+        unit->CastSpell(target, spell, args);
         return 0;
     }
 
@@ -2138,7 +2157,11 @@ namespace LuaUnit
         uint32 spell = Eluna::CHECKVAL<uint32>(L, 5);
         bool triggered = Eluna::CHECKVAL<bool>(L, 6, true);
 
-        unit->CastSpell(_x, _y, _z, spell, triggered);
+        CastSpellExtraArgs args;
+        if (triggered)
+            args.TriggerFlags = TRIGGERED_FULL_MASK;
+        unit->CastSpell(Position(_x, _y, _z), spell, args);
+
         return 0;
     }
 

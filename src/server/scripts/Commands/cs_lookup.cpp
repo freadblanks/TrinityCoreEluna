@@ -75,6 +75,7 @@ public:
             { "tele",     rbac::RBAC_PERM_COMMAND_LOOKUP_TELE,     true, &HandleLookupTeleCommand,     "" },
             { "title",    rbac::RBAC_PERM_COMMAND_LOOKUP_TITLE,    true, &HandleLookupTitleCommand,    "" },
             { "map",      rbac::RBAC_PERM_COMMAND_LOOKUP_MAP,      true, &HandleLookupMapCommand,      "" },
+            { "skybox",   rbac::RBAC_PERM_COMMAND_LOOKUP_TELE,     true, &HandleLookupSkyboxCommand,   "" },
         };
 
         static std::vector<ChatCommand> commandTable =
@@ -1425,6 +1426,48 @@ public:
         }
 
         return true;
+    }
+
+    static bool HandleLookupSkyboxCommand(ChatHandler* handler, char const* args)
+    {
+        if (!*args)
+        {
+            return false;
+        }
+
+        char const* str = strtok((char*)args, " ");
+        if (!str)
+            return false;
+
+        std::string requestName = str;
+        if (requestName.find('\'') != std::string::npos) {
+            handler->PSendSysMessage(LANG_LOOKUP_SOUND_ERROR);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+        else {
+            auto query = DB2Manager::GetMapSkyboxs();
+            if (query.size() != 0) {
+                for (const auto& skyboxData : query) {
+                    std::string skyboxName = skyboxData.second;
+
+                    std::transform(skyboxName.begin(), skyboxName.end(), skyboxName.begin(),
+                        [](unsigned char c) { return std::tolower(c); });
+
+                    if (skyboxName.find(requestName) != std::string::npos)
+                        handler->PSendSysMessage(LANG_LOOKUP_SKYBOX, skyboxData.first, skyboxName.c_str());
+                }
+            }
+            else {
+
+                handler->PSendSysMessage(LANG_LOOKUP_SKYBOX_ERROR);
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
+
+            return true;
+        }
+
     }
 };
 

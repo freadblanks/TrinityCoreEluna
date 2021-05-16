@@ -539,6 +539,22 @@ struct CharTitlesEntry
     int8 Flags;
 };
 
+struct CharHairGeosetsEntry
+{
+    uint32 ID;
+    uint8 RaceID;
+    uint8 SexID;
+    int8 VariationID;
+    int8 GeosetID;
+    uint8 Showscalp;
+    int8 VariationType;
+    int8 GeosetType;
+    int8 ColorIndex;
+    int32 CustomGeoFileDataID;
+    int32 HdCustomGeoFileDataID;
+    int8 unk83;
+};
+
 struct CharacterLoadoutEntry
 {
     Trinity::RaceMask<int64> RaceMask;
@@ -2168,6 +2184,9 @@ struct LightEntry
     float GameFalloffEnd;
     int16 ContinentID;
     uint16 LightParamsID[8];
+
+    // Helpers
+    int16 Continent() const { return ContinentID; }
 };
 
 struct LiquidTypeEntry
@@ -2298,6 +2317,14 @@ struct MapDifficultyEntry
     }
 };
 
+struct ModelFileDataEntry
+{
+    uint32 ID;
+    uint8 Flags;
+    uint8 LogCount;
+    uint32 ModelID;
+};
+
 struct MapDifficultyXConditionEntry
 {
     uint32 ID;
@@ -2402,6 +2429,14 @@ struct NamesReservedLocaleEntry
     uint32 ID;
     char const* Name;
     uint8 LocaleMask;
+};
+
+struct NPCModelItemSlotDisplayInfoEntry
+{
+    uint32 ID;
+    int32 DisplayID;
+    int8 Slot;
+    uint32 ExtendedDisplayID;
 };
 
 struct CreatureDisplayInfoStore
@@ -3323,6 +3358,13 @@ struct TaxiPathNodeEntry
     int32 DepartureEventID;
 };
 
+struct TextureFileDataEntry
+{
+    uint32 ID;
+    uint8 UsageType;
+    int32 TextureID;
+};
+
 struct TotemCategoryEntry
 {
     uint32 ID;
@@ -3634,6 +3676,31 @@ struct WorldStateExpressionEntry
 {
     uint32 ID;
     char const* Expression;
+};
+
+struct LightSkyboxEntry
+{
+    uint32 ID;
+    char const* Name;
+    uint8 Flags;
+    int32 SkyboxFileDataID;
+    int32 CelestialSkyboxFileDataID;
+};
+
+struct LightParamsEntry
+{
+    float OverrideCelestialSphere[3];
+    uint32 ID;
+    uint8 HighlightSky;
+    uint16 LightSkyboxID;
+    uint8 CloudTypeID;
+    float Glow;
+    float WaterShallowAlpha;
+    float WaterDeepAlpha;
+    float OceanShallowAlpha;
+    float OceanDeepAlpha;
+    int32 Flags;
+    int32 SsaoSettingsID;
 };
 
 #pragma pack(pop)

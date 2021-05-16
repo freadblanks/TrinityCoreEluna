@@ -8751,10 +8751,11 @@ struct NPCModelItemSlotDisplayInfoMeta
 {
     static DB2Meta const* Instance()
     {
-        static DB2MetaField const fields[3] =
+        static DB2MetaField const fields[4] =
         {
             { FT_INT, 1, true },
             { FT_BYTE, 1, true },
+            { FT_INT, 1, true },
             { FT_INT, 1, true },
         };
         static DB2Meta instance(1340661, -1, 3, 2, 0xBA98178D, fields, 2);

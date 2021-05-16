@@ -928,10 +928,15 @@ void WorldObject::setActive(bool on)
 void WorldObject::SetVisibilityDistanceOverride(VisibilityDistanceType type)
 {
     ASSERT(type < VisibilityDistanceType::Max);
+    return SetVisibilityDistanceOverride(VisibilityDistances[AsUnderlyingType(type)]);
+}
+
+void WorldObject::SetVisibilityDistanceOverride(float distance)
+{
     if (GetTypeId() == TYPEID_PLAYER)
         return;
 
-    m_visibilityDistanceOverride = VisibilityDistances[AsUnderlyingType(type)];
+    m_visibilityDistanceOverride = distance;
 }
 
 void WorldObject::CleanupsBeforeDelete(bool /*finalCleanup*/)
@@ -1469,6 +1474,15 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool ignoreStealth, boo
 
     if (!obj->CheckPrivateObjectOwnerVisibility(this))
         return false;
+
+    if (const GameObject* object = obj->ToGameObject()) {
+        const std::set<ObjectGuid> infinites = object->GetMap()->GetInfiniteGameObjects();
+        if (std::find(infinites.begin(), infinites.end(), object->GetGUID()) != infinites.end()) {
+            float distance = GetDistance(obj);
+            //TC_LOG_ERROR("misc", "[+) WorldObject::CanSeeOrDetect(Infinite) : %f ", distance);
+            return true && (distance <= object->GetVisibilityRange());
+        }
+    }
 
     bool corpseVisibility = false;
     if (distanceCheck)
