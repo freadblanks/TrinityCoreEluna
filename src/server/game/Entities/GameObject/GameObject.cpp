@@ -224,6 +224,10 @@ void GameObject::AddToWorld()
 
         EnableCollision(toggledState);
         WorldObject::AddToWorld();
+
+#ifdef ELUNA
+        sEluna->OnAddToWorld(this);
+#endif
     }
 }
 
@@ -232,6 +236,10 @@ void GameObject::RemoveFromWorld()
     ///- Remove the gameobject from the accessor
     if (IsInWorld())
     {
+#ifdef ELUNA
+        sEluna->OnRemoveFromWorld(this);
+#endif
+
         if (m_zoneScript)
             m_zoneScript->OnGameObjectRemove(this);
 
@@ -530,6 +538,10 @@ GameObject* GameObject::CreateGameObjectFromDB(ObjectGuid::LowType spawnId, Map*
 
 void GameObject::Update(uint32 diff)
 {
+#ifdef ELUNA
+    sEluna->UpdateAI(this, diff);
+#endif
+
     if (AI())
         AI()->UpdateAI(diff);
     else if (!AIM_Initialize())
@@ -2446,6 +2458,10 @@ void GameObject::SetDestructibleState(GameObjectDestructibleState state, Player*
             break;
         case GO_DESTRUCTIBLE_DAMAGED:
         {
+#ifdef ELUNA
+            sEluna->OnDamaged(this, eventInvoker);
+#endif
+
             EventInform(m_goInfo->destructibleBuilding.DamagedEvent, eventInvoker);
             AI()->Damaged(eventInvoker, m_goInfo->destructibleBuilding.DamagedEvent);
 
@@ -2471,6 +2487,10 @@ void GameObject::SetDestructibleState(GameObjectDestructibleState state, Player*
         }
         case GO_DESTRUCTIBLE_DESTROYED:
         {
+#ifdef ELUNA
+            sEluna->OnDestroyed(this, eventInvoker);
+#endif
+
             EventInform(m_goInfo->destructibleBuilding.DestroyedEvent, eventInvoker);
             AI()->Destroyed(eventInvoker, m_goInfo->destructibleBuilding.DestroyedEvent);
             if (eventInvoker)
@@ -2553,6 +2573,9 @@ void GameObject::SetLootGenerationTime()
 void GameObject::SetGoState(GOState state)
 {
     SetUpdateFieldValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::State), state);
+#ifdef ELUNA
+    sEluna->OnGameObjectStateChanged(this, state);
+#endif
     if (AI())
         AI()->OnStateChanged(state);
     if (m_model && !IsTransport())

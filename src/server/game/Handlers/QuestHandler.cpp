@@ -394,6 +394,7 @@ void WorldSession::HandleQuestgiverChooseRewardOpcode(WorldPackets::Quest::Quest
             case TYPEID_PLAYER:
             {
                 //For AutoSubmition was added plr case there as it almost same exclute AI script cases.
+                Creature* questgiver = object->ToCreature();
                 // Send next quest
                 if (Quest const* nextQuest = _player->GetNextQuest(packet.QuestGiverGUID, quest))
                 {
@@ -408,6 +409,11 @@ void WorldSession::HandleQuestgiverChooseRewardOpcode(WorldPackets::Quest::Quest
                 }
 
                 _player->PlayerTalkClass->ClearMenus();
+
+//#ifdef ELUNA // The function does not accept packet data type.
+//                sEluna->OnQuestReward(_player, questgiver, quest, packet.Choice.LootItemType, packet.Choice.Item.ItemID);
+//#endif
+
                 if (Creature* creatureQGiver = object->ToCreature())
                     creatureQGiver->AI()->QuestReward(_player, quest, packet.Choice.LootItemType, packet.Choice.Item.ItemID);
                 break;
@@ -429,6 +435,11 @@ void WorldSession::HandleQuestgiverChooseRewardOpcode(WorldPackets::Quest::Quest
                 }
 
                 _player->PlayerTalkClass->ClearMenus();
+
+//#ifdef ELUNA // The function does not accept packet data type.
+//                sEluna->OnQuestReward(_player, questGiver, quest, packet.Choice.LootItemType, packet.Choice.Item.ItemID);
+//#endif
+
                 questGiver->AI()->QuestReward(_player, quest, packet.Choice.LootItemType, packet.Choice.Item.ItemID);
                 break;
             }
@@ -493,6 +504,10 @@ void WorldSession::HandleQuestLogRemoveQuest(WorldPackets::Quest::QuestLogRemove
             _player->AbandonQuest(questId); // remove all quest items player received before abandoning quest. Note, this does not remove normal drop items that happen to be quest requirements.
             _player->RemoveActiveQuest(questId);
             _player->RemoveCriteriaTimer(CRITERIA_TIMED_TYPE_QUEST, questId);
+
+#ifdef ELUNA
+            sEluna->OnQuestAbandon(_player, questId);
+#endif
 
             TC_LOG_INFO("network", "%s abandoned quest %u", _player->GetGUID().ToString().c_str(), questId);
 

@@ -310,7 +310,7 @@ public:
     void OnRepop(Player* pPlayer);
     void OnResurrect(Player* pPlayer);
     void OnQuestAbandon(Player* pPlayer, uint32 questId);
-    void OnLearnTalents(Player* pPlayer, uint32 talentId, uint32 talentRank, uint32 spellid);
+    void OnLearnTalents(Player* pPlayer, uint32 talentId, uint32 spellid);
     InventoryResult OnCanUseItem(const Player* pPlayer, uint32 itemEntry);
     void OnLuaStateClose();
     void OnLuaStateOpen();
@@ -332,7 +332,7 @@ public:
     bool OnGossipSelect(Player* pPlayer, Creature* pCreature, uint32 sender, uint32 action);
     bool OnGossipSelectCode(Player* pPlayer, Creature* pCreature, uint32 sender, uint32 action, const char* code);
     bool OnQuestAccept(Player* pPlayer, Creature* pCreature, Quest const* pQuest);
-    bool OnQuestReward(Player* pPlayer, Creature* pCreature, Quest const* pQuest, uint32 opt);
+    bool OnQuestReward(Player* pPlayer, Creature* pCreature, Quest const* pQuest, LootItemType* /*rewardType*/, uint32 /*rewardId*/);
     void GetDialogStatus(const Player* pPlayer, const Creature* pCreature);
 
     bool OnSummoned(Creature* creature, Unit* summoner);

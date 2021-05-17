@@ -29,12 +29,11 @@ using namespace Hooks;
         return RETVAL;\
     LOCK_ELUNA
 
-void Eluna::OnLearnTalents(Player* pPlayer, uint32 talentId, uint32 talentRank, uint32 spellid)
+void Eluna::OnLearnTalents(Player* pPlayer, uint32 talentId, uint32 spellid)
 {
     START_HOOK(PLAYER_EVENT_ON_LEARN_TALENTS);
     Push(pPlayer);
     Push(talentId);
-    Push(talentRank);
     Push(spellid);
     CallAllFunctions(PlayerEventBindings, key);
 }
