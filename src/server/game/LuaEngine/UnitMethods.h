@@ -1717,7 +1717,7 @@ namespace LuaUnit
      */
     int ClearThreatList(lua_State* /*L*/, Unit* unit)
     {
-        unit->GetThreatManager().resetAllAggro();
+        unit->GetThreatManager().ResetAllThreat();
         return 0;
     }
 
@@ -2462,7 +2462,7 @@ namespace LuaUnit
         uint8 difficulty = Eluna::CHECKVAL<uint8>(L, 5);
 
         const SpellInfo* spellInfo = sSpellMgr->GetSpellInfo(spell, Difficulty(difficulty));
-        unit->GetThreatManager().addThreat(victim, threat, spellInfo->GetSchoolMask(), spellInfo);
+        unit->GetThreatManager().AddThreat(victim, threat, spell ? spellInfo : NULL, true, true);
         return 0;
     }
 
