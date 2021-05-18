@@ -905,6 +905,7 @@ ElunaRegister<Quest> QuestMethods[] =
     { NULL, NULL }
 };
 
+
 ElunaRegister<Group> GroupMethods[] =
 {
     // Getters

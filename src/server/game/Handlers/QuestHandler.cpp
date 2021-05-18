@@ -410,7 +410,7 @@ void WorldSession::HandleQuestgiverChooseRewardOpcode(WorldPackets::Quest::Quest
 
                 _player->PlayerTalkClass->ClearMenus();
 
-//#ifdef ELUNA // The function does not accept packet data type.
+//#ifdef ELUNA // The function does not accept LootItemType* data type (need LootItemType).
 //                sEluna->OnQuestReward(_player, questgiver, quest, packet.Choice.LootItemType, packet.Choice.Item.ItemID);
 //#endif
 
@@ -436,8 +436,8 @@ void WorldSession::HandleQuestgiverChooseRewardOpcode(WorldPackets::Quest::Quest
 
                 _player->PlayerTalkClass->ClearMenus();
 
-//#ifdef ELUNA // The function does not accept packet data type.
-//                sEluna->OnQuestReward(_player, questGiver, quest, packet.Choice.LootItemType, packet.Choice.Item.ItemID);
+//#ifdef ELUNA // The function does not accept LootItemType* data type (need LootItemType).
+//                sEluna->OnQuestReward(_player, questgiver, quest, packet.Choice.LootItemType, packet.Choice.Item.ItemID);
 //#endif
 
                 questGiver->AI()->QuestReward(_player, quest, packet.Choice.LootItemType, packet.Choice.Item.ItemID);

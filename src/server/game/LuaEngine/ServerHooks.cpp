@@ -133,88 +133,37 @@ void Eluna::OnChange(Weather* /*weather*/, uint32 zone, WeatherState state, floa
 }
 
 // Auction House
-//void Eluna::OnAdd(AuctionHouseObject* /*ah*/, AuctionEntry* entry)
-//{
-//    Player* owner = eObjectAccessor()FindPlayer(ObjectGuid::Create<HIGHGUID_PLAYER>(entry->owner));
-//    Item* item = eAuctionMgr->GetAItem(entry->itemGUIDLow);
-//    uint32 expiretime = entry->expire_time;
-//
-//    if (!owner || !item)
-//        return;
-//
-//    START_HOOK(AUCTION_EVENT_ON_ADD);
-//    Push(entry->Id);
-//    Push(owner);
-//    Push(item);
-//    Push(expiretime);
-//    Push(entry->buyout);
-//    Push(entry->startbid);
-//    Push(entry->bid);
-//    Push(entry->bidder);
-//    CallAllFunctions(ServerEventBindings, key);
-//}
-//
-//void Eluna::OnRemove(AuctionHouseObject* /*ah*/, AuctionEntry* entry)
-//{
-//    Player* owner = eObjectAccessor()FindPlayer(ObjectGuid::Create<HIGHGUID_PLAYER>(entry->owner));
-//    Item* item = eAuctionMgr->GetAItem(entry->itemGUIDLow);
-//    uint32 expiretime = entry->expire_time;
-//
-//    if (!owner || !item)
-//        return;
-//
-//    START_HOOK(AUCTION_EVENT_ON_REMOVE);
-//    Push(entry->Id);
-//    Push(owner);
-//    Push(item);
-//    Push(expiretime);
-//    Push(entry->buyout);
-//    Push(entry->startbid);
-//    Push(entry->bid);
-//    Push(entry->bidder);
-//    CallAllFunctions(ServerEventBindings, key);
-//}
-//
-//void Eluna::OnSuccessful(AuctionHouseObject* /*ah*/, AuctionEntry* entry)
-//{
-//    Player* owner = eObjectAccessor()FindPlayer(ObjectGuid::Create<HIGHGUID_PLAYER>(entry->owner));
-//    Item* item = eAuctionMgr->GetAItem(entry->itemGUIDLow);
-//    uint32 expiretime = entry->expire_time;
-//    if (!owner || !item)
-//        return;
-//
-//    START_HOOK(AUCTION_EVENT_ON_SUCCESSFUL);
-//    Push(entry->Id);
-//    Push(owner);
-//    Push(item);
-//    Push(expiretime);
-//    Push(entry->buyout);
-//    Push(entry->startbid);
-//    Push(entry->bid);
-//    Push(entry->bidder);
-//    CallAllFunctions(ServerEventBindings, key);
-//}
-//
-//void Eluna::OnExpire(AuctionHouseObject* /*ah*/, AuctionEntry* entry)
-//{
-//    Player* owner = eObjectAccessor()FindPlayer(ObjectGuid::Create<HIGHGUID_PLAYER>(entry->owner));
-//    Item* item = eAuctionMgr->GetAItem(entry->itemGUIDLow);
-//    uint32 expiretime = entry->expire_time;
-//
-//    if (!owner || !item)
-//        return;
-//
-//    START_HOOK(AUCTION_EVENT_ON_EXPIRE);
-//    Push(entry->Id);
-//    Push(owner);
-//    Push(item);
-//    Push(expiretime);
-//    Push(entry->buyout);
-//    Push(entry->startbid);
-//    Push(entry->bid);
-//    Push(entry->bidder);
-//    CallAllFunctions(ServerEventBindings, key);
-//}
+void Eluna::OnAdd(AuctionHouseObject* ah, AuctionPosting* auction)
+{
+    START_HOOK(AUCTION_EVENT_ON_ADD);
+    Push(ah);
+    Push(auction);
+    CallAllFunctions(ServerEventBindings, key);
+}
+
+void Eluna::OnRemove(AuctionHouseObject* ah, AuctionPosting* auction)
+{
+    START_HOOK(AUCTION_EVENT_ON_REMOVE);
+    Push(ah);
+    Push(auction);
+    CallAllFunctions(ServerEventBindings, key);
+}
+
+void Eluna::OnSuccessful(AuctionHouseObject* ah, AuctionPosting* auction)
+{
+    START_HOOK(AUCTION_EVENT_ON_SUCCESSFUL);
+    Push(ah);
+    Push(auction);
+    CallAllFunctions(ServerEventBindings, key);
+}
+
+void Eluna::OnExpire(AuctionHouseObject* ah, AuctionPosting* auction)
+{
+    START_HOOK(AUCTION_EVENT_ON_EXPIRE);
+    Push(ah);
+    Push(auction);
+    CallAllFunctions(ServerEventBindings, key);
+}
 
 void Eluna::OnOpenStateChange(bool open)
 {

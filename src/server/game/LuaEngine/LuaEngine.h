@@ -332,7 +332,7 @@ public:
     bool OnGossipSelect(Player* pPlayer, Creature* pCreature, uint32 sender, uint32 action);
     bool OnGossipSelectCode(Player* pPlayer, Creature* pCreature, uint32 sender, uint32 action, const char* code);
     bool OnQuestAccept(Player* pPlayer, Creature* pCreature, Quest const* pQuest);
-    bool OnQuestReward(Player* pPlayer, Creature* pCreature, Quest const* pQuest, LootItemType* /*rewardType*/, uint32 /*rewardId*/);
+    bool OnQuestReward(Player* pPlayer, Creature* pCreature, Quest const* pQuest, LootItemType const* /*rewardType*/, uint32 /*rewardId*/);
     void GetDialogStatus(const Player* pPlayer, const Creature* pCreature);
 
     bool OnSummoned(Creature* creature, Unit* summoner);
@@ -365,7 +365,7 @@ public:
     bool OnGossipSelect(Player* pPlayer, GameObject* pGameObject, uint32 sender, uint32 action);
     bool OnGossipSelectCode(Player* pPlayer, GameObject* pGameObject, uint32 sender, uint32 action, const char* code);
     bool OnQuestAccept(Player* pPlayer, GameObject* pGameObject, Quest const* pQuest);
-    bool OnQuestReward(Player* pPlayer, GameObject* pGameObject, Quest const* pQuest, uint32 opt);
+    bool OnQuestReward(Player* pPlayer, GameObject* pGameObject, Quest const* pQuest, LootItemType* rewardType, uint32 rewardId);
     void GetDialogStatus(const Player* pPlayer, const GameObject* pGameObject);
     void OnDestroyed(GameObject* pGameObject, WorldObject* attacker);
     void OnDamaged(GameObject* pGameObject, WorldObject* attacker);
@@ -429,10 +429,10 @@ public:
     void OnChange(Weather* weather, uint32 zone, WeatherState state, float grade);
 
     /* Auction House */
-    //void OnAdd(AuctionHouseObject* ah, AuctionEntry* entry);
-    //void OnRemove(AuctionHouseObject* ah, AuctionEntry* entry);
-    //void OnSuccessful(AuctionHouseObject* ah, AuctionEntry* entry);
-    //void OnExpire(AuctionHouseObject* ah, AuctionEntry* entry);
+    void OnAdd(AuctionHouseObject* ah, AuctionPosting* auction);
+    void OnRemove(AuctionHouseObject* ah, AuctionPosting* auction);
+    void OnSuccessful(AuctionHouseObject* ah, AuctionPosting* auction);
+    void OnExpire(AuctionHouseObject* ah, AuctionPosting* auction);
 
     /* Guild */
     void OnAddMember(Guild* guild, Player* player, uint32 plRank);

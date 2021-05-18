@@ -52,7 +52,7 @@ bool Eluna::OnQuestAccept(Player* pPlayer, Creature* pCreature, Quest const* pQu
     return CallAllFunctionsBool(CreatureEventBindings, CreatureUniqueBindings, entry_key, unique_key);
 }
 
-bool Eluna::OnQuestReward(Player* pPlayer, Creature* pCreature, Quest const* pQuest, LootItemType* rewardType, uint32 rewardId)
+bool Eluna::OnQuestReward(Player* pPlayer, Creature* pCreature, Quest const* pQuest, LootItemType const* rewardType, uint32 rewardId)
 {
     START_HOOK_WITH_RETVAL(CREATURE_EVENT_ON_QUEST_REWARD, pCreature, false);
     Push(pPlayer);
