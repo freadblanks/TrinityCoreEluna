@@ -509,6 +509,13 @@ void Player::UpdateCritPercentage(WeaponAttackType attType)
     }
 }
 
+void Player::UpdateLeechPercentage()
+{
+    float value = GetTotalAuraModifier(SPELL_AURA_MOD_LEECH);
+    value += GetRatingBonusValue(CR_LIFESTEAL);
+    SetUpdateFieldValue(m_values.ModifyValue(&Player::m_unitData).ModifyValue(&UF::UnitData::Lifesteal), value);
+}
+
 void Player::UpdateAllCritPercentages()
 {
     float value = 5.0f;
