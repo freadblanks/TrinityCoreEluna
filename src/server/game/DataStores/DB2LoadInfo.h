@@ -4759,6 +4759,23 @@ struct SoundKitLoadInfo
     }
 };
 
+struct SoundKitEntryLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { true, FT_INT, "ID" },
+            { true, FT_INT, "SoundKitID" },
+            { true, FT_INT, "FileDataID" },
+            { false, FT_BYTE, "Frequency" },
+            { false, FT_FLOAT, "Volume" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SoundKitMeta::Instance(), HOTFIX_SEL_SOUND_KIT_ENTRY);
+        return &loadInfo;
+    }
+};
+
 struct SpecializationSpellsLoadInfo
 {
     static DB2LoadInfo const* Instance()

@@ -2867,6 +2867,16 @@ struct SoundKitEntry
     uint8 MaxInstances;
 };
 
+// FileOptions: Index, None
+struct SoundKitEntryEntry
+{
+    int32       ID;
+    int32       SoundKitID;
+    int32       FileDataID;
+    uint8       Frequency;
+    float       Volume;
+};
+
 struct SpecializationSpellsEntry
 {
     LocalizedString Description;

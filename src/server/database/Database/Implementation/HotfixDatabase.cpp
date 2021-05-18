@@ -1231,6 +1231,10 @@ void HotfixDatabaseConnection::DoPrepareStatements()
         " FROM sound_kit WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_SOUND_KIT, "SELECT MAX(ID) + 1 FROM sound_kit", CONNECTION_SYNCH);
 
+    // SoundKitEntry.db2
+    PrepareStatement(HOTFIX_SEL_SOUND_KIT_ENTRY, "SELECT ID, SoundKitID, FileDataID, Frequency, Volume FROM sound_kit_entry ORDER BY ID DESC", CONNECTION_SYNCH);
+    PREPARE_MAX_ID_STMT(HOTFIX_SEL_SOUND_KIT_ENTRY, "SELECT MAX(ID) + 1 FROM sound_kit_entry", CONNECTION_SYNCH);
+
     // SpecializationSpells.db2
     PrepareStatement(HOTFIX_SEL_SPECIALIZATION_SPELLS, "SELECT Description, ID, SpecID, SpellID, OverridesSpellID, DisplayOrder"
         " FROM specialization_spells WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
