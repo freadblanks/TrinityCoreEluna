@@ -545,46 +545,57 @@ void Eluna::Push(lua_State* luastate)
 {
     lua_pushnil(luastate);
 }
+
 void Eluna::Push(lua_State* luastate, const long long l)
 {
     ElunaTemplate<long long>::Push(luastate, new long long(l));
 }
+
 void Eluna::Push(lua_State* luastate, const unsigned long long l)
 {
     ElunaTemplate<unsigned long long>::Push(luastate, new unsigned long long(l));
 }
+
 void Eluna::Push(lua_State* luastate, const long l)
 {
     Push(luastate, static_cast<long long>(l));
 }
+
 void Eluna::Push(lua_State* luastate, const unsigned long l)
 {
     Push(luastate, static_cast<unsigned long long>(l));
 }
+
 void Eluna::Push(lua_State* luastate, const int i)
 {
     lua_pushinteger(luastate, i);
 }
+
 void Eluna::Push(lua_State* luastate, const unsigned int u)
 {
     lua_pushunsigned(luastate, u);
 }
+
 void Eluna::Push(lua_State* luastate, const double d)
 {
     lua_pushnumber(luastate, d);
 }
+
 void Eluna::Push(lua_State* luastate, const float f)
 {
     lua_pushnumber(luastate, f);
 }
+
 void Eluna::Push(lua_State* luastate, const bool b)
 {
     lua_pushboolean(luastate, b);
 }
+
 void Eluna::Push(lua_State* luastate, const std::string& str)
 {
     lua_pushstring(luastate, str.c_str());
 }
+
 void Eluna::Push(lua_State* luastate, const char* str)
 {
     lua_pushstring(luastate, str);
@@ -616,10 +627,12 @@ void Eluna::Push(lua_State* luastate, ObjectGuid const guid, int type /*= 1*/)
             break;
     }
 }
+
 void Eluna::Push(lua_State* luastate, Pet const* pet)
 {
     Push<Creature>(luastate, pet);
 }
+
 void Eluna::Push(lua_State* luastate, TempSummon const* summon)
 {
     Push<Creature>(luastate, summon);
@@ -644,6 +657,7 @@ void Eluna::Push(lua_State* luastate, Unit const* unit)
             ElunaTemplate<Unit>::Push(luastate, unit);
     }
 }
+
 void Eluna::Push(lua_State* luastate, WorldObject const* obj)
 {
     if (!obj)
@@ -669,6 +683,7 @@ void Eluna::Push(lua_State* luastate, WorldObject const* obj)
             ElunaTemplate<WorldObject>::Push(luastate, obj);
     }
 }
+
 void Eluna::Push(lua_State* luastate, Object const* obj)
 {
     if (!obj)
