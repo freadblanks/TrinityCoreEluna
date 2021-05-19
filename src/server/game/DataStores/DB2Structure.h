@@ -3036,6 +3036,17 @@ struct SpellEquippedItemsEntry
     int32 EquippedItemSubclass;
 };
 
+// FileOptions: Index, None
+struct SpellEntry
+{
+    uint32 ID;
+    LocalizedString* NameSubtext;
+    LocalizedString* Description;
+    LocalizedString* AuraDescription;
+
+    SpellEffectEntry const* GetSpellEffect(uint32 eff, uint8 diff = 0) const;
+};
+
 struct SpellFocusObjectEntry
 {
     uint32 ID;
