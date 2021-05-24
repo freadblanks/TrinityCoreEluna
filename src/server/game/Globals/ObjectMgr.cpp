@@ -3847,10 +3847,10 @@ void ObjectMgr::LoadPlayerInfo()
     {
         struct RaceStats
         {
-            int16 StatModifier[MAX_STATS];
+            std::array<int16, MAX_STATS> StatModifier = { };
         };
 
-        std::array<RaceStats, MAX_RACES> raceStatModifiers;
+        std::array<RaceStats, MAX_RACES> raceStatModifiers = { };
 
         uint32 oldMSTime = getMSTime();
 
@@ -10630,7 +10630,7 @@ void ObjectMgr::LoadPlayerChoices()
 
             PlayerChoiceResponse& response = choice->Responses.back();
             response.ResponseId         = responseId;
-            response.ResponseId         = fields[2].GetUInt16();
+            response.ResponseIdentifier = fields[2].GetUInt16();
             response.ChoiceArtFileId    = fields[3].GetInt32();
             response.Flags              = fields[4].GetInt32();
             response.WidgetSetID        = fields[5].GetUInt32();
