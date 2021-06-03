@@ -104,6 +104,9 @@ enum WorldDatabaseStatements : uint32
     //Creature template Outfit Customisation (9.0)
     WORLD_SEL_OUTFIT_CUSTOMIZATIONS,
 
+    WORLD_INS_PERMASKYBOX,
+    WORLD_UPD_PERMASKYBOX,
+
     WORLD_INS_WP_MOVETYPE,
     WORLD_UPD_WP_MOVETYPE,
     WORLD_SEL_WAYPOINT_LOOKUP,

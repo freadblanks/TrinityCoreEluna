@@ -97,6 +97,9 @@ void WorldDatabaseConnection::DoPrepareStatements()
     PrepareStatement(WORLD_DEL_SPAWNGROUP_MEMBER, "DELETE FROM spawn_group WHERE spawnType = ? AND spawnId = ?", CONNECTION_ASYNC);
     PrepareStatement(WORLD_SEL_GUILD_REWARDS_REQ_ACHIEVEMENTS, "SELECT AchievementRequired FROM guild_rewards_req_achievements WHERE ItemID = ?", CONNECTION_SYNCH);
 
+    PrepareStatement(WORLD_INS_PERMASKYBOX, "INSERT INTO player_skybox (guid, skybox) VALUES (?,?)", CONNECTION_ASYNC);
+    PrepareStatement(WORLD_UPD_PERMASKYBOX, "UPDATE player_skybox SET skybox = ? WHERE guid = ?", CONNECTION_ASYNC);
+
     // outfit customization | creature_template_outfit_customization
     PrepareStatement(WORLD_SEL_OUTFIT_CUSTOMIZATIONS, "SELECT chrCustomizationOptionID,chrCustomizationChoiceID from creature_template_outfits_customizations WHERE outfitID = ?", CONNECTION_SYNCH);
 }

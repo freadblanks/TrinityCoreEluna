@@ -801,7 +801,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sSkillLineAbilityStore);
     LOAD_DB2(sSkillRaceClassInfoStore);
     LOAD_DB2(sSoundKitStore);
-    LOAD_DB2(sSoundKitEntryStore);
+    //LOAD_DB2(sSoundKitEntryStore);
     LOAD_DB2(sSpecializationSpellsStore);
     LOAD_DB2(sSpecSetMemberStore);
     LOAD_DB2(sSpellAuraOptionsStore);

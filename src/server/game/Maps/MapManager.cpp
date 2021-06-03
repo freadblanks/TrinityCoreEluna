@@ -94,9 +94,8 @@ Map* MapManager::CreateBaseMap(uint32 id)
         {
             CreateBaseMap(entry->ParentMapID != -1 ? entry->ParentMapID : entry->CosmeticParentMapID);
 
-            // must have been created by parent map
-            map = FindBaseMap(id);
-            return ASSERT_NOTNULL(map);
+                map = FindBaseMap(id);
+                return ASSERT_NOTNULL(map);
         }
 
         std::lock_guard<std::mutex> lock(_mapsLock);

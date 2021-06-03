@@ -58,16 +58,16 @@ bool Eluna::OnQuestAccept(Player* pPlayer, GameObject* pGameObject, Quest const*
     return CallAllFunctionsBool(GameObjectEventBindings, key);
 }
 
-bool Eluna::OnQuestReward(Player* pPlayer, GameObject* pGameObject, Quest const* pQuest, LootItemType* rewardType, uint32 rewardId)
-{
-    START_HOOK_WITH_RETVAL(GAMEOBJECT_EVENT_ON_QUEST_REWARD, pGameObject->GetEntry(), false);
-    Push(pPlayer);
-    Push(pGameObject);
-    Push(pQuest);
-    Push(rewardType);
-    Push(rewardId);
-    return CallAllFunctionsBool(GameObjectEventBindings, key);
-}
+//bool Eluna::OnQuestReward(Player* pPlayer, GameObject* pGameObject, Quest const* pQuest, LootItemType* rewardType, uint32 rewardId)
+//{
+//    START_HOOK_WITH_RETVAL(GAMEOBJECT_EVENT_ON_QUEST_REWARD, pGameObject->GetEntry(), false);
+//    Push(pPlayer);
+//    Push(pGameObject);
+//    Push(pQuest);
+//    Push(rewardType);
+//    Push(rewardId);
+//    return CallAllFunctionsBool(GameObjectEventBindings, key);
+//}
 
 void Eluna::GetDialogStatus(const Player* pPlayer, const GameObject* pGameObject)
 {

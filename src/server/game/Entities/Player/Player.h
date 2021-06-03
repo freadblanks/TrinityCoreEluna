@@ -2438,6 +2438,12 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void SetLastPetNumber(uint32 petnumber) { m_lastpetnumber = petnumber; }
 
         /*********************************************************/
+        /***                  CUSTOM                           ***/
+        /*********************************************************/
+
+        bool isSaved();
+
+        /*********************************************************/
         /***                   GROUP SYSTEM                    ***/
         /*********************************************************/
 

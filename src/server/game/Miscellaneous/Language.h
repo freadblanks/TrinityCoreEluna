@@ -1169,6 +1169,9 @@ enum TrinityStrings
     // LOOKUP SKYBOX
     LANG_LOOKUP_SKYBOX                            = 70005, // return list of skybox name
     LANG_LOOKUP_SKYBOX_ERROR                      = 70006, // return error of listing
+    // SKYBOX
+    LANG_PHASE_SKYBOX_SUCCESS = 90007, // Sucess. Changed Y per Z
+    LANG_PHASE_SKYBOX_ERROR = 90008, // Error. Skybox cannot changed on this zone.
 
     // LOOKUP SOUND
     LANG_LOOKUP_SOUND = 70011, // return list of sounds

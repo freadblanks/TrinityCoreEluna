@@ -11061,7 +11061,7 @@ struct SoundKitEntryMeta
             { FT_BYTE, 1, false },
             { FT_FLOAT, 1, true },
         };
-        static DB2Meta instance(1237435, -1, 4, 4, 0x8FEA5F4F, fields, 0);
+        static DB2Meta instance(1237435, -1, 4, 4, 0x8FEA5F4F, fields, -1);
         return &instance;
     }
 };

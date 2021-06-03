@@ -794,14 +794,6 @@ void AuraEffect::CalculateSpellMod()
     GetBase()->CallScriptEffectCalcSpellModHandlers(this, m_spellmod);
 }
 
-void AuraEffect::RecalculateAmount(Unit* caster, AuraEffect const* triggeredBy /*= nullptr*/)
-{
-    if (!CanBeRecalculated())
-        return;
-
-    ChangeAmount(CalculateAmount(caster), false, false, triggeredBy);
-}
-
 void AuraEffect::ChangeAmount(int32 newAmount, bool mark, bool onStackOrReapply, AuraEffect const* triggeredBy /* = nullptr */)
 {
     // Reapply if amount change

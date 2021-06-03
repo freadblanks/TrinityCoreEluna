@@ -28707,6 +28707,21 @@ uint8 Player::GetItemLimitCategoryQuantity(ItemLimitCategoryEntry const* limitEn
     return limit;
 }
 
+bool Player::isSaved()
+{
+    QueryResult checkSaved = WorldDatabase.PQuery("SELECT guid FROM player_skybox WHERE guid = %u", GetSession()->GetPlayer()->GetGUID().GetCounter());
+    printf("%zu\n", GetSession()->GetPlayer()->GetGUID().GetCounter());
+
+    if (checkSaved)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 template <typename T>
 static bool ForEachEquipmentSlot(InventoryType inventoryType, bool canDualWield, bool canTitanGrip, T callback)
 {

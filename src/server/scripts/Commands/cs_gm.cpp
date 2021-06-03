@@ -36,6 +36,70 @@ EndScriptData */
 #include <boost/thread/locks.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
+#include "AccountMgr.h"
+#include "ArenaTeamMgr.h"
+#include "CellImpl.h"
+#include "CharacterCache.h"
+#include "Chat.h"
+#include "DatabaseEnv.h"
+#include "DB2Stores.h"
+#include "DisableMgr.h"
+#include "GridNotifiers.h"
+#include "Group.h"
+#include "GroupMgr.h"
+#include "InstanceSaveMgr.h"
+#include "IpAddress.h"
+#include "IPLocation.h"
+#include "Item.h"
+#include "Language.h"
+#include "LFG.h"
+#include "Log.h"
+#include "MapManager.h"
+#include "MiscPackets.h"
+#include "MMapFactory.h"
+#include "MovementGenerator.h"
+#include "ObjectAccessor.h"
+#include "ObjectMgr.h"
+#include "Opcodes.h"
+#include "Pet.h"
+#include "PhasingHandler.h"
+#include "Player.h"
+#include "Realm.h"
+#include "ScriptMgr.h"
+#include "SpellAuras.h"
+#include "SpellHistory.h"
+#include "SpellMgr.h"
+#include "TargetedMovementGenerator.h"
+#include "Transport.h"
+#include "Weather.h"
+#include "WeatherMgr.h"
+#include "World.h"
+#include "WorldSession.h"
+#include <boost/asio/ip/address_v4.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/locks.hpp>
+#include <G3D/Quat.h>
+#include "ItemTemplate.h"
+#include "HotfixPackets.h"
+#include "Position.h"
+#include "Object.h"
+#include "Bag.h"
+//
+#include "GossipDef.h"
+#include "Creature.h"
+#include "DB2Stores.h"
+#include "Log.h"
+#include "NPCPackets.h"
+#include "ObjectAccessor.h"
+#include "ObjectMgr.h"
+#include "Player.h"
+#include "QuestDef.h"
+#include "QuestPackets.h"
+#include "World.h"
+#include "WorldSession.h"
+#include "GameEventMgr.h"
+#include <regex>
+
 class gm_commandscript : public CommandScript
 {
 public:
@@ -51,6 +115,7 @@ public:
             { "list",    rbac::RBAC_PERM_COMMAND_GM_LIST,     true, &HandleGMListFullCommand,   "" },
             { "visible", rbac::RBAC_PERM_COMMAND_GM_VISIBLE, false, &HandleGMVisibleCommand,    "" },
             { "",        rbac::RBAC_PERM_COMMAND_GM,         false, &HandleGMCommand,           "" },
+            { "skybox",  rbac::RBAC_PERM_COMMAND_AURA,	     false, &HandlePhaseSkyboxCommand,	"" },
         };
         static std::vector<ChatCommand> commandTable =
         {
@@ -280,6 +345,70 @@ public:
         handler->SendSysMessage(LANG_USE_BOL);
         handler->SetSentErrorMessage(true);
         return false;
+    }
+
+    static bool HandlePhaseSkyboxCommand(ChatHandler* handler, char const* args)
+    {
+        if (!*args)
+            return false;
+
+        char const* pId = strtok((char*)args, " ");
+        Player* player = handler->GetSession()->GetPlayer();
+        uint32 map = player->GetMapId();
+
+        std::string replaceName = pId;
+        uint32 replaceID;
+
+        if (std::all_of(replaceName.begin(), replaceName.end(), ::isdigit))
+            replaceID = uint32(atoi(pId));
+        else
+            return false;
+
+        if (player->GetMapId() >= 0)
+        {
+            if (MapEntry const* entry = sMapStore.AssertEntry(map))
+                map = entry->ParentMapID;
+        }
+
+        uint32 lightId = DB2Manager::GetMapLightId(map);
+        if (lightId == 0)
+        {
+            handler->PSendSysMessage(LANG_PHASE_SKYBOX_ERROR);
+            return false;
+        }
+
+        // On contr?le si le joueur poss?de une entr?e dans la base de donn?e qui contient les settings perma (morph, etc..)
+        // si oui, on update, sinon, insert.
+        if (handler->GetSession()->GetPlayer()->isSaved())
+        {
+            // UPDATE
+            WorldDatabasePreparedStatement* updSkybox = WorldDatabase.GetPreparedStatement(WORLD_UPD_PERMASKYBOX);
+            updSkybox->setUInt32(0, replaceID);
+            updSkybox->setUInt64(1, handler->GetSession()->GetPlayer()->GetGUID().GetCounter());
+            WorldDatabase.Execute(updSkybox);
+        }
+        else
+        {
+            // INSERT
+            WorldDatabasePreparedStatement* getSkybox = WorldDatabase.GetPreparedStatement(WORLD_INS_PERMASKYBOX);
+            getSkybox->setUInt64(0, handler->GetSession()->GetPlayer()->GetGUID().GetCounter());
+            getSkybox->setUInt32(1, replaceID);
+            WorldDatabase.Execute(getSkybox);
+        }
+
+        // Si le joueur est dans une phase, on envoit le packet ? tous les joueurs pr?sent dans la phase, sinon qu'? lui m?me
+        if (player->GetMapId() >= 0)
+            sWorld->SendMapMessage(player->GetMapId(), WorldPackets::Misc::OverrideLight(int32(lightId), int32(200), int32(replaceID)).Write());
+        else
+        {
+            WorldPacket data(SMSG_OVERRIDE_LIGHT, 12);
+            data << lightId;
+            data << replaceID;
+            data << 200;
+            handler->GetSession()->SendPacket(&data, true);
+        }
+
+        return true;
     }
 };
 

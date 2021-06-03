@@ -2394,9 +2394,6 @@ void ObjectMgr::LoadGameObjects()
         data.phaseUseFlags  = fields[17].GetUInt8();
         data.phaseId        = fields[18].GetUInt32();
         data.phaseGroup     = fields[19].GetUInt32();
-        data.size           = fields[22].GetFloat();
-        data.hasDoodads     = fields[23].GetBool();
-        data.visibility     = fields[24].GetFloat();
 
         if (data.phaseUseFlags & ~PHASE_USE_FLAGS_ALL)
         {
@@ -2498,6 +2495,10 @@ void ObjectMgr::LoadGameObjects()
 
             WorldDatabase.Execute(stmt);
         }
+
+        data.size = fields[22].GetFloat();
+        data.hasDoodads = fields[23].GetBool();
+        data.visibility = fields[24].GetFloat();
 
         if (gameEvent == 0 && PoolId == 0)                      // if not this is to be managed by GameEvent System or Pool system
             AddGameobjectToGrid(guid, &data);
