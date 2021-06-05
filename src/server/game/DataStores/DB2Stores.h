@@ -395,7 +395,6 @@ public:
     static std::map<uint32, uint32> GetMapParamsIds();
     static std::map<uint16, uint32>  GetMapLightSkyboxIds();
     static std::map<uint32, std::string> GetMapSkyboxs();
-    static std::map<uint32, std::string> GetSoundKitsNames();
     static uint32 GetLiquidFlags(uint32 liquidType);
     MapDifficultyContainer const& GetMapDifficulties() const;
     MapDifficultyEntry const* GetDefaultMapDifficulty(uint32 mapId, Difficulty* difficulty = nullptr) const;

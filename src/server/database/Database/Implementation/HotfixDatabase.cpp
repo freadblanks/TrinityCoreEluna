@@ -1268,10 +1268,6 @@ void HotfixDatabaseConnection::DoPrepareStatements()
         "`Field_8_2_0_30080_052`, `Field_8_2_0_30080_053`, `Field_8_2_0_30080_054` FROM sound_kit_advanced WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_SOUND_KIT_ADVANCED, "SELECT MAX(ID) + 1 FROM sound_kit_advanced", CONNECTION_SYNCH);
 
-    // SoundKitName.db2
-    PrepareStatement(HOTFIX_SEL_SOUND_KIT_NAME, "SELECT ID, Name FROM sound_kit_name WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
-    PREPARE_MAX_ID_STMT(HOTFIX_SEL_SOUND_KIT_NAME, "SELECT MAX(ID) + 1 FROM sound_kit_name", CONNECTION_SYNCH);
-
     // SpecializationSpells.db2
     PrepareStatement(HOTFIX_SEL_SPECIALIZATION_SPELLS, "SELECT Description, ID, SpecID, SpellID, OverridesSpellID, DisplayOrder"
         " FROM specialization_spells WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);

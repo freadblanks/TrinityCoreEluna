@@ -4894,20 +4894,6 @@ struct SoundKitAdvancedLoadInfo
     }
 };
 
-struct SoundKitNameLoadInfo
-{
-    static DB2LoadInfo const* Instance()
-    {
-        static DB2FieldMeta const fields[] =
-        {
-            { false, FT_INT, "ID" },
-            { false, FT_STRING_NOT_LOCALIZED, "Name" },
-        };
-        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SoundKitNameMeta::Instance(), HOTFIX_SEL_SOUND_KIT_NAME);
-        return &loadInfo;
-    }
-};
-
 struct SpecializationSpellsLoadInfo
 {
     static DB2LoadInfo const* Instance()

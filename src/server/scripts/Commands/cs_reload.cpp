@@ -118,6 +118,7 @@ public:
             { "conditions",                    rbac::RBAC_PERM_COMMAND_RELOAD_CONDITIONS,                       true,  &HandleReloadConditions,                        "" },
             { "config",                        rbac::RBAC_PERM_COMMAND_RELOAD_CONFIG,                           true,  &HandleReloadConfigCommand,                     "" },
             { "conversation_template",         rbac::RBAC_PERM_COMMAND_RELOAD_CONVERSATION_TEMPLATE,            true,  &HandleReloadConversationTemplateCommand,       "" },
+            { "creatures",                     rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_TEMPLATE,                true,  &HandleReloadCreatureAllCommand,                "" },
             { "creature_text",                 rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_TEXT,                    true,  &HandleReloadCreatureText,                      "" },
             { "creature_questender",           rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_QUESTENDER,              true,  &HandleReloadCreatureQuestEnderCommand,         "" },
             { "creature_linked_respawn",       rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_LINKED_RESPAWN,          true,  &HandleReloadLinkedRespawnCommand,              "" },
@@ -199,6 +200,7 @@ public:
             { "hotfixes",	                   rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadHotfixesCommand,				   "" },
             { "creature_equip_template",	   rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadCreatureEquipTemplateCommand,	   "" },
             { "gameobject_template",		   rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadGameObjectTemplateCommand,		   "" },
+            { "gameobjects",                   rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_TEMPLATE,                true,  &HandleReloadGameObjectAllCommand,                "" },
             { "creature_template_addons",      rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadCreatureTemplateAddCommand,		   "" },
             { "creature_addons",			   rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadCreatureAddonsCommand,			   "" },
         };
@@ -1469,7 +1471,27 @@ public:
         TC_LOG_INFO("misc", "Reloading spell_script_names...");
         sObjectMgr->LoadSpellScriptNames();
         sObjectMgr->ValidateSpellScripts();
-        handler->SendGlobalGMSysMessage("spell script names reloaded.");
+        handler->SendGlobalGMSysMessage("spell_script_names reloaded.");
+        return true;
+    }
+
+    static bool HandleReloadCreatureAllCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        TC_LOG_INFO("misc", "Reloading creature...");
+        sObjectMgr->LoadCreatures();
+        handler->SendGlobalGMSysMessage("DB table `creature` reloaded.");
+        TC_LOG_INFO("server.loading", "Initialize query data...");
+        sObjectMgr->InitializeQueriesData(QUERY_DATA_CREATURES);
+        return true;
+    }
+
+    static bool HandleReloadGameObjectAllCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        TC_LOG_INFO("misc", "Reloading GameObject...");
+        sObjectMgr->LoadGameObjects();
+        handler->SendGlobalGMSysMessage("DB table `gameobject` reloaded.");
+        TC_LOG_INFO("server.loading", "Initialize query data...");
+        sObjectMgr->InitializeQueriesData(QUERY_DATA_GAMEOBJECTS);
         return true;
     }
 };
