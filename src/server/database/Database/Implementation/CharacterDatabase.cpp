@@ -547,6 +547,8 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     PrepareStatement(CHAR_SEL_PINFO_BANS, "SELECT unbandate, bandate = unbandate, bannedby, banreason FROM character_banned WHERE guid = ? AND active ORDER BY bandate ASC LIMIT 1", CONNECTION_SYNCH);
     //0: lowGUID
     PrepareStatement(CHAR_SEL_PINFO_MAILS, "SELECT SUM(CASE WHEN (checked & 1) THEN 1 ELSE 0 END) AS 'readmail', COUNT(*) AS 'totalmail' FROM mail WHERE `receiver` = ?", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_SEL_PINFO_MAILINFO_SEND, "SELECT id, characters.`name`, subject FROM mail INNER JOIN characters on mail.receiver = characters.guid WHERE sender = ?", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_SEL_PINFO_MAILINFO_RECEIVE, "SELECT id, characters.`name`, subject FROM mail INNER JOIN characters on mail.sender = characters.guid WHERE receiver = ?", CONNECTION_SYNCH);
     //0: lowGUID
     PrepareStatement(CHAR_SEL_PINFO_XP, "SELECT a.xp, b.guid FROM characters a LEFT JOIN guild_member b ON a.guid = b.guid WHERE a.guid = ?", CONNECTION_SYNCH);
     PrepareStatement(CHAR_SEL_CHAR_HOMEBIND, "SELECT mapId, zoneId, posX, posY, posZ FROM character_homebind WHERE guid = ?", CONNECTION_SYNCH);
@@ -807,6 +809,10 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     PrepareStatement(CHAR_DEL_CHARACTER_AURA_STORED_LOCATION, "DELETE FROM character_aura_stored_location WHERE Guid = ? AND Spell = ?", CONNECTION_ASYNC);
     PrepareStatement(CHAR_INS_CHARACTER_AURA_STORED_LOCATION, "INSERT INTO character_aura_stored_location (Guid, Spell, MapId, PositionX, PositionY, PositionZ, Orientation) "
         "VALUES (?, ?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
+
+    //CUSTOM
+    PrepareStatement(CHAR_SEL_CHARITEMINFO, "SELECT equipmentCache FROM characters WHERE guid = ?", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_DEL_CHARACTER_INVENTORY, "DELETE FROM character_inventory WHERE guid = ?", CONNECTION_ASYNC);
 }
 
 CharacterDatabaseConnection::CharacterDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

@@ -2871,10 +2871,69 @@ struct SoundKitEntry
 struct SoundKitEntryEntry
 {
     int32       ID;
-    int32       SoundKitID;
+    uint32       SoundKitID;
     int32       FileDataID;
     uint8       Frequency;
     float       Volume;
+};
+
+struct SoundKitAdvancedEntry
+{
+    int32       ID;
+    uint32      SoundKitID;
+    float       InnerRadius2D;
+    float       OuterRadius2D;
+    uint32      TimeA;
+    uint32      TimeB;
+    uint32      TimeC;
+    uint32      TimeD;
+    int32       RandomOffsetRange;
+    int8        Usage;
+    uint32      TimeIntervalMin;
+    uint32      TimeIntervalMax;
+    uint32      DelayMin;
+    uint32      DelayMax;
+    uint8       VolumeSliderCategory;
+    float       DuckToSFX;
+    float       DuckToMusic;
+    float       DuckToAmbience;
+    float       DuckToDialog;
+    float       DuckToSuppressors;
+    float       DuckToCinematicSFX;
+    float       DuckToCinematicMusic;
+    float       InnerRadiusOfInfluence;
+    float       OuterRadiusOfInfluence;
+    uint32      TimeToDuck;
+    uint32      TimeToUnduck;
+    float       InsideAngle;
+    float       OutsideAngle;
+    float       OutsideVolume;
+    uint8       MinRandomPosOffset;
+    uint16      MaxRandomPosOffset;
+    int32       MsOffset;
+    uint32      TimeCooldownMin;
+    uint32      TimeCooldownMax;
+    uint8       MaxInstancesBehavior;
+    uint8       VolumeControlType;
+    int32       VolumeFadeInTimeMin;
+    int32       VolumeFadeInTimeMax;
+    uint32      VolumeFadeInCurveID;
+    int32       VolumeFadeOutTimeMin;
+    int32       VolumeFadeOutTimeMax;
+    uint32      VolumeFadeOutCurveID;
+    float       ChanceToPlay;
+    int32       RolloffType;
+    float       RolloffParam0;
+    float       Field_8_2_0_30080_045;
+    float       Field_8_2_0_30080_046;
+    int32       Field_8_2_0_30080_047;
+    int32       Field_8_2_0_30080_048;
+    float       Field_8_2_0_30080_049;
+    float       Field_8_2_0_30080_050;
+    float       Field_8_2_0_30080_051;
+    float       Field_8_2_0_30080_052;
+    float       Field_8_2_0_30080_053;
+    float       Field_8_2_0_30080_054;
 };
 
 struct SpecializationSpellsEntry
@@ -3040,9 +3099,9 @@ struct SpellEquippedItemsEntry
 struct SpellEntry
 {
     uint32 ID;
-    LocalizedString* NameSubtext;
-    LocalizedString* Description;
-    LocalizedString* AuraDescription;
+    LocalizedString NameSubtext;
+    LocalizedString Description;
+    LocalizedString AuraDescription;
 
     SpellEffectEntry const* GetSpellEffect(uint32 eff, uint8 diff = 0) const;
 };
@@ -3697,6 +3756,17 @@ struct WorldStateExpressionEntry
 {
     uint32 ID;
     char const* Expression;
+};
+
+struct ZoneLightEntry
+{
+    uint32 ID;
+    char const* Name;
+    uint16 MapID;
+    uint16 LightID;
+    uint8 Flags;
+    float Zmin;
+    float Zmax;
 };
 
 struct LightSkyboxEntry

@@ -790,8 +790,30 @@ enum RBACPermissions
     // IF YOU ADD NEW PERMISSIONS, ADD THEM IN 3.3.5 BRANCH AS WELL!
     //
     // custom permissions 1000+
-        RBAC_PERM_COMMAND_GOBJECT_SET_SCALE = 1398,
-        RBAC_PERM_COMMAND_NPC_SET_SCALE = 1589,
+    RBAC_PERM_COMMAND_GOBJECT_SET_SCALE                      = 1398,
+    RBAC_PERM_COMMAND_NPC_SET_SCALE                          = 1589,
+    // custom permissions 1000+
+    RBAC_PERM_COMMAND_BARBER                                 = 1002,
+    RBAC_PERM_COMMAND_CAST_GROUP                             = 1003,
+    RBAC_PERM_COMMAND_CAST_SCENE                             = 1004,
+    RBAC_PERM_COMMAND_TIPING_ON                              = 1005,
+    RBAC_PERM_COMMAND_TIPING_OFF                             = 1006,
+    RBAC_PERM_COMMAND_TIPING                                 = 1007,
+    RBAC_PERM_COMMAND_DISP                                   = 1008,
+    RBAC_PERM_COMMAND_DISP_HEAD                              = 1009,
+    RBAC_PERM_COMMAND_DISP_SHOULDERS                         = 1010,
+    RBAC_PERM_COMMAND_DISP_SHIRT                             = 1011,
+    RBAC_PERM_COMMAND_DISP_CHEST                             = 1012,
+    RBAC_PERM_COMMAND_DISP_WAIST                             = 1013,
+    RBAC_PERM_COMMAND_DISP_LEGS                              = 1014,
+    RBAC_PERM_COMMAND_DISP_FEET                              = 1015,
+    RBAC_PERM_COMMAND_DISP_WRISTS                            = 1016,
+    RBAC_PERM_COMMAND_DISP_HANDS                             = 1017,
+    RBAC_PERM_COMMAND_DISP_BACK                              = 1018,
+    RBAC_PERM_COMMAND_DISP_TABARD                            = 1019,
+    RBAC_PERM_COMMAND_DISP_MAINHAND                          = 1020,
+    RBAC_PERM_COMMAND_DISP_OFFHAND                           = 1021,
+    RBAC_PERM_COMMAND_RELOAD_SPELL_SCRIPT_NAMES              = 2009,
     RBAC_PERM_MAX
 };
 

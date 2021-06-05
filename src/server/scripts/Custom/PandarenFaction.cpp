@@ -77,11 +77,13 @@ public:
     }
 };
 
-class Player_skybox : public PlayerScript //Dis no respect sneaky case
+class Player_skybox : public PlayerScript
 {
 public:
-    Player_skybox() : PlayerScript("Player_skybox") {}
-    void OnLogin(Player* player, bool firstLogin)
+    Player_skybox() : PlayerScript("Player_skybox") { }
+
+
+    void OnLogin(Player* player, bool /*firstLogin*/) override
     {
 
         //Select Customs
@@ -100,7 +102,7 @@ public:
             if (map > 0)
             {
 
-                if (player->GetMapId() >= 0)
+                if (player->GetMapId())
                 {
                     if (MapEntry const* entry = sMapStore.AssertEntry(map))
                         map = entry->ParentMapID;
@@ -136,5 +138,5 @@ public:
 void AddSC_PandarenFaction()
 {
     new PandarenFaction;
-    new Player_skybox();
+    new Player_skybox;
 }

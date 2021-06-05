@@ -10969,6 +10969,22 @@ struct SoundKitMeta
     }
 };
 
+struct SoundKitEntryMeta
+{
+    static DB2Meta const* Instance()
+    {
+        static DB2MetaField const fields[4] =
+        {
+            { FT_INT, 1, false },
+            { FT_INT, 1, true },
+            { FT_BYTE, 1, false },
+            { FT_FLOAT, 1, false },
+        };
+        static DB2Meta instance(1237435, -1, 4, 4, 0x8FEA5F4F, fields, 0);
+        return &instance;
+    }
+};
+
 struct SoundKitAdvancedMeta
 {
     static DB2Meta const* Instance()
@@ -11046,22 +11062,6 @@ struct SoundKitChildMeta
             { FT_INT, 1, false },
         };
         static DB2Meta instance(1307289, -1, 2, 2, 0xC9AA0EF9, fields, 1);
-        return &instance;
-    }
-};
-
-struct SoundKitEntryMeta
-{
-    static DB2Meta const* Instance()
-    {
-        static DB2MetaField const fields[4] =
-        {
-            { FT_INT, 1, false },
-            { FT_INT, 1, true },
-            { FT_BYTE, 1, false },
-            { FT_FLOAT, 1, true },
-        };
-        static DB2Meta instance(1237435, -1, 4, 4, 0x8FEA5F4F, fields, -1);
         return &instance;
     }
 };

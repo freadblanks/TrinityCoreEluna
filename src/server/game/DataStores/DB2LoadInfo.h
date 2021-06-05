@@ -4765,13 +4765,80 @@ struct SoundKitEntryLoadInfo
     {
         static DB2FieldMeta const fields[] =
         {
-            { true, FT_INT, "ID" },
-            { true, FT_INT, "SoundKitID" },
+            { false, FT_INT, "ID" },
+            { false, FT_INT, "SoundKitID" },
             { true, FT_INT, "FileDataID" },
             { false, FT_BYTE, "Frequency" },
             { false, FT_FLOAT, "Volume" },
         };
-        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SoundKitMeta::Instance(), HOTFIX_SEL_SOUND_KIT_ENTRY);
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SoundKitEntryMeta::Instance(), HOTFIX_SEL_SOUND_KIT_ENTRY);
+        return &loadInfo;
+    }
+};
+
+struct SoundKitAdvancedLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { true, FT_INT, "ID" },
+            { false, FT_INT, "SoundKitID" },
+            { false, FT_FLOAT, "InnerRadius2D" },
+            { false, FT_FLOAT, "OuterRadius2D" },
+            { false, FT_INT, "TimeA" },
+            { false, FT_INT, "TimeB" },
+            { false, FT_INT, "TimeC" },
+            { false, FT_INT, "TimeD" },
+            { true, FT_INT, "RandomOffsetRange" },
+            { true, FT_BYTE, "Usage" },
+            { false, FT_INT, "TimeIntervalMin" },
+            { false, FT_INT, "TimeIntervalMax" },
+            { false, FT_INT, "DelayMin" },
+            { false, FT_INT, "DelayMax" },
+            { false, FT_BYTE, "VolumeSliderCategory" },
+            { false, FT_FLOAT, "DuckToSFX" },
+            { false, FT_FLOAT, "DuckToMusic" },
+            { false, FT_FLOAT, "DuckToAmbience" },
+            { false, FT_FLOAT, "DuckToDialog" },
+            { false, FT_FLOAT, "DuckToSuppressors" },
+            { false, FT_FLOAT, "DuckToCinematicSFX" },
+            { false, FT_FLOAT, "DuckToCinematicMusic" },
+            { false, FT_FLOAT, "InnerRadiusOfInfluence" },
+            { false, FT_FLOAT, "OuterRadiusOfInfluence" },
+            { false, FT_INT, "TimeToDuck" },
+            { false, FT_INT, "TimeToUnduck" },
+            { false, FT_FLOAT, "InsideAngle" },
+            { false, FT_FLOAT, "OutsideAngle" },
+            { false, FT_FLOAT, "OutsideVolume" },
+            { false, FT_BYTE, "MinRandomPosOffset" },
+            { false, FT_SHORT, "MaxRandomPosOffset" },
+            { true, FT_INT, "MsOffset" },
+            { false, FT_INT, "TimeCooldownMin" },
+            { false, FT_INT, "TimeCooldownMax" },
+            { false, FT_BYTE, "MaxInstancesBehavior" },
+            { false, FT_BYTE, "VolumeControlType" },
+            { true, FT_INT, "VolumeFadeInTimeMin" },
+            { true, FT_INT, "VolumeFadeInTimeMax" },
+            { false, FT_INT, "VolumeFadeInCurveID" },
+            { true, FT_INT, "VolumeFadeOutTimeMin" },
+            { true, FT_INT, "VolumeFadeOutTimeMax" },
+            { false, FT_INT, "VolumeFadeOutCurveID" },
+            { false, FT_FLOAT, "ChanceToPlay" },
+            { true, FT_INT, "RolloffType" },
+            { false, FT_FLOAT, "RolloffParam0" },
+            { false, FT_FLOAT, "Field_8_2_0_30080_045" },
+            { false, FT_FLOAT, "Field_8_2_0_30080_046" },
+            { true, FT_INT, "Field_8_2_0_30080_047" },
+            { true, FT_INT, "Field_8_2_0_30080_048" },
+            { false, FT_FLOAT, "Field_8_2_0_30080_049" },
+            { false, FT_FLOAT, "Field_8_2_0_30080_050" },
+            { false, FT_FLOAT, "Field_8_2_0_30080_051" },
+            { false, FT_FLOAT, "Field_8_2_0_30080_052" },
+            { false, FT_FLOAT, "Field_8_2_0_30080_053" },
+            { false, FT_FLOAT, "Field_8_2_0_30080_054" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SoundKitAdvancedMeta::Instance(), HOTFIX_SEL_SOUND_KIT_ADVANCED);
         return &loadInfo;
     }
 };
@@ -5036,7 +5103,7 @@ struct SpellLoadInfo
     {
         static DB2FieldMeta const fields[] =
         {
-            { true, FT_INT, "ID" },
+            { false, FT_INT, "ID" },
             { false, FT_STRING, "NameSubtext" },
             { false, FT_STRING, "Description" },
             { false, FT_STRING, "AuraDescription" },

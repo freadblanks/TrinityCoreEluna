@@ -940,8 +940,9 @@ void HotfixDatabaseConnection::DoPrepareStatements()
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_LIGHT_SKYBOX, "SELECT MAX(ID) + 1 FROM light_skybox", CONNECTION_SYNCH);
 
     // LightParams.db2
-    PrepareStatement(HOTFIX_SEL_LIGHT_PARAMS, "SELECT OverrideCelestialSphere1, OverrideCelestialSphere2, OverrideCelestialSphere3, ID, HighlightSky, LightSkyboxID, CloudTypeID, Glow, WaterShallowAlpha, WaterDeepAlpha, OceanShallowAlpha, OceanDeepAlpha, Flags, SsaoSettingsID FROM light_params"
-        " WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
+    PrepareStatement(HOTFIX_SEL_LIGHT_PARAMS, "SELECT OverrideCelestialSphere1, OverrideCelestialSphere2, OverrideCelestialSphere3, ID, HighlightSky, "
+        "LightSkyboxID, CloudTypeID, Glow, WaterShallowAlpha, WaterDeepAlpha, OceanShallowAlpha, OceanDeepAlpha, Flags, SsaoSettingsID"
+        " FROM light_params WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_LIGHT_PARAMS, "SELECT MAX(ID) + 1 FROM light_params", CONNECTION_SYNCH);
 
     // LiquidType.db2
@@ -1232,8 +1233,20 @@ void HotfixDatabaseConnection::DoPrepareStatements()
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_SOUND_KIT, "SELECT MAX(ID) + 1 FROM sound_kit", CONNECTION_SYNCH);
 
     // SoundKitEntry.db2
-    PrepareStatement(HOTFIX_SEL_SOUND_KIT_ENTRY, "SELECT ID, SoundKitID, FileDataID, Frequency, Volume FROM sound_kit_entry ORDER BY ID DESC", CONNECTION_SYNCH);
+    PrepareStatement(HOTFIX_SEL_SOUND_KIT_ENTRY, "SELECT ID, SoundKitID, FileDataID, Frequency, Volume FROM sound_kit_entry"
+        " WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_SOUND_KIT_ENTRY, "SELECT MAX(ID) + 1 FROM sound_kit_entry", CONNECTION_SYNCH);
+
+    // SoundKitAdvanced.db2
+    PrepareStatement(HOTFIX_SEL_SOUND_KIT_ADVANCED, "SELECT ID, SoundKitID, InnerRadius2D, OuterRadius2D, TimeA, TimeB, TimeC, TimeD, "
+        "RandomOffsetRange, Usage, TimeIntervalMin, TimeIntervalMax, DelayMin, DelayMax, VolumeSliderCategory, DuckToSFX, DuckToMusic, "
+        "DuckToAmbience, DuckToDialog, DuckToSuppressors, DuckToCinematicSFX, DuckToCinematicMusic, InnerRadiusOfInfluence, OuterRadiusOfInfluence, "
+        "TimeToDuck, TimeToUnduck, InsideAngle, OutsideAngle, OutsideVolume, MinRandomPosOffset, MaxRandomPosOffset, MsOffset, TimeCooldownMin, "
+        "TimeCooldownMax, MaxInstancesBehavior, VolumeControlType, VolumeFadeInTimeMin, VolumeFadeInTimeMax, VolumeFadeInCurveID, "
+        "VolumeFadeOutTimeMin, VolumeFadeOutTimeMax, VolumeFadeOutCurveID, ChanceToPlay, RolloffType, RolloffParam0, Field_8_2_0_30080_045, "
+        "Field_8_2_0_30080_046, Field_8_2_0_30080_047, Field_8_2_0_30080_048, Field_8_2_0_30080_049, Field_8_2_0_30080_050, Field_8_2_0_30080_051, "
+        "Field_8_2_0_30080_052, Field_8_2_0_30080_053, Field_8_2_0_30080_054 FROM sound_kit_advanced WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
+    PREPARE_MAX_ID_STMT(HOTFIX_SEL_SOUND_KIT_ADVANCED, "SELECT MAX(ID) + 1 FROM sound_kit_advanced", CONNECTION_SYNCH);
 
     // SpecializationSpells.db2
     PrepareStatement(HOTFIX_SEL_SPECIALIZATION_SPELLS, "SELECT Description, ID, SpecID, SpellID, OverridesSpellID, DisplayOrder"
@@ -1301,10 +1314,10 @@ void HotfixDatabaseConnection::DoPrepareStatements()
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_SPELL_EFFECT, "SELECT MAX(ID) + 1 FROM spell_effect", CONNECTION_SYNCH);
 
     // Spell.db2
-    PrepareStatement(HOTFIX_SEL_SPELL, "SELECT ID, NameSubtext, Description, AuraDescription FROM spell ORDER BY ID DESC", CONNECTION_SYNCH);
+    PrepareStatement(HOTFIX_SEL_SPELL, "SELECT ID, NameSubtext, Description, AuraDescription FROM spell WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_SPELL, "SELECT MAX(ID) + 1 FROM spell", CONNECTION_SYNCH);
     PREPARE_LOCALE_STMT(HOTFIX_SEL_SPELL, "SELECT ID, NameSubtext_lang, Description_lang, AuraDescription_lang FROM spell_locale"
-        " WHERE locale = ?", CONNECTION_SYNCH);
+        " WHERE (`VerifiedBuild` > 0) = ? AND locale = ?", CONNECTION_SYNCH);
 
     // SpellEquippedItems.db2
     PrepareStatement(HOTFIX_SEL_SPELL_EQUIPPED_ITEMS, "SELECT ID, SpellID, EquippedItemClass, EquippedItemInvTypes, EquippedItemSubclass"

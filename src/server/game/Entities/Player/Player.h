@@ -1428,6 +1428,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void LoadPet();
 
         bool AddItem(uint32 itemId, uint32 count);
+        bool AddItemBonus(uint32 itemId, uint32 count, uint32 bonusId);
 
         uint32 m_stableSlots;
 

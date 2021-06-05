@@ -142,7 +142,10 @@ namespace VMAP
     // load one tile (internal use only)
     LoadResult VMapManager2::loadSingleMap(uint32 mapId, const std::string& basePath, uint32 tileX, uint32 tileY)
     {
+        thread_safe_environment = true; // phase system
+
         auto instanceTree = iInstanceMapTrees.find(mapId);
+
         if (instanceTree == iInstanceMapTrees.end())
         {
             if (thread_safe_environment)
