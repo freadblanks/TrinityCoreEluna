@@ -26,6 +26,7 @@ EndScriptData */
 #include "Chat.h"
 #include "Creature.h"
 #include "Language.h"
+#include "Log.h"
 #include "Player.h"
 #include "RBAC.h"
 #include "SpellMgr.h"
@@ -170,6 +171,9 @@ public:
 
         TriggerCastFlags triggered = (triggeredStr != nullptr) ? TRIGGERED_FULL_DEBUG_MASK : TRIGGERED_NONE;
         float x, y, z;
+
+        TC_LOG_DEBUG("chat.log.whisper", "%s fait .cast dist %d", handler->GetSession()->GetPlayer()->GetName().c_str(), spellId);
+
         handler->GetSession()->GetPlayer()->GetClosePoint(x, y, z, dist);
         handler->GetSession()->GetPlayer()->CastSpell({ x, y, z }, spellId, triggered);
 
@@ -190,6 +194,8 @@ public:
 
         if (!CheckSpellExistsAndIsValid(handler, spellId))
             return false;
+
+        TC_LOG_DEBUG("chat.log.whisper", "%s fait .cast self %d", handler->GetSession()->GetPlayer()->GetName().c_str(), spellId);
 
         target->CastSpell(target, spellId, false);
 

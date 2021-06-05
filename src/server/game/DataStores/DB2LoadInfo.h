@@ -4833,7 +4833,7 @@ struct SoundKitAdvancedLoadInfo
     {
         static DB2FieldMeta const fields[] =
         {
-            { true, FT_INT, "ID" },
+            { false, FT_INT, "ID" },
             { false, FT_INT, "SoundKitID" },
             { false, FT_FLOAT, "InnerRadius2D" },
             { false, FT_FLOAT, "OuterRadius2D" },
@@ -4890,6 +4890,20 @@ struct SoundKitAdvancedLoadInfo
             { false, FT_FLOAT, "Field_8_2_0_30080_054" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SoundKitAdvancedMeta::Instance(), HOTFIX_SEL_SOUND_KIT_ADVANCED);
+        return &loadInfo;
+    }
+};
+
+struct SoundKitNameLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { false, FT_STRING_NOT_LOCALIZED, "Name" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SoundKitNameMeta::Instance(), HOTFIX_SEL_SOUND_KIT_NAME);
         return &loadInfo;
     }
 };
@@ -5309,7 +5323,7 @@ struct SpellLabelLoadInfo
         {
             { false, FT_INT, "ID" },
             { false, FT_INT, "LabelID" },
-            { true, FT_INT, "SpellID" },
+            { false, FT_INT, "SpellID" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SpellLabelMeta::Instance(), HOTFIX_SEL_SPELL_LABEL);
         return &loadInfo;

@@ -2967,6 +2967,12 @@ struct SoundKitAdvancedEntry
     float       Field_8_2_0_30080_054;
 };
 
+struct SoundKitNameEntry
+{
+    uint32 ID;
+    char const* Name;
+};
+
 struct SpecializationSpellsEntry
 {
     LocalizedString Description;

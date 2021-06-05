@@ -76,6 +76,7 @@ public:
             { "title",    rbac::RBAC_PERM_COMMAND_LOOKUP_TITLE,    true, &HandleLookupTitleCommand,    "" },
             { "map",      rbac::RBAC_PERM_COMMAND_LOOKUP_MAP,      true, &HandleLookupMapCommand,      "" },
             { "skybox",   rbac::RBAC_PERM_COMMAND_LOOKUP_TELE,     true, &HandleLookupSkyboxCommand,   "" },
+            { "sound",    rbac::RBAC_PERM_COMMAND_LOOKUP_TELE,     true, &HandleLookupSoundCommand,    "" },
         };
 
         static std::vector<ChatCommand> commandTable =
@@ -1460,6 +1461,47 @@ public:
             else {
 
                 handler->PSendSysMessage(LANG_LOOKUP_SKYBOX_ERROR);
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
+
+            return true;
+        }
+
+    }
+
+    static bool HandleLookupSoundCommand(ChatHandler* handler, char const* args) {
+
+        if (!args)
+            return false;
+
+        char const* name = strtok((char*)args, " ");
+        if (!name)
+            return false;
+
+        std::string requestName = name;
+        if (requestName.find('\'') != std::string::npos) {
+            handler->PSendSysMessage(LANG_LOOKUP_SOUND_ERROR);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+        else {
+
+            auto soundKitsNames = DB2Manager::GetSoundKitsNames();
+            if (soundKitsNames.size() > 0) {
+
+                for (const auto& soundKitsName : soundKitsNames) {
+                    std::string soundKitNameStr = soundKitsName.second;
+
+                    std::transform(soundKitNameStr.begin(), soundKitNameStr.end(), soundKitNameStr.begin(),
+                        [](unsigned char c) { return std::tolower(c); });
+
+                    if (soundKitNameStr.find(requestName) != std::string::npos)
+                        handler->PSendSysMessage(LANG_LOOKUP_SOUND, soundKitsName.first, soundKitNameStr);
+                }
+            }
+            else {
+                handler->PSendSysMessage(LANG_LOOKUP_SOUND_ERROR);
                 handler->SetSentErrorMessage(true);
                 return false;
             }

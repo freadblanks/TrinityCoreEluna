@@ -100,6 +100,9 @@ void WorldDatabaseConnection::DoPrepareStatements()
     PrepareStatement(WORLD_INS_PERMASKYBOX, "INSERT INTO player_skybox (guid, skybox) VALUES (?,?)", CONNECTION_ASYNC);
     PrepareStatement(WORLD_UPD_PERMASKYBOX, "UPDATE player_skybox SET skybox = ? WHERE guid = ?", CONNECTION_ASYNC);
 
+    PrepareStatement(WORLD_UPD_SET_ANIMKIT, "UPDATE creature_addon SET aiAnimKit = ? WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(WORLD_INS_SET_ANIMKIT, "INSERT INTO creature_addon(guid, aiAnimKit) VALUES (?, ?)", CONNECTION_ASYNC);
+
     // outfit customization | creature_template_outfit_customization
     PrepareStatement(WORLD_SEL_OUTFIT_CUSTOMIZATIONS, "SELECT chrCustomizationOptionID,chrCustomizationChoiceID from creature_template_outfits_customizations WHERE outfitID = ?", CONNECTION_SYNCH);
 }

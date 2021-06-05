@@ -1,4 +1,4 @@
-﻿/*
+/*
  * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -337,6 +337,7 @@ public:
             { "anim",       rbac::RBAC_PERM_COMMAND_NPC_ADD,           false, &HandleNpcSetAnimCommand,          "" },
             { "aura",       rbac::RBAC_PERM_COMMAND_NPC_ADD,           false, &HandleNpcSetAuraCommand,          "" },
             { "mount",      rbac::RBAC_PERM_COMMAND_NPC_ADD,           false, &HandleNpcSetMountCommand,         "" },
+            { "animkit",    rbac::RBAC_PERM_COMMAND_NPC_ADD,           false, &HandleNpcSetAnimKitCommand,       "" },
         };
         static std::vector<ChatCommand> npcCommandTable =
         {
@@ -356,7 +357,8 @@ public:
             { "follow",       rbac::RBAC_PERM_COMMAND_NPC_FOLLOW,       false, nullptr,           "", npcFollowCommandTable },
             { "set",          rbac::RBAC_PERM_COMMAND_NPC_SET,          false, nullptr,              "", npcSetCommandTable },
             { "evade",        rbac::RBAC_PERM_COMMAND_NPC_EVADE,        false, &HandleNpcEvadeCommand,             ""       },
-            { "showloot",  rbac::RBAC_PERM_COMMAND_NPC_SHOWLOOT,        false, &HandleNpcShowLootCommand,          ""       },
+            { "go",           rbac::RBAC_PERM_COMMAND_NPC_MOVE,         false, &HandleNpcGoCommand,                ""       },
+            { "showloot",     rbac::RBAC_PERM_COMMAND_NPC_SHOWLOOT,     false, &HandleNpcShowLootCommand,          ""       },
         };
         static std::vector<ChatCommand> commandTable =
         {
@@ -1917,7 +1919,7 @@ public:
         }
         target->SetEmoteState(Emote(emote));
 
-        //Cot� SQL
+        //Cot? SQL
         guidLow = target->GetSpawnId();
         QueryResult guidSql = WorldDatabase.PQuery("SELECT guid FROM creature_addon WHERE guid = %u", guidLow);
         if (!guidSql)
@@ -1978,7 +1980,7 @@ public:
 
         //.ToString().c_str()
 
-        //Cot� SQL
+        //Cot? SQL
         guidLow = target->GetSpawnId();
         std::string auraString = std::to_string(uint32(spellId));
         QueryResult guidSql = WorldDatabase.PQuery("SELECT auras FROM creature_addon WHERE guid = %u", guidLow);
@@ -2030,7 +2032,7 @@ public:
         target->Mount(mount);
 
 
-        //Cot� SQL
+        //Cot? SQL
         guidLow = target->GetSpawnId();
         QueryResult guidSql = WorldDatabase.PQuery("SELECT guid FROM creature_addon WHERE guid = %u", guidLow);
         if (!guidSql)
@@ -2051,6 +2053,119 @@ public:
 
         return true;
     }
+
+    // npc set animkit
+    static bool HandleNpcSetAnimKitCommand(ChatHandler* handler, char const* args)
+    {
+        if (!*args)
+            return false;
+
+        uint16 animkit = atoi((char*)args);
+
+        Creature* target = handler->getSelectedCreature();
+        ObjectGuid::LowType guidLow = UI64LIT(0);
+
+        if (!target)
+        {
+            handler->SendSysMessage(LANG_SELECT_CREATURE);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        target->SetAIAnimKitId(animkit);
+
+        //Cot? SQL
+        guidLow = target->GetSpawnId();
+        QueryResult guidSql = WorldDatabase.PQuery("SELECT guid FROM creature_addon WHERE guid = %u", guidLow);
+        if (!guidSql)
+        {
+            WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_INS_SET_ANIMKIT);
+            stmt->setUInt64(0, guidLow);
+            stmt->setUInt16(1, animkit);
+            WorldDatabase.Execute(stmt);
+        }
+        else
+        {
+            WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_UPD_SET_ANIMKIT);
+            stmt->setUInt16(0, animkit);
+            stmt->setUInt64(1, guidLow);
+            WorldDatabase.Execute(stmt);
+        }
+
+        return true;
+    }
+
+    //move selected creature
+    static bool HandleNpcGoCommand(ChatHandler* handler, char const* args)
+    {
+
+        if (!*args)
+            return false;
+
+        char const* xs = strtok((char*)args, " ");
+        char const* ys = strtok(NULL, " ");
+        char const* zs = strtok(NULL, " ");
+        char const* speeds = strtok(NULL, " ");
+
+        if (!xs || !ys || !zs || !speeds)
+            return false;
+
+        float x = 0;
+        float y = 0;
+        float z = 0;
+        float speed = 0;
+
+        x = atof(xs);
+        y = atof(ys);
+        z = atof(zs);
+        speed = atof(speeds);
+
+        ObjectGuid::LowType lowguid = UI64LIT(0);
+
+        Creature* creature = handler->getSelectedCreature();
+
+        if (!creature)
+        {
+            // number or [name] Shift-click form |color|Hcreature:creature_guid|h[name]|h|r
+            char* cId = handler->extractKeyFromLink((char*)args, "Hcreature");
+            if (!cId)
+                return false;
+
+            lowguid = atoull(cId);
+
+            // Attempting creature load from DB data
+            CreatureData const* data = sObjectMgr->GetCreatureData(lowguid);
+            if (!data)
+            {
+                handler->PSendSysMessage(LANG_COMMAND_CREATGUIDNOTFOUND, std::to_string(lowguid).c_str());
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
+
+            uint32 map_id = data->spawnPoint.m_mapId;
+
+            if (handler->GetSession()->GetPlayer()->GetMapId() != map_id)
+            {
+                handler->PSendSysMessage(LANG_COMMAND_CREATUREATSAMEMAP, std::to_string(lowguid).c_str());
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
+        }
+        else
+        {
+            lowguid = creature->GetSpawnId();
+        }
+
+        if (creature)
+        {
+            Position pos{ x, y, z };
+            creature->AI()->EnterEvadeMode();
+            creature->MonsterMoveWithSpeed(x, y, z, speed);
+        }
+
+        return true;
+    }
+
 };
 
 void AddSC_npc_commandscript()

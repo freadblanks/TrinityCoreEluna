@@ -1350,11 +1350,23 @@ public:
             return false;
         }
 
-        // Subtract
+        // Artifact check
+        ItemTemplate const* itemProto = sObjectMgr->GetItemTemplate(itemId);
+        uint8 artifact = itemProto->GetArtifactID();
+
+        // Subtract (modify)
         if (count < 0)
         {
-            playerTarget->DestroyItemCount(itemId, -count, true, false);
-            handler->PSendSysMessage(LANG_REMOVEITEM, itemId, -count, handler->GetNameLink(playerTarget).c_str());
+            if (artifact < 1)
+            {
+                playerTarget->DestroyItemCount(itemId, -count, true, false);
+                handler->PSendSysMessage(LANG_REMOVEITEM, itemId, -count, handler->GetNameLink(playerTarget).c_str());
+
+            }
+            else
+            {
+                handler->PSendSysMessage("Artifact Item delete.");
+            }
             return true;
         }
 
@@ -1371,6 +1383,12 @@ public:
         {
             handler->PSendSysMessage(LANG_ITEM_CANNOT_CREATE, itemId, noSpaceForCount);
             handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        if (player != playerTarget && artifact > 0)
+        {
+            handler->PSendSysMessage("Cannot be given an Artifact-type item.");
             return false;
         }
 

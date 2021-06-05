@@ -1345,6 +1345,7 @@ public:
         sLockStore.LoadFromDB();
         sMailTemplateStore.LoadFromDB();
         sMapStore.LoadFromDB();
+        sModelFileDataStore.LoadFromDB();
         sModifierTreeStore.LoadFromDB();
         sMountCapabilityStore.LoadFromDB();
         sMountStore.LoadFromDB();
@@ -1366,6 +1367,9 @@ public:
         sSkillLineAbilityStore.LoadFromDB();
         sSkillRaceClassInfoStore.LoadFromDB();
         sSoundKitStore.LoadFromDB();
+        sSoundKitEntryStore.LoadFromDB();
+        sSoundKitAdvancedStore.LoadFromDB();
+        sSpellStore.LoadFromDB();
         sSpellAuraOptionsStore.LoadFromDB();
         sSpellAuraRestrictionsStore.LoadFromDB();
         sSpellCastTimesStore.LoadFromDB();
@@ -1399,6 +1403,7 @@ public:
         sTalentStore.LoadFromDB();
         sTaxiNodesStore.LoadFromDB();
         sTaxiPathStore.LoadFromDB();
+        sTextureFileDataStore.LoadFromDB();
         sTransportAnimationStore.LoadFromDB();
         sTransportRotationStore.LoadFromDB();
         sUnitPowerBarStore.LoadFromDB();

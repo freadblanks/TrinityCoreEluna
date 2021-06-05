@@ -258,6 +258,7 @@ DB2Storage<SkillLineEntry>                      sSkillLineStore("SkillLine.db2",
 DB2Storage<SkillLineAbilityEntry>               sSkillLineAbilityStore("SkillLineAbility.db2", SkillLineAbilityLoadInfo::Instance());
 DB2Storage<SkillRaceClassInfoEntry>             sSkillRaceClassInfoStore("SkillRaceClassInfo.db2", SkillRaceClassInfoLoadInfo::Instance());
 DB2Storage<SoundKitEntry>                       sSoundKitStore("SoundKit.db2", SoundKitLoadInfo::Instance());
+DB2Storage<SoundKitNameEntry>                   sSoundKitNameStore("SoundKitName.db2", SoundKitNameLoadInfo::Instance());
 DB2Storage<SoundKitEntryEntry>                  sSoundKitEntryStore("SoundKitEntry.db2", SoundKitEntryLoadInfo::Instance());
 DB2Storage<SoundKitAdvancedEntry>               sSoundKitAdvancedStore("SoundKitAdvanced.db2", SoundKitAdvancedLoadInfo::Instance());
 DB2Storage<SpecializationSpellsEntry>           sSpecializationSpellsStore("SpecializationSpells.db2", SpecializationSpellsLoadInfo::Instance());
@@ -810,6 +811,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sSkillLineAbilityStore);
     LOAD_DB2(sSkillRaceClassInfoStore);
     LOAD_DB2(sSoundKitStore);
+    LOAD_DB2(sSoundKitNameStore);
     LOAD_DB2(sSoundKitEntryStore);
     LOAD_DB2(sSoundKitAdvancedStore);
     LOAD_DB2(sSpecializationSpellsStore);
@@ -2612,6 +2614,23 @@ std::map<uint32, std::string> DB2Manager::GetMapSkyboxs()
     }
 
     return mapSkyboxs;
+}
+
+std::map<uint32, std::string> DB2Manager::GetSoundKitsNames()
+{
+    std::map<uint32, std::string> soundKitsNames;
+
+    for (int32 i = sSoundKitNameStore.GetNumRows(); i >= 0; --i)
+    {
+        SoundKitNameEntry const* soundKitName = sSoundKitNameStore.LookupEntry(uint32(i));
+        if (!soundKitName)
+            continue;
+
+        soundKitsNames.insert(std::make_pair(soundKitName->ID, soundKitName->Name));
+
+    }
+
+    return soundKitsNames;
 }
 
 uint32 DB2Manager::GetLiquidFlags(uint32 liquidType)

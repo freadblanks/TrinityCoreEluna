@@ -11887,7 +11887,7 @@ struct SpellLabelMeta
         static DB2MetaField const fields[2] =
         {
             { FT_INT, 1, false },
-            { FT_INT, 1, true },
+            { FT_INT, 1, false },
         };
         static DB2Meta instance(1347275, -1, 2, 1, 0xF7CEC3A4, fields, 1);
         return &instance;
@@ -14874,6 +14874,20 @@ struct ZoneStoryMeta
             { FT_INT, 1, true },
         };
         static DB2Meta instance(1797864, -1, 4, 3, 0x8A9E50D6, fields, 3);
+        return &instance;
+    }
+};
+
+struct SoundKitNameMeta
+{
+    static DB2Meta const* Instance()
+    {
+        static DB2MetaField const fields[1] =
+        {
+            { FT_STRING_NOT_LOCALIZED, 1, true },
+        };
+        static DB2Meta instance(1665033, -1, 1, 1, 0xF6F6B04B, fields, -1);
+
         return &instance;
     }
 };

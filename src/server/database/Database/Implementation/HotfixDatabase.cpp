@@ -1258,15 +1258,19 @@ void HotfixDatabaseConnection::DoPrepareStatements()
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_SOUND_KIT_ENTRY, "SELECT MAX(ID) + 1 FROM sound_kit_entry", CONNECTION_SYNCH);
 
     // SoundKitAdvanced.db2
-    PrepareStatement(HOTFIX_SEL_SOUND_KIT_ADVANCED, "SELECT ID, SoundKitID, InnerRadius2D, OuterRadius2D, TimeA, TimeB, TimeC, TimeD, "
-        "RandomOffsetRange, Usage, TimeIntervalMin, TimeIntervalMax, DelayMin, DelayMax, VolumeSliderCategory, DuckToSFX, DuckToMusic, "
-        "DuckToAmbience, DuckToDialog, DuckToSuppressors, DuckToCinematicSFX, DuckToCinematicMusic, InnerRadiusOfInfluence, OuterRadiusOfInfluence, "
-        "TimeToDuck, TimeToUnduck, InsideAngle, OutsideAngle, OutsideVolume, MinRandomPosOffset, MaxRandomPosOffset, MsOffset, TimeCooldownMin, "
-        "TimeCooldownMax, MaxInstancesBehavior, VolumeControlType, VolumeFadeInTimeMin, VolumeFadeInTimeMax, VolumeFadeInCurveID, "
-        "VolumeFadeOutTimeMin, VolumeFadeOutTimeMax, VolumeFadeOutCurveID, ChanceToPlay, RolloffType, RolloffParam0, Field_8_2_0_30080_045, "
-        "Field_8_2_0_30080_046, Field_8_2_0_30080_047, Field_8_2_0_30080_048, Field_8_2_0_30080_049, Field_8_2_0_30080_050, Field_8_2_0_30080_051, "
-        "Field_8_2_0_30080_052, Field_8_2_0_30080_053, Field_8_2_0_30080_054 FROM sound_kit_advanced WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
+    PrepareStatement(HOTFIX_SEL_SOUND_KIT_ADVANCED, "SELECT ID, SoundKitID, `InnerRadius2D`, `OuterRadius2D`, `TimeA`, `TimeB`, `TimeC`, `TimeD`, "
+        "`RandomOffsetRange`, `Usage`, `TimeIntervalMin`, `TimeIntervalMax`, `DelayMin`, `DelayMax`, `VolumeSliderCategory`, `DuckToSFX`, `DuckToMusic`, "
+        "`DuckToAmbience`, `DuckToDialog`, `DuckToSuppressors`, `DuckToCinematicSFX`, `DuckToCinematicMusic`, `InnerRadiusOfInfluence`, `OuterRadiusOfInfluence`, "
+        "`TimeToDuck`, `TimeToUnduck`, `InsideAngle`, `OutsideAngle`, `OutsideVolume`, `MinRandomPosOffset`, `MaxRandomPosOffset`, `MsOffset`, `TimeCooldownMin`, "
+        "`TimeCooldownMax`, `MaxInstancesBehavior`, `VolumeControlType`, `VolumeFadeInTimeMin`, `VolumeFadeInTimeMax`, `VolumeFadeInCurveID`, "
+        "`VolumeFadeOutTimeMin`, `VolumeFadeOutTimeMax`, `VolumeFadeOutCurveID`, `ChanceToPlay`, `RolloffType`, `RolloffParam0`, `Field_8_2_0_30080_045`, "
+        "`Field_8_2_0_30080_046`, `Field_8_2_0_30080_047`, `Field_8_2_0_30080_048`, `Field_8_2_0_30080_049`, `Field_8_2_0_30080_050`, `Field_8_2_0_30080_051`, "
+        "`Field_8_2_0_30080_052`, `Field_8_2_0_30080_053`, `Field_8_2_0_30080_054` FROM sound_kit_advanced WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_SOUND_KIT_ADVANCED, "SELECT MAX(ID) + 1 FROM sound_kit_advanced", CONNECTION_SYNCH);
+
+    // SoundKitName.db2
+    PrepareStatement(HOTFIX_SEL_SOUND_KIT_NAME, "SELECT ID, Name FROM sound_kit_name WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
+    PREPARE_MAX_ID_STMT(HOTFIX_SEL_SOUND_KIT_NAME, "SELECT MAX(ID) + 1 FROM sound_kit_name", CONNECTION_SYNCH);
 
     // SpecializationSpells.db2
     PrepareStatement(HOTFIX_SEL_SPECIALIZATION_SPELLS, "SELECT Description, ID, SpecID, SpellID, OverridesSpellID, DisplayOrder"

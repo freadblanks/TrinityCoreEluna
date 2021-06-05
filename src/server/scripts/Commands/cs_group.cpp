@@ -29,6 +29,7 @@
 #include "ObjectMgr.h"
 #include "PhasingHandler.h"
 #include "Player.h"
+#include "Conversation.h"
 #include "RBAC.h"
 #include "WorldSession.h"
 
@@ -56,6 +57,7 @@ public:
             { "join",    rbac::RBAC_PERM_COMMAND_GROUP_JOIN,    false, &HandleGroupJoinCommand,    "" },
             { "list",    rbac::RBAC_PERM_COMMAND_GROUP_LIST,    false, &HandleGroupListCommand,    "" },
             { "summon",  rbac::RBAC_PERM_COMMAND_GROUP_SUMMON,  false, &HandleGroupSummonCommand,  "" },
+            { "conversation",  rbac::RBAC_PERM_COMMAND_DEBUG_CONVERSATION,  false, &HandleGroupConversationCommand,  "" },
         };
 
         static std::vector<ChatCommand> commandTable =
@@ -448,6 +450,47 @@ public:
         }
 
         // And finish after every iterator is done.
+        return true;
+    }
+
+    // Summon group of player
+    static bool HandleGroupConversationCommand(ChatHandler* handler, char const* args)
+    {
+
+        if (!*args)
+            return false;
+
+        char const* conversationEntryStr = strtok((char*)args, " ");
+
+        if (!conversationEntryStr)
+            return false;
+
+        uint32 conversationEntry = atoi(conversationEntryStr);
+        Player* target = handler->GetSession()->GetPlayer();
+        Group* group = target->GetGroup();
+
+        std::string nameLink = handler->GetNameLink(target);
+
+        if (!group)
+        {
+            handler->PSendSysMessage(LANG_NOT_IN_GROUP, nameLink.c_str());
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
+        {
+            Player* player = itr->GetSource();
+
+            if (!player || !player->GetSession())
+            {
+                continue;
+            }
+
+            Conversation::CreateConversation(conversationEntry, player, *player, { player->GetGUID() });
+
+        }
+
         return true;
     }
 };
