@@ -1275,7 +1275,7 @@ void Player::setDeathState(DeathState s)
         UpdateCriteria(CRITERIA_TYPE_DEATH_IN_DUNGEON, 1);
 
         // reset all death criterias
-        ResetCriteria(CRITERIA_CONDITION_NO_DEATH, 0);
+        ResetCriteria(CriteriaFailEvent::Death, 0);
     }
 
     Unit::setDeathState(s);
@@ -6294,6 +6294,12 @@ ReputationRank Player::GetReputationRank(uint32 faction) const
 // Calculate total reputation percent player gain with quest/creature level
 int32 Player::CalculateReputationGain(ReputationSource source, uint32 creatureOrQuestLevel, int32 rep, int32 faction, bool noQuestBonus)
 {
+    bool noBonuses = false;
+    if (FactionEntry const* factionEntry = sFactionStore.LookupEntry(faction))
+        if (FriendshipReputationEntry const* friendshipReputation = sFriendshipReputationStore.LookupEntry(factionEntry->FriendshipRepID))
+            if (friendshipReputation->GetFlags().HasFlag(FriendshipReputationFlags::NoRepGainModifiers))
+                noBonuses = true;
+
     float percent = 100.0f;
 
     float repMod = noQuestBonus ? 0.0f : float(GetTotalAuraModifier(SPELL_AURA_MOD_REPUTATION_GAIN));
@@ -15426,7 +15432,7 @@ void Player::AddQuest(Quest const* quest, Object* questGiver)
 
     m_QuestStatusSave[quest_id] = QUEST_DEFAULT_SAVE_TYPE;
 
-    StartCriteriaTimer(CRITERIA_TIMED_TYPE_QUEST, quest_id);
+    StartCriteriaTimer(CriteriaStartEvent::AcceptQuest, quest_id);
 
     SendQuestUpdate(quest_id);
 
@@ -16872,7 +16878,7 @@ void Player::KilledMonsterCredit(uint32 entry, ObjectGuid guid /*= ObjectGuid::E
             real_entry = killed->GetEntry();
     }
 
-    StartCriteriaTimer(CRITERIA_TIMED_TYPE_CREATURE, real_entry);   // MUST BE CALLED FIRST
+    StartCriteriaTimer(CriteriaStartEvent::KillNPC, real_entry);   // MUST BE CALLED FIRST
     UpdateCriteria(CRITERIA_TYPE_KILL_CREATURE, real_entry, addKillCount, 0, killed);
 
     UpdateQuestObjectiveProgress(QUEST_OBJECTIVE_MONSTER, entry, 1, guid);
@@ -26598,17 +26604,17 @@ bool Player::HasAchieved(uint32 achievementId) const
     return m_achievementMgr->HasAchieved(achievementId);
 }
 
-void Player::StartCriteriaTimer(CriteriaTimedTypes type, uint32 entry, uint32 timeLost/* = 0*/)
+void Player::StartCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry, uint32 timeLost/* = 0*/)
 {
-    m_achievementMgr->StartCriteriaTimer(type, entry, timeLost);
+    m_achievementMgr->StartCriteriaTimer(startEvent, entry, timeLost);
 }
 
-void Player::RemoveCriteriaTimer(CriteriaTimedTypes type, uint32 entry)
+void Player::RemoveCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry)
 {
-    m_achievementMgr->RemoveCriteriaTimer(type, entry);
+    m_achievementMgr->RemoveCriteriaTimer(startEvent, entry);
 }
 
-void Player::ResetCriteria(CriteriaCondition condition, int32 failAsset, bool evenIfCriteriaComplete /* = false*/)
+void Player::ResetCriteria(CriteriaFailEvent condition, int32 failAsset, bool evenIfCriteriaComplete /* = false*/)
 {
     m_achievementMgr->ResetCriteria(condition, failAsset, evenIfCriteriaComplete);
     m_questObjectiveCriteriaMgr->ResetCriteria(condition, failAsset, evenIfCriteriaComplete);
