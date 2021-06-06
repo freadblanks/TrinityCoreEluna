@@ -97,11 +97,8 @@ public:
         uint32 map = player->GetMapId();
         uint32 mapCache = player->GetMapId();
 
-        if (skyboxId != 0)
-        {
-            if (map > 0)
+            if (map)
             {
-
                 if (player->GetMapId())
                 {
                     if (MapEntry const* entry = sMapStore.AssertEntry(map))
@@ -129,8 +126,6 @@ public:
 
                 player->GetSession()->SendPacket(&data, true);
             }
-
-        }
     }
 
 };

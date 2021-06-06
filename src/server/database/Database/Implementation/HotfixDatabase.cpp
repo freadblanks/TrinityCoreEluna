@@ -1227,6 +1227,12 @@ void HotfixDatabaseConnection::DoPrepareStatements()
     PrepareStatement(HOTFIX_SEL_SCENE_SCRIPT_TEXT, "SELECT ID, Name, Script FROM scene_script_text WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_SCENE_SCRIPT_TEXT, "SELECT MAX(ID) + 1 FROM scene_script_text", CONNECTION_SYNCH);
 
+    // ScreenEffect.db2
+    PrepareStatement(HOTFIX_SEL_SCREEN_EFFECT, "SELECT ID, DisplayName, Param1, Param2, Param3, Param4, Effect, FullScreenEffectID, LightParamsID, "
+        "LightParamsFadeIn, LightParamsFadeOut, SoundAmbienceID, ZoneMusicID, TimeOfDayOverride, EffectMask, LightFlags FROM screen_effect"
+        " WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
+    PREPARE_MAX_ID_STMT(HOTFIX_SEL_SCREEN_EFFECT, "SELECT MAX(ID) + 1 FROM screen_effect", CONNECTION_SYNCH);
+
     // SkillLine.db2
     PrepareStatement(HOTFIX_SEL_SKILL_LINE, "SELECT DisplayName, AlternateVerb, Description, HordeDisplayName, OverrideSourceInfoDisplayName, ID, "
         "CategoryID, SpellIconFileID, CanLink, ParentSkillLineID, ParentTierIndex, Flags, SpellBookSpellID FROM skill_line"

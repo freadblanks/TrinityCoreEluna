@@ -6433,9 +6433,6 @@ enum ResetFailedReason : uint8
     INSTANCE_RESET_FAILED_OFFLINE   = 2  // "Cannot reset %s.  There are players offline in your party."
 };
 
-// CUSTOM
-#define MAP_CUSTOM_PHASE 5000
-
 enum class GameError : uint32
 {
     ERR_SYSTEM                                                      = 0,

@@ -4710,6 +4710,34 @@ struct SceneScriptTextLoadInfo
     }
 };
 
+struct ScreenEffectLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { false, FT_STRING_NOT_LOCALIZED, "DisplayName" },
+            { true, FT_INT, "Param1" },
+            { true, FT_INT, "Param2" },
+            { true, FT_INT, "Param3" },
+            { true, FT_INT, "Param4" },
+            { true, FT_BYTE, "Effect" },
+            { false, FT_INT, "FullScreenEffectID" },
+            { false, FT_SHORT, "LightParamsID" },
+            { false, FT_SHORT, "LightParamsFadeIn" },
+            { false, FT_SHORT, "LightParamsFadeOut" },
+            { false, FT_INT, "SoundAmbienceID" },
+            { false, FT_INT, "ZoneMusicID" },
+            { true, FT_SHORT, "TimeOfDayOverride" },
+            { true, FT_BYTE, "EffectMask" },
+            { false, FT_BYTE, "LightFlags" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, ScreenEffectMeta::Instance(), HOTFIX_SEL_SCREEN_EFFECT);
+        return &loadInfo;
+    }
+};
+
 struct SkillLineLoadInfo
 {
     static DB2LoadInfo const* Instance()

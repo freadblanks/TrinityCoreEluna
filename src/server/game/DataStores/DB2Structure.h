@@ -2828,6 +2828,23 @@ struct SceneScriptTextEntry
     char const* Script;
 };
 
+struct ScreenEffectEntry
+{
+    int32 ID;
+    char const* DisplayName;
+    int32 Param[4];
+    int8 Effect;
+    uint32 FullScreenEffectID;
+    uint16 LightParamsID;
+    uint16 LightParamsFadeIn;
+    uint16 LightParamsFadeOut;
+    uint32 SoundAmbienceID;
+    uint32 ZoneMusicID;
+    int16 TimeOfDayOverride;
+    int8 EffectMask;
+    uint8 LightFlags;
+};
+
 struct SkillLineEntry
 {
     LocalizedString DisplayName;

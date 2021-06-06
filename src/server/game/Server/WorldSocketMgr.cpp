@@ -42,7 +42,7 @@ public:
     }
 };
 
-WorldSocketMgr::WorldSocketMgr() : BaseSocketMgr(), _instanceAcceptor(nullptr), _socketSystemSendBufferSize(-1), _socketApplicationSendBufferSize(65536), _tcpNoDelay(true)
+WorldSocketMgr::WorldSocketMgr() : BaseSocketMgr(), _instanceAcceptor(nullptr), _socketSystemSendBufferSize(-1), _socketApplicationSendBufferSize(524288), _tcpNoDelay(true)
 {
 }
 
@@ -67,7 +67,7 @@ bool WorldSocketMgr::StartWorldNetwork(Trinity::Asio::IoContext& ioContext, std:
     // -1 means use default
     _socketSystemSendBufferSize = sConfigMgr->GetIntDefault("Network.OutKBuff", -1);
 
-    _socketApplicationSendBufferSize = sConfigMgr->GetIntDefault("Network.OutUBuff", 65536);
+    _socketApplicationSendBufferSize = sConfigMgr->GetIntDefault("Network.OutUBuff", 524288);
 
     if (_socketApplicationSendBufferSize <= 0)
     {

@@ -2212,6 +2212,7 @@ void WorldSession::HandleCharRaceOrFactionChangeCallback(std::shared_ptr<WorldPa
                     stmt->setUInt16(1, 137);
                     break;
                 case RACE_GOBLIN:
+                case RACE_VULPERA:
                     stmt->setUInt16(1, 792);
                     break;
                 case RACE_NIGHTBORNE:
