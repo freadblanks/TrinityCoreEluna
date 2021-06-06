@@ -2001,6 +2001,16 @@ struct ItemModifiedAppearanceEntry
     int8 TransmogSourceTypeEnum;
 };
 
+struct ItemModifiedAppearanceExtraEntry
+{
+    uint32 ID;
+    int32 IconFileDataID;
+    int32 UnequippedIconFileDataID;
+    uint8 SheatheType;
+    int8 DisplayWeaponSubclassID;
+    int8 DisplayInventoryType;
+};
+
 struct ItemNameDescriptionEntry
 {
     uint32 ID;
@@ -2492,6 +2502,14 @@ struct OverrideSpellDataEntry
     int32 Spells[MAX_OVERRIDE_SPELL];
     int32 PlayerActionBarFileDataID;
     uint8 Flags;
+};
+
+struct ParagonReputationEntry
+{
+    uint32 ID;
+    uint32 FactionID;
+    int32 LevelThreshold;
+    int32 QuestID;
 };
 
 struct PhaseEntry

@@ -3134,6 +3134,24 @@ struct ItemModifiedAppearanceLoadInfo
     }
 };
 
+struct ItemModifiedAppearanceExtraLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { true, FT_INT, "IconFileDataID" },
+            { true, FT_INT, "UnequippedIconFileDataID" },
+            { false, FT_BYTE, "SheatheType" },
+            { true, FT_BYTE, "DisplayWeaponSubclassID" },
+            { true, FT_BYTE, "DisplayInventoryType" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, ItemModifiedAppearanceExtraMeta::Instance(), HOTFIX_SEL_ITEM_MODIFIED_APPEARANCE_EXTRA);
+        return &loadInfo;
+    }
+};
+
 struct ItemNameDescriptionLoadInfo
 {
     static DB2LoadInfo const* Instance()
@@ -4042,6 +4060,22 @@ struct OverrideSpellDataLoadInfo
             { false, FT_BYTE, "Flags" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, OverrideSpellDataMeta::Instance(), HOTFIX_SEL_OVERRIDE_SPELL_DATA);
+        return &loadInfo;
+    }
+};
+
+struct ParagonReputationLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { false, FT_INT, "FactionID" },
+            { true, FT_INT, "LevelThreshold" },
+            { true, FT_INT, "QuestID" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, ParagonReputationMeta::Instance(), HOTFIX_SEL_PARAGON_REPUTATION);
         return &loadInfo;
     }
 };
