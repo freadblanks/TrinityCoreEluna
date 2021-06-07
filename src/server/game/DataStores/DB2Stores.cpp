@@ -241,8 +241,10 @@ DB2Storage<PVPItemEntry>                        sPVPItemStore("PVPItem.db2", Pvp
 DB2Storage<PvpTalentEntry>                      sPvpTalentStore("PvpTalent.db2", PvpTalentLoadInfo::Instance());
 DB2Storage<PvpTalentCategoryEntry>              sPvpTalentCategoryStore("PvpTalentCategory.db2", PvpTalentCategoryLoadInfo::Instance());
 DB2Storage<PvpTalentSlotUnlockEntry>            sPvpTalentSlotUnlockStore("PvpTalentSlotUnlock.db2", PvpTalentSlotUnlockLoadInfo::Instance());
+DB2Storage<PvpTierEntry>                        sPvpTierStore("PvpTier.db2", PvpTierLoadInfo::Instance());
 DB2Storage<QuestFactionRewardEntry>             sQuestFactionRewardStore("QuestFactionReward.db2", QuestFactionRewardLoadInfo::Instance());
 DB2Storage<QuestInfoEntry>                      sQuestInfoStore("QuestInfo.db2", QuestInfoLoadInfo::Instance());
+DB2Storage<QuestLineXQuestEntry>                sQuestLineXQuestStore("QuestLineXQuest.db2", QuestLineXQuestLoadInfo::Instance());
 DB2Storage<QuestMoneyRewardEntry>               sQuestMoneyRewardStore("QuestMoneyReward.db2", QuestMoneyRewardLoadInfo::Instance());
 DB2Storage<QuestPackageItemEntry>               sQuestPackageItemStore("QuestPackageItem.db2", QuestPackageItemLoadInfo::Instance());
 DB2Storage<QuestSortEntry>                      sQuestSortStore("QuestSort.db2", QuestSortLoadInfo::Instance());
@@ -432,7 +434,7 @@ namespace
     std::unordered_map<std::pair<uint32 /*level*/, int32 /*expansion*/>, ExpectedStatEntry const*> _expectedStatsByLevel;
     std::unordered_map<uint32 /*contentTuningId*/, std::vector<ExpectedStatModEntry const*>> _expectedStatModsByContentTuning;
     FactionTeamContainer _factionTeams;
-    std::unordered_map<uint32, std::set<FriendshipRepReactionEntry const*>> _friendshipRepReactions;
+    std::unordered_map<uint32, std::set<FriendshipRepReactionEntry const*, DB2Manager::FriendshipRepReactionEntryComparator>> _friendshipRepReactions;
     HeirloomItemsContainer _heirlooms;
     GlyphBindableSpellsContainer _glyphBindableSpells;
     GlyphRequiredSpecsContainer _glyphRequiredSpecs;
@@ -460,6 +462,7 @@ namespace
     PowerTypesContainer _powerTypes;
     std::unordered_map<uint32, uint8> _pvpItemBonus;
     PvpTalentSlotUnlockEntry const* _pvpTalentSlotUnlock[MAX_PVP_TALENT_SLOTS];
+    std::unordered_map<uint32, std::unordered_set<QuestLineXQuestEntry const*>> _questsByQuestLine;
     QuestPackageItemContainer _questPackages;
     std::unordered_map<uint32, std::vector<RewardPackXCurrencyTypeEntry const*>> _rewardPackCurrencyTypes;
     std::unordered_map<uint32, std::vector<RewardPackXItemEntry const*>> _rewardPackItems;
@@ -799,8 +802,10 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sPvpTalentStore);
     LOAD_DB2(sPvpTalentCategoryStore);
     LOAD_DB2(sPvpTalentSlotUnlockStore);
+    LOAD_DB2(sPvpTierStore);
     LOAD_DB2(sQuestFactionRewardStore);
     LOAD_DB2(sQuestInfoStore);
+    LOAD_DB2(sQuestLineXQuestStore);
     LOAD_DB2(sQuestMoneyRewardStore);
     LOAD_DB2(sQuestPackageItemStore);
     LOAD_DB2(sQuestSortStore);
@@ -1294,6 +1299,9 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
             }
         }
     }
+
+    for (QuestLineXQuestEntry const* questLineQuest : sQuestLineXQuestStore)
+        _questsByQuestLine[questLineQuest->QuestLineID].insert(questLineQuest);
 
     for (QuestPackageItemEntry const* questPackageItem : sQuestPackageItemStore)
     {
@@ -2265,7 +2273,7 @@ std::vector<uint32> const* DB2Manager::GetFactionTeamList(uint32 faction) const
     return Trinity::Containers::MapGetValuePtr(_factionTeams, faction);
 }
 
-std::set<FriendshipRepReactionEntry const*> const* DB2Manager::GetFriendshipRepReactions(uint32 friendshipRepID) const
+DB2Manager::FriendshipRepReactionSet const* DB2Manager::GetFriendshipRepReactions(uint32 friendshipRepID) const
 {
     return Trinity::Containers::MapGetValuePtr(_friendshipRepReactions, friendshipRepID);
 }
@@ -2845,6 +2853,11 @@ int32 DB2Manager::GetPvpTalentNumSlotsAtLevel(uint32 level, Classes class_) cons
             ++slots;
 
     return slots;
+}
+
+std::unordered_set<QuestLineXQuestEntry const*> const* DB2Manager::GetQuestsForQuestLine(uint32 questLineId) const
+{
+    return Trinity::Containers::MapGetValuePtr(_questsByQuestLine, questLineId);
 }
 
 std::vector<QuestPackageItemEntry const*> const* DB2Manager::GetQuestPackageItems(uint32 questPackageID) const

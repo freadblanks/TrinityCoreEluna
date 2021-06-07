@@ -178,6 +178,7 @@ TC_GAME_API extern DB2Storage<PowerDisplayEntry>                    sPowerDispla
 TC_GAME_API extern DB2Storage<PvpTalentEntry>                       sPvpTalentStore;
 TC_GAME_API extern DB2Storage<PvpTalentCategoryEntry>               sPvpTalentCategoryStore;
 TC_GAME_API extern DB2Storage<PvpTalentSlotUnlockEntry>             sPvpTalentSlotUnlockStore;
+TC_GAME_API extern DB2Storage<PvpTierEntry>                         sPvpTierStore;
 TC_GAME_API extern DB2Storage<QuestFactionRewardEntry>              sQuestFactionRewardStore;
 TC_GAME_API extern DB2Storage<QuestInfoEntry>                       sQuestInfoStore;
 TC_GAME_API extern DB2Storage<QuestMoneyRewardEntry>                sQuestMoneyRewardStore;
@@ -327,6 +328,7 @@ public:
 
     using HotfixContainer = std::unordered_map<int32, std::vector<HotfixRecord>>;
 
+    using FriendshipRepReactionSet = std::set<FriendshipRepReactionEntry const*, FriendshipRepReactionEntryComparator>;
     using ItemBonusList = std::vector<ItemBonusEntry const*>;
     using MapDifficultyContainer = std::unordered_map<uint32, std::unordered_map<uint32, MapDifficultyEntry const*>>;
     using MapDifficultyConditionsContainer = std::vector<std::pair<uint32, PlayerConditionEntry const*>>;
@@ -376,7 +378,7 @@ public:
     EmotesTextSoundEntry const* GetTextSoundEmoteFor(uint32 emote, uint8 race, uint8 gender, uint8 class_) const;
     float EvaluateExpectedStat(ExpectedStatType stat, uint32 level, int32 expansion, uint32 contentTuningId, Classes unitClass) const;
     std::vector<uint32> const* GetFactionTeamList(uint32 faction) const;
-    std::set<FriendshipRepReactionEntry const*> const* GetFriendshipRepReactions(uint32 friendshipRepID) const;
+    FriendshipRepReactionSet const* GetFriendshipRepReactions(uint32 friendshipRepID) const;
     uint32 GetGlobalCurveId(GlobalCurve globalCurveType) const;
     std::vector<uint32> const* GetGlyphBindableSpells(uint32 glyphPropertiesId) const;
     std::vector<uint32> const* GetGlyphRequiredSpecs(uint32 glyphPropertiesId) const;
@@ -422,6 +424,7 @@ public:
     static PVPDifficultyEntry const* GetBattlegroundBracketById(uint32 mapid, BattlegroundBracketId id);
     uint32 GetRequiredLevelForPvpTalentSlot(uint8 slot, Classes class_) const;
     int32 GetPvpTalentNumSlotsAtLevel(uint32 level, Classes class_) const;
+    std::unordered_set<QuestLineXQuestEntry const*> const* GetQuestsForQuestLine(uint32 questLineId) const;
     std::vector<QuestPackageItemEntry const*> const* GetQuestPackageItems(uint32 questPackageID) const;
     std::vector<QuestPackageItemEntry const*> const* GetQuestPackageItemsFallback(uint32 questPackageID) const;
     uint32 GetQuestUniqueBitFlag(uint32 questId);
