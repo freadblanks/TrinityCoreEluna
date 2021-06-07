@@ -1688,19 +1688,6 @@ namespace LuaPlayer
     }
 
     /**
-     * Sets the [Player]s amount of Lifetime Honorable Kills to the value specified
-     *
-     * @param uint32 honorableKills
-     */
-    int SetLifetimeKills(lua_State* L, Player* player)
-    {
-        uint32 val = Eluna::CHECKVAL<uint32>(L, 2);
-
-        player->SetLifetimeHonorableKills(val);
-        return 0;
-    }
-
-    /**
      * Sets the [Player]s amount of money to copper specified
      *
      * @param uint32 copperAmt
@@ -2761,14 +2748,6 @@ namespace LuaPlayer
         Eluna::Push(L, player->TeleportTo(mapId, x, y, z, o));
         return 1;
     }
-
-    int AddLifetimeKills(lua_State* L, Player* player)
-    {
-        uint32 val = Eluna::CHECKVAL<uint32>(L, 2);
-        uint32 currentKills = player->m_activePlayerData->LifetimeHonorableKills;
-        player->SetLifetimeHonorableKills(currentKills + val);
-        return 0;
-    }
     
     /**
      * Adds the given amount of the specified item entry to the player.
@@ -2824,23 +2803,6 @@ namespace LuaPlayer
             if (all)
                 Eluna::CHECKOBJ<ElunaObject>(L, 2)->Invalidate();
         }
-        return 0;
-    }
-
-    /**
-     * Removes specified amount of lifetime kills
-     *
-     * @param uint32 val : kills to remove
-     */
-    int RemoveLifetimeKills(lua_State* L, Player* player)
-    {
-        uint32 val = Eluna::CHECKVAL<uint32>(L, 2);
-
-        uint32 currentKills = player->m_activePlayerData->LifetimeHonorableKills;
-        if (val > currentKills)
-            val = currentKills;
-
-        player->SetLifetimeHonorableKills(currentKills - val);
         return 0;
     }
 
