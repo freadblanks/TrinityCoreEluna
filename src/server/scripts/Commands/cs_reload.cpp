@@ -1272,6 +1272,8 @@ public:
         sChrClassesStore.LoadFromDB();
         sChrRacesStore.LoadFromDB();
         sChrSpecializationStore.LoadFromDB();
+        sChrCustomizationChoiceStore.LoadFromDB();
+        sChrCustomizationOptionStore.LoadFromDB();
         sCinematicCameraStore.LoadFromDB();
         sCinematicSequencesStore.LoadFromDB();
         sConversationLineStore.LoadFromDB();

@@ -1515,7 +1515,7 @@ struct CreatureDisplayInfoOptionLoadInfo
             { false, FT_INT, "ID" },
             { true, FT_INT, "ChrCustomizationOptionID" },
             { true, FT_INT, "ChrCustomizationChoiceID" },
-            { true, FT_INT, "CreatureDisplayInfoExtraID" },
+            { false, FT_INT, "CreatureDisplayInfoExtraID" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, CreatureDisplayInfoOptionMeta::Instance(), HOTFIX_SEL_CREATURE_DISPLAY_INFO_OPTION);
         return &loadInfo;

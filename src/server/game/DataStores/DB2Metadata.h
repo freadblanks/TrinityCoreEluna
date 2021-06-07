@@ -3413,7 +3413,7 @@ struct CreatureDisplayInfoOptionMeta
         {
             { FT_INT, 1, true },
             { FT_INT, 1, true },
-            { FT_INT, 1, true },
+            { FT_INT, 1, false },
         };
         static DB2Meta instance(3692043, -1, 3, 2, 0x2155E881, fields, 2);
         return &instance;

@@ -22,6 +22,7 @@
 #include "ArtifactPackets.h"
 #include "AuctionHousePackets.h"
 #include "AuthenticationPackets.h"
+#include "AchievementMgr.h"
 #include "Battleground.h"
 #include "BattlegroundPackets.h"
 #include "BattlePetPackets.h"
@@ -438,7 +439,7 @@ void WorldSession::HandleCharEnum(CharacterDatabaseQueryHolder* holder)
         WorldPackets::Character::EnumCharactersResult::RaceUnlock raceUnlock;
         raceUnlock.RaceID = requirement.first;
         raceUnlock.HasExpansion = GetAccountExpansion() >= requirement.second.Expansion;
-        raceUnlock.HasAchievement = requirement.second.AchievementId == 0; //Hack fixed need implement bnet_achievement
+        raceUnlock.HasAchievement = requirement.second.AchievementId == 0;
         charEnum.RaceUnlockData.push_back(raceUnlock);
     }
 
