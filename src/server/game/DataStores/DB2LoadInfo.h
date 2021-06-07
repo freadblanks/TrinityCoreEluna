@@ -1116,6 +1116,21 @@ struct ChrCustomizationElementLoadInfo
     }
 };
 
+struct ChrCustomizationMaterialLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { true, FT_INT, "ChrModelTextureTargetID" },
+            { true, FT_INT, "MaterialResourcesID" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, ChrCustomizationMaterialMeta::Instance(), HOTFIX_SEL_CHR_CUSTOMIZATION_MATERIAL);
+        return &loadInfo;
+    }
+};
+
 struct ChrCustomizationOptionLoadInfo
 {
     static DB2LoadInfo const* Instance()
@@ -1487,6 +1502,22 @@ struct CreatureDisplayInfoExtraLoadInfo
             { true, FT_INT, "HDBakeMaterialResourcesID" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, CreatureDisplayInfoExtraMeta::Instance(), HOTFIX_SEL_CREATURE_DISPLAY_INFO_EXTRA);
+        return &loadInfo;
+    }
+};
+
+struct CreatureDisplayInfoOptionLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { true, FT_INT, "ChrCustomizationOptionID" },
+            { true, FT_INT, "ChrCustomizationChoiceID" },
+            { true, FT_INT, "CreatureDisplayInfoExtraID" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, CreatureDisplayInfoOptionMeta::Instance(), HOTFIX_SEL_CREATURE_DISPLAY_INFO_OPTION);
         return &loadInfo;
     }
 };

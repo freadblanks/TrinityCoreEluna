@@ -684,6 +684,13 @@ struct ChrCustomizationElementEntry
     int32 ChrCustItemGeoModifyID;
 };
 
+struct ChrCustomizationMaterialEntry
+{
+    uint32 ID;
+    int32 ChrModelTextureTargetID;
+    int32 MaterialResourcesID;
+};
+
 struct ChrCustomizationOptionEntry
 {
     LocalizedString Name;
@@ -940,6 +947,14 @@ struct CreatureDisplayInfoExtraEntry
     int8 Flags;
     int32 BakeMaterialResourcesID;
     int32 HDBakeMaterialResourcesID;
+};
+
+struct CreatureDisplayInfoOptionEntry
+{
+    uint32 ID;
+    int32 ChrCustomizationOptionID;
+    int32 ChrCustomizationChoiceID;
+    int32 CreatureDisplayInfoExtraID;
 };
 
 struct CreatureFamilyEntry
