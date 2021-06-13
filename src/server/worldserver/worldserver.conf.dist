@@ -512,6 +512,14 @@ MapUpdate.Threads = 1
 CleanCharacterDB = 0
 
 #
+#   FeatureSystem.WarMode.Enabled
+#        Description: Controls Warmode and PvP talent feature in BFA.
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled, Experimental)
+
+FeatureSystem.WarMode.Enabled = 1
+
+#
 #    PersistentCharacterCleanFlags
 #        Description: Determines the character clean flags that remain set after cleanups.
 #                     This is a bitmask value, check /doc/CharacterDBCleanup.txt for more

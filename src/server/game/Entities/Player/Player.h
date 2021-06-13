@@ -1782,6 +1782,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool HasPvpRulesEnabled() const;
         bool IsInAreaThatActivatesPvpTalents() const;
         bool IsAreaThatActivatesPvpTalents(uint32 areaID) const;
+        bool IsInWarMode() const { return HasPlayerFlag(PLAYER_FLAGS_WAR_MODE_DESIRED); }
 
         // Dual Spec
         void ActivateTalentGroup(ChrSpecializationEntry const* spec);

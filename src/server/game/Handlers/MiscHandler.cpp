@@ -319,6 +319,9 @@ void WorldSession::HandleLogoutCancelOpcode(WorldPackets::Character::LogoutCance
 
 void WorldSession::HandleTogglePvP(WorldPackets::Misc::TogglePvP& /*packet*/)
 {
+    //Handled by WarMode now
+    return;
+
     if (GetPlayer()->HasPlayerFlag(PLAYER_FLAGS_IN_PVP))
     {
         GetPlayer()->RemovePlayerFlag(PLAYER_FLAGS_IN_PVP);
@@ -337,6 +340,9 @@ void WorldSession::HandleTogglePvP(WorldPackets::Misc::TogglePvP& /*packet*/)
 
 void WorldSession::HandleSetPvP(WorldPackets::Misc::SetPvP& packet)
 {
+    //Handled by WarMode now
+    return;
+
     if (!packet.EnablePVP)
     {
         GetPlayer()->RemovePlayerFlag(PLAYER_FLAGS_IN_PVP);
@@ -1192,4 +1198,17 @@ void WorldSession::HandleSelectFactionOpcode(WorldPackets::Misc::FactionSelect& 
 		_player->LearnSpell(108131, false);         // Language Pandaren Horde
 		_player->CastSpell(_player, 113245, true);  // Faction Choice Trigger Spell: Horde
 	}
+}
+
+void WorldSession::HandleSetWarModeOpcode(WorldPackets::Misc::SetWarMode& warMode)
+{
+    uint32 const warModeSpellId = 269083; // Enlisted
+
+    if (_player->GetZoneId() != 1519 && _player->GetZoneId() != 1637)
+        return;
+
+    if (warMode.Enabled)
+        _player->RemoveAurasDueToSpell(warModeSpellId);
+    else
+        _player->RemoveAurasDueToSpell(warModeSpellId);
 }

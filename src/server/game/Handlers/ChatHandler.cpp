@@ -265,11 +265,11 @@ void WorldSession::HandleChatMessage(ChatMsg type, Language lang, std::string ms
                 return;
             }
 
-            if (GetPlayer()->GetTeam() != receiver->GetTeam() && !HasPermission(rbac::RBAC_PERM_TWO_SIDE_INTERACTION_CHAT) && !receiver->IsInWhisperWhiteList(sender->GetGUID()))
+            /*if (GetPlayer()->GetTeam() != receiver->GetTeam() && !HasPermission(rbac::RBAC_PERM_TWO_SIDE_INTERACTION_CHAT) && !receiver->IsInWhisperWhiteList(sender->GetGUID()))
             {
                 SendChatPlayerNotfoundNotice(target);
                 return;
-            }
+            }*/
 
             if (GetPlayer()->HasAura(1852) && !receiver->IsGameMaster())
             {

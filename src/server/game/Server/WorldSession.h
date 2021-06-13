@@ -517,6 +517,7 @@ namespace WorldPackets
         class MountSetFavorite;
         class CloseInteraction;
         class FactionSelect;
+        class SetWarMode;
     }
 
     namespace Movement
@@ -1717,6 +1718,7 @@ class TC_GAME_API WorldSession
         void HandleRequestCategoryCooldowns(WorldPackets::Spells::RequestCategoryCooldowns& requestCategoryCooldowns);
         void HandleCloseInteraction(WorldPackets::Misc::CloseInteraction& closeInteraction);
         void HandleSelectFactionOpcode(WorldPackets::Misc::FactionSelect& selectFaction);
+        void HandleSetWarModeOpcode(WorldPackets::Misc::SetWarMode& packet);
 
         // Adventure Journal
         void HandleAdventureJournalOpenQuest(WorldPackets::AdventureJournal::AdventureJournalOpenQuest& openQuest);

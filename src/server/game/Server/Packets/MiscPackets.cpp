@@ -732,3 +732,8 @@ WorldPacket const* WorldPackets::Misc::StartTimer::Write()
 
     return &_worldPacket;
 }
+
+void WorldPackets::Misc::SetWarMode::Read()
+{
+    Enabled = _worldPacket.ReadBit();
+}

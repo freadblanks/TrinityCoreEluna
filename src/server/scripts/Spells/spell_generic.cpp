@@ -3895,6 +3895,113 @@ class spell_gen_impatient_mind : public AuraScript
     }
 };
 
+// 83958 - Mobile Bank
+class spell_gen_mobile_bank : public SpellScript
+{
+    PrepareSpellScript(spell_gen_mobile_bank);
+
+    enum
+    {
+        GOB_MOBILE_BANK = 206602
+    };
+
+    void SpawnChest(SpellEffIndex /*effIndex*/)
+    {
+        if (GetCaster()->IsPlayer() && GetCaster()->ToPlayer()->GetGuildId())
+            GetCaster()->SummonGameObject(GOB_MOBILE_BANK, GetCaster()->GetPositionWithDistInFront(2.f), QuaternionData::fromEulerAnglesZYX(GetCaster()->GetOrientation() - float(M_PI), 0.f, 0.f), 5 * MINUTE * IN_MILLISECONDS);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_gen_mobile_bank::SpawnChest, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+    }
+};
+
+// Arcane Pulse (Nightborne racial) - 260364
+class spell_arcane_pulse : public SpellScript
+{
+    PrepareSpellScript(spell_arcane_pulse);
+
+    void HandleDamage(SpellEffIndex /*effIndex*/)
+    {
+        float damage = GetCaster()->GetTotalAttackPowerValue(BASE_ATTACK) * 2.f;
+
+        if (!damage)
+            damage = float(GetCaster()->GetTotalSpellPowerValue(SPELL_SCHOOL_MASK_ALL, false)) * 0.75f;
+
+        SetHitDamage(damage);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_arcane_pulse::HandleDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+    }
+};
+
+enum SpatialRiftSpells
+{
+    SPELL_SPATIAL_RIFT_AT = 256948,
+    SPELL_SPATIAL_RIFT_TELEPORT = 257034,
+    SPELL_SPATIAL_RIFT_DESPAWN_AT = 257040
+};
+
+// Spatial Rift teleport (Void Elf racial) - 257040
+class spell_spatial_rift_despawn : public SpellScript
+{
+    PrepareSpellScript(spell_spatial_rift_despawn);
+
+    void OnDespawnAreaTrigger(SpellEffIndex /*effIndex*/)
+    {
+        if (AreaTrigger* at = GetCaster()->GetAreaTrigger(SPELL_SPATIAL_RIFT_AT))
+        {
+            GetCaster()->CastSpell(at->GetPosition(), SPELL_SPATIAL_RIFT_TELEPORT, true);
+            at->SetDuration(0);
+        }
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_spatial_rift_despawn::OnDespawnAreaTrigger, EFFECT_0, SPELL_EFFECT_DESPAWN_AREATRIGGER);
+    }
+};
+
+// Light's Judgement - 256893  (Lightforged Draenei Racial)
+class spell_light_judgement : public SpellScript
+{
+    PrepareSpellScript(spell_light_judgement);
+
+    void HandleDamage(SpellEffIndex /*effIndex*/)
+    {
+        if (Unit* caster = GetCaster())
+            SetHitDamage(6.25f * caster->m_unitData->AttackPower);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_light_judgement::HandleDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+    }
+};
+
+// Light's Reckoning - 255652 (Lightforged Draenei Racial)
+class playerscript_light_reckoning : public PlayerScript
+{
+public:
+    playerscript_light_reckoning() : PlayerScript("playerscript_light_reckoning") { }
+
+    enum
+    {
+        SPELL_LIGHT_RECKONING = 255652
+    };
+
+    void OnDeath(Player* player) override
+    {
+        if (player->HasAura(SPELL_LIGHT_RECKONING))
+            if (SpellInfo const* info = sSpellMgr->GetSpellInfo(SPELL_LIGHT_RECKONING, Difficulty::DIFFICULTY_NONE))
+                if (SpellEffectInfo const* effectInfo = info->GetEffect(EFFECT_0))
+                    player->CastSpell(player, effectInfo->TriggerSpell, true);
+    }
+};
+
 void AddSC_generic_spell_scripts()
 {
     RegisterAuraScript(spell_gen_absorb0_hitlimit1);
@@ -4012,4 +4119,10 @@ void AddSC_generic_spell_scripts()
     RegisterSpellScript(spell_gen_azgalor_rain_of_fire_hellfire_citadel);
     RegisterAuraScript(spell_gen_face_rage);
     RegisterAuraScript(spell_gen_impatient_mind);
+
+    RegisterSpellScript(spell_gen_mobile_bank);
+    RegisterSpellScript(spell_arcane_pulse);
+    RegisterSpellScript(spell_spatial_rift_despawn);
+    RegisterSpellScript(spell_light_judgement);
+    new playerscript_light_reckoning();
 }

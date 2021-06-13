@@ -435,7 +435,23 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     for (uint8 i = 0; i < PLAYER_SLOTS_COUNT; i++)
         m_items[i] = nullptr;
 
-    Relocate(info->positionX, info->positionY, info->positionZ, info->orientation);
+    if (createInfo->UseNPE)
+    {
+        if (GetTeam() == ALLIANCE)
+        {
+            Relocate(-9.2511635f, -13.294308f, 10.663386f, 1.7356367f); // aliance
+        }
+        else if (GetTeam() == HORDE)
+        {
+            Relocate(-10.7291f, -7.14635f, 8.73113f, 1.563205957412719726f); // orda scene 2486
+        }
+            SetMap(sMapMgr->CreateMap(2175, this));
+    }
+    else
+    {
+        Relocate(info->positionX, info->positionY, info->positionZ, info->orientation);
+        SetMap(sMapMgr->CreateMap(info->mapId, this));
+    }
 
     ChrClassesEntry const* cEntry = sChrClassesStore.LookupEntry(createInfo->Class);
     if (!cEntry)
@@ -452,7 +468,6 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
         return false;
     }
 
-    SetMap(sMapMgr->CreateMap(info->mapId, this));
     UpdatePositionData();
 
     uint8 powertype = cEntry->DisplayPower;
@@ -787,6 +802,9 @@ void Player::HandleDrowning(uint32 time_diff)
     {
     if (m_MirrorTimerFlags & UNDERWATER_INDARKWATER)
     {
+        if (GetAreaId() == 10639)
+            return;
+
         // Fatigue timer not activated - activate it
         if (m_MirrorTimer[FATIGUE_TIMER] == DISABLED_MIRROR_TIMER)
         {
@@ -2365,8 +2383,8 @@ void Player::GiveLevel(uint8 level)
     InitTalentForLevel();
     InitTaxiNodesForLevel();
 
-    if (level < PLAYER_LEVEL_MIN_HONOR)
-        ResetPvpTalents();
+    /*if (level < PLAYER_LEVEL_MIN_HONOR)
+        ResetPvpTalents();*/
 
     UpdateAllStats();
 
@@ -18447,8 +18465,8 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder* holder)
     InitTalentForLevel();
     LearnDefaultSkills();
     LearnCustomSpells();
-    if (getLevel() < PLAYER_LEVEL_MIN_HONOR)
-        ResetPvpTalents();
+    /*if (getLevel() < PLAYER_LEVEL_MIN_HONOR)
+        ResetPvpTalents();*/
 
     // must be before inventory (some items required reputation check)
     m_reputationMgr->LoadFromDB(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_REPUTATION));
@@ -26875,7 +26893,7 @@ bool Player::AddPvpTalent(PvpTalentEntry const* talent, uint8 activeTalentGroup,
         return false;
     }
 
-    if (HasPvpRulesEnabled())
+    if (IsInWarMode())
         LearnSpell(talent->SpellID, false);
 
     // Move this to toggle ?
@@ -26952,7 +26970,7 @@ void Player::EnablePvpRules(bool dueToCombat /*= false*/)
 
 void Player::DisablePvpRules()
 {
-    // Don't disable pvp rules when in pvp zone.
+    // Don't disable pvp rules when in pvp zone or when in warmode
     if (IsInAreaThatActivatesPvpTalents())
         return;
 
@@ -26960,6 +26978,7 @@ void Player::DisablePvpRules()
     {
         RemoveAurasDueToSpell(SPELL_PVP_RULES_ENABLED);
         UpdateItemLevelAreaBasedScaling();
+        TogglePvpTalents(false);
     }
     else if (Aura* aura = GetAura(SPELL_PVP_RULES_ENABLED))
         aura->SetDuration(aura->GetSpellInfo()->GetMaxDuration());

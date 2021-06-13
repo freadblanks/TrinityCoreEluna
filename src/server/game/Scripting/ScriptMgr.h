@@ -635,6 +635,9 @@ class TC_GAME_API PlayerScript : public UnitScript
         // Called when a player is killed by a creature
         virtual void OnPlayerKilledByCreature(Creature* /*killer*/, Player* /*killed*/) { }
 
+        // Called when a player die
+        virtual void OnDeath(Player* /*player*/) { }
+
         // Called when a player's level changes (after the level is applied)
         virtual void OnLevelChanged(Player* /*player*/, uint8 /*oldLevel*/) { }
 

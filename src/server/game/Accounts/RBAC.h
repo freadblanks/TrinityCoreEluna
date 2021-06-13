@@ -813,6 +813,10 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_DISP_TABARD                            = 1019,
     RBAC_PERM_COMMAND_DISP_MAINHAND                          = 1020,
     RBAC_PERM_COMMAND_DISP_OFFHAND                           = 1021,
+    // Aura system
+    RBAC_PERM_COMMAND_COSMETIC                               = 1030,
+    RBAC_PERM_COMMAND_COSMETIC_AURA                          = 1031,
+    RBAC_PERM_COMMAND_COSMETIC_UNAURA                        = 1032,
     RBAC_PERM_COMMAND_RELOAD_SPELL_SCRIPT_NAMES              = 2009,
     RBAC_PERM_MAX
 };

@@ -189,7 +189,7 @@ NonDefaultConstructible<pAuraEffectHandler> AuraEffectHandler[TOTAL_AURAS]=
     &AuraEffect::HandleNoImmediateEffect,                         //116 SPELL_AURA_MOD_REGEN_DURING_COMBAT
     &AuraEffect::HandleNoImmediateEffect,                         //117 SPELL_AURA_MOD_MECHANIC_RESISTANCE     implemented in Unit::MagicSpellHitResult
     &AuraEffect::HandleNoImmediateEffect,                         //118 SPELL_AURA_MOD_HEALING_PCT             implemented in Unit::SpellHealingBonus
-    &AuraEffect::HandleAuraPvpTalents,                            //119 SPELL_AURA_PVP_TALENTS
+    &AuraEffect::HandleAuraWarMode,                               //119 SPELL_AURA_WAR_MODE
     &AuraEffect::HandleAuraUntrackable,                           //120 SPELL_AURA_UNTRACKABLE
     &AuraEffect::HandleAuraEmpathy,                               //121 SPELL_AURA_EMPATHY
     &AuraEffect::HandleModOffhandDamagePercent,                   //122 SPELL_AURA_MOD_OFFHAND_DAMAGE_PCT
@@ -5905,20 +5905,6 @@ void AuraEffect::HandleCreateAreaTrigger(AuraApplication const* aurApp, uint8 mo
     }
 }
 
-void AuraEffect::HandleAuraPvpTalents(AuraApplication const* auraApp, uint8 mode, bool apply) const
-{
-    if (!(mode & AURA_EFFECT_HANDLE_REAL))
-        return;
-
-    if (Player* target = auraApp->GetTarget()->ToPlayer())
-    {
-        if (apply)
-            target->TogglePvpTalents(true);
-        else if (!target->HasAuraType(SPELL_AURA_PVP_TALENTS))
-            target->TogglePvpTalents(false);
-    }
-}
-
 void AuraEffect::HandleSwitchTeam(AuraApplication const* aurApp, uint8 mode, bool apply) const
 {
     if (!(mode & AURA_EFFECT_HANDLE_REAL))
@@ -6025,6 +6011,28 @@ void AuraEffect::HandleProfilCamera(AuraApplication const* aurApp, uint8 mode, b
 
         target->Variables.Remove("PhotoBomberGUID");
         target->ToPlayer()->SendCancelSpellVisualKit(VisualKit);
+    }
+}
+
+void AuraEffect::HandleAuraWarMode(AuraApplication const* auraApp, uint8 mode, bool apply) const
+{
+    if (!(mode & AURA_EFFECT_HANDLE_REAL))
+        return;
+
+    if (Player* target = auraApp->GetTarget()->ToPlayer())
+    {
+        if (apply)
+        {
+            target->TogglePvpTalents(true);
+            target->AddPlayerFlag(PLAYER_FLAGS_WAR_MODE_ACTIVE);
+            target->AddPlayerFlag(PLAYER_FLAGS_WAR_MODE_DESIRED);
+        }
+        else if (!target->HasAuraType(SPELL_AURA_PVP_TALENTS))
+        {
+            target->TogglePvpTalents(false);
+            target->RemovePlayerFlag(PLAYER_FLAGS_WAR_MODE_ACTIVE);
+            target->RemovePlayerFlag(PLAYER_FLAGS_WAR_MODE_DESIRED);
+        }
     }
 }
 
