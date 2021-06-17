@@ -9209,9 +9209,10 @@ int ObjectMgr::LoadReferenceVendor(int32 vendor, int32 item, std::set<uint32> *s
             vItem.maxcount          = fields[1].GetUInt32();
             vItem.incrtime          = fields[2].GetUInt32();
             vItem.ExtendedCost      = fields[3].GetUInt32();
-            vItem.Type              = fields[4].GetUInt8();
-            vItem.PlayerConditionId = fields[6].GetUInt32();
-            vItem.IgnoreFiltering   = fields[7].GetBool();
+            vItem.OverrideGoldCost  = fields[4].GetInt64();
+            vItem.Type              = fields[5].GetUInt8();
+            vItem.PlayerConditionId = fields[7].GetUInt32();
+            vItem.IgnoreFiltering   = fields[8].GetBool();
 
             Tokenizer bonusListIDsTok(fields[5].GetString(), ' ');
             for (char const* token : bonusListIDsTok)
@@ -9240,7 +9241,7 @@ void ObjectMgr::LoadVendors()
 
     std::set<uint32> skip_vendors;
 
-    QueryResult result = WorldDatabase.Query("SELECT entry, item, maxcount, incrtime, ExtendedCost, type, BonusListIDs, PlayerConditionID, IgnoreFiltering FROM npc_vendor ORDER BY entry, slot ASC");
+    QueryResult result = WorldDatabase.Query("SELECT entry, item, maxcount, incrtime, ExtendedCost, OverrideGoldCost, type, BonusListIDs, PlayerConditionID, IgnoreFiltering FROM npc_vendor ORDER BY entry, slot ASC");
     if (!result)
     {
         TC_LOG_ERROR("server.loading", ">>  Loaded 0 Vendors. DB table `npc_vendor` is empty!");
@@ -9266,9 +9267,10 @@ void ObjectMgr::LoadVendors()
             vItem.maxcount          = fields[2].GetUInt32();
             vItem.incrtime          = fields[3].GetUInt32();
             vItem.ExtendedCost      = fields[4].GetUInt32();
-            vItem.Type              = fields[5].GetUInt8();
-            vItem.PlayerConditionId = fields[7].GetUInt32();
-            vItem.IgnoreFiltering   = fields[8].GetBool();
+            vItem.OverrideGoldCost  = fields[5].GetInt64();
+            vItem.Type              = fields[6].GetUInt8();
+            vItem.PlayerConditionId = fields[8].GetUInt32();
+            vItem.IgnoreFiltering   = fields[9].GetBool();
 
             Tokenizer bonusListIDsTok(fields[6].GetString(), ' ');
             for (char const* token : bonusListIDsTok)
