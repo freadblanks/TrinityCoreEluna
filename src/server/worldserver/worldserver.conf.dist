@@ -57,6 +57,17 @@
 # - Line breaks should be at column 100.
 ###################################################################################################
 
+#    Autorestart.Timer
+#        Description: Automatic server restart by timer. Works when started via a restart, 
+#        otherwise it shuts down the server (instead of restarting).
+#
+#		 Default: 0 - disable
+#				 60 - restart 60 seconds after starting the server
+#				 3600 - restart 1 hour after starting the server
+#				 86400 - restart 24 hours after starting
+
+Autorestart.Timer = 0
+
 ###################################################################################################
 # CONNECTIONS AND DIRECTORIES
 #
