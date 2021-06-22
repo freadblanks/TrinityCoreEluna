@@ -312,6 +312,7 @@ ElunaRegister<Unit> UnitMethods[] =
     { "SetCritterGUID", &LuaUnit::SetCritterGUID },
     { "SetWaterWalk", &LuaUnit::SetWaterWalk },
     { "SetStandState", &LuaUnit::SetStandState },
+    { "SetInCombatWith", &LuaUnit::SetInCombatWith },
     { "ModifyPower", &LuaUnit::ModifyPower },
 
     // Boolean
@@ -531,6 +532,7 @@ ElunaRegister<Player> PlayerMethods[] =
     // {"InRandomLfgDungeon", &LuaPlayer::InRandomLfgDungeon},                              // :InRandomLfgDungeon() - UNDOCUMENTED - Returns true if the player is in a random LFG dungeon
     // {"HasPendingBind", &LuaPlayer::HasPendingBind},                                      // :HasPendingBind() - UNDOCUMENTED - Returns true if the player has a pending instance bind
     { "HasAchieved", &LuaPlayer::HasAchieved },
+    { "SetAchievement", &LuaPlayer::SetAchievement },
     { "CanUninviteFromGroup", &LuaPlayer::CanUninviteFromGroup },
     { "IsRested", &LuaPlayer::IsRested },
     // {"CanFlyInZone", &LuaPlayer::CanFlyInZone},                                          // :CanFlyInZone(mapid, zone) - UNDOCUMENTED - Returns true if the player can fly in the area
@@ -631,6 +633,7 @@ ElunaRegister<Player> PlayerMethods[] =
     { "SendTabardVendorActivate", &LuaPlayer::SendTabardVendorActivate },
     { "SendSpiritResurrect", &LuaPlayer::SendSpiritResurrect },
     { "SendTaxiMenu", &LuaPlayer::SendTaxiMenu },
+    { "SendUpdateWorldState", &LuaPlayer::SendUpdateWorldState },
     //{ "RewardQuest", &LuaPlayer::RewardQuest },
     { "SendAuctionMenu", &LuaPlayer::SendAuctionMenu },
     { "SendShowMailBox", &LuaPlayer::SendShowMailBox },
@@ -691,12 +694,14 @@ ElunaRegister<Creature> CreatureMethods[] =
     { "SetDisableReputationGain", &LuaCreature::SetDisableReputationGain },
     { "SetLootMode", &LuaCreature::SetLootMode },
     { "SetNPCFlags", &LuaCreature::SetNPCFlags },
+    { "SetReactState", &LuaCreature::SetReactState },
     { "SetDeathState", &LuaCreature::SetDeathState },
     { "SetWalk", &LuaCreature::SetWalk },
     { "SetHomePosition", &LuaCreature::SetHomePosition },
     { "SetEquipmentSlots", &LuaCreature::SetEquipmentSlots },
 
     // Boolean
+    { "IsRegeneratingHealth", &LuaCreature::IsRegeneratingHealth },
     { "IsWorldBoss", &LuaCreature::IsWorldBoss },
     { "IsRacialLeader", &LuaCreature::IsRacialLeader },
     { "IsCivilian", &LuaCreature::IsCivilian },

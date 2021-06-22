@@ -15,6 +15,18 @@
 namespace LuaCreature
 {
     /**
+     * Returns `true` if the [Creature] can regenerate health,
+     *   and returns `false` otherwise.
+     *
+     * @return bool isRegenerating
+     */
+    int IsRegeneratingHealth(lua_State* L, Creature* creature)
+    {
+        Eluna::Push(L, creature->CanRegenerateHealth());
+        return 1;
+    }
+
+    /**
      * Returns `true` if the [Creature] is set to not give reputation when killed,
      *   and returns `false` otherwise.
      *
@@ -609,6 +621,8 @@ namespace LuaCreature
     * @param float distance = 0.0 : if positive, the maximum distance for the target. If negative, the minimum distance
     * @param int32 aura = 0 : if positive, the target must have this [Aura]. If negative, the the target must not have this Aura
     * @return [Unit] target : the target, or `nil`
+    *
+    * If this function broken, return 1d180d3 commit
     */
     int GetAITarget(lua_State* L, Creature* creature)
     {
@@ -618,17 +632,13 @@ namespace LuaCreature
         float dist = Eluna::CHECKVAL<float>(L, 5, 0.0f);
         int32 aura = Eluna::CHECKVAL<int32>(L, 6, 0);
 
-        auto const& threatlist = creature->GetThreatManager().GetThreatenedByMeList();
-
-        if (threatlist.empty())
-            return 1;
-        if (position >= threatlist.size())
-            return 1;
+        auto const& threatlist = creature->GetThreatManager().GetSortedThreatList();
 
         std::list<Unit*> targetList;
-        for (auto itr = threatlist.begin(); itr != threatlist.end(); ++itr)
+        for (ThreatReference const* itr : threatlist)
         {
-            Unit* target = itr->second->GetOwner();
+            Unit* target = itr->GetVictim();
+
             if (!target)
                 continue;
             if (playerOnly && target->GetTypeId() != TYPEID_PLAYER)
@@ -654,37 +664,37 @@ namespace LuaCreature
 
         switch (targetType)
         {
-            case SELECT_TARGET_NEAREST:
-            case SELECT_TARGET_TOPAGGRO:
-                {
-                    std::list<Unit*>::const_iterator itr = targetList.begin();
-                    if (position)
-                        std::advance(itr, position);
-                    Eluna::Push(L, *itr);
-                }
-                break;
-            case SELECT_TARGET_FARTHEST:
-            case SELECT_TARGET_BOTTOMAGGRO:
-                {
-                    std::list<Unit*>::reverse_iterator ritr = targetList.rbegin();
-                    if (position)
-                        std::advance(ritr, position);
-                    Eluna::Push(L, *ritr);
-                }
-                break;
-            case SELECT_TARGET_RANDOM:
-                {
-                    std::list<Unit*>::const_iterator itr = targetList.begin();
-                    if (position)
-                        std::advance(itr, urand(0, position));
-                    else
-                        std::advance(itr, urand(0, targetList.size() - 1));
-                    Eluna::Push(L, *itr);
-                }
-                break;
-            default:
-                luaL_argerror(L, 2, "SelectAggroTarget expected");
-                break;
+        case SELECT_TARGET_NEAREST:
+        case SELECT_TARGET_TOPAGGRO:
+        {
+            std::list<Unit*>::const_iterator itr = targetList.begin();
+            if (position)
+                std::advance(itr, position);
+            Eluna::Push(L, *itr);
+        }
+        break;
+        case SELECT_TARGET_FARTHEST:
+        case SELECT_TARGET_BOTTOMAGGRO:
+        {
+            std::list<Unit*>::reverse_iterator ritr = targetList.rbegin();
+            if (position)
+                std::advance(ritr, position);
+            Eluna::Push(L, *ritr);
+        }
+        break;
+        case SELECT_TARGET_RANDOM:
+        {
+            std::list<Unit*>::const_iterator itr = targetList.begin();
+            if (position)
+                std::advance(itr, urand(0, position));
+            else
+                std::advance(itr, urand(0, targetList.size() - 1));
+            Eluna::Push(L, *itr);
+        }
+        break;
+        default:
+            luaL_argerror(L, 2, "SelectAggroTarget expected");
+            break;
         }
 
         return 1;
@@ -769,6 +779,18 @@ namespace LuaCreature
         return 0;
     }
 
+    /**
+     * Sets the [Creature]'s ReactState to `state`.
+     *
+     * @param [ReactState] state
+     */
+    int SetReactState(lua_State* L, Creature* creature)
+    {
+        uint32 state = Eluna::CHECKVAL<uint32>(L, 2);
+
+        creature->SetReactState((ReactStates)state);
+        return 0;
+    }
 
     /**
      * Makes the [Creature] able to fly if enabled.

@@ -1334,10 +1334,7 @@ namespace LuaUnit
         uint8 newlevel = Eluna::CHECKVAL<uint8>(L, 2);
 
         if (newlevel < 1)
-            return 0;
-
-        if (newlevel > STRONG_MAX_LEVEL)
-            newlevel = STRONG_MAX_LEVEL;
+            return luaL_argerror(L, 2, "level cannot be below 1");
 
         if (Player* player = unit->ToPlayer())
         {
@@ -1596,6 +1593,18 @@ namespace LuaUnit
         uint8 state = Eluna::CHECKVAL<uint8>(L, 2);
 
         unit->SetStandState(static_cast<UnitStandStateType>(state));
+        return 0;
+    }
+
+    /**
+     * Sets the [Unit] in combat with the `enemy` [Unit].
+     *
+     * @param [Unit] enemy : the [Unit] to start combat with
+     */
+    int SetInCombatWith(lua_State* L, Unit* unit)
+    {
+        Unit* enemy = Eluna::CHECKOBJ<Unit>(L, 2);
+        unit->SetInCombatWith(enemy);
         return 0;
     }
 

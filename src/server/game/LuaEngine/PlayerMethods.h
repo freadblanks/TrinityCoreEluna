@@ -1195,6 +1195,7 @@ namespace LuaPlayer
     /**
      * Returns the database textID of the [WorldObject]'s gossip header text for the [Player]
      *
+     * @param WorldObject object
      * @return uint32 textId : key to npc_text database table
      */
     int GetGossipTextId(lua_State* L, Player* player)
@@ -1736,6 +1737,20 @@ namespace LuaPlayer
         return 0;
     }
 
+    /**
+     * Adds the specified achievement to the [Player]s
+     *
+     * @param uint32 achievementid
+     */
+    int SetAchievement(lua_State* L, Player* player)
+    {
+        uint32 id = Eluna::CHECKVAL<uint32>(L, 2);
+        AchievementEntry const* t = sAchievementStore.LookupEntry(id);
+        if (t)
+            player->CompletedAchievement(t);
+        return 0;
+    }
+
     /*int SetMovement(lua_State* L, Player* player)
     {
         int32 pType = Eluna::CHECKVAL<int32>(L, 2);
@@ -1926,6 +1941,21 @@ namespace LuaPlayer
         if (Guild* guild = player->GetGuild())
             guild->HandleInviteMember(player->GetSession(), plr->GetName());
 
+        return 0;
+    }
+
+    /**
+     * Sends an update for the world state to the [Player]
+     *
+     * @param uint32 field
+     * @param uint32 value
+     */
+    int SendUpdateWorldState(lua_State* L, Player* player)
+    {
+        uint32 field = Eluna::CHECKVAL<uint32>(L, 2);
+        uint32 value = Eluna::CHECKVAL<uint32>(L, 3);
+
+        player->SendUpdateWorldState(field, value);
         return 0;
     }
 

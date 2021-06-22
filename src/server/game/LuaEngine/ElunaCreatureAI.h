@@ -26,6 +26,8 @@ struct ElunaCreatureAI : ScriptedAI
     //Called at World update tick
     void UpdateAI(uint32 diff) override
     {
+        //Spawns are handled by Creature.cpp - in function Creature::Update() 
+
         if (justSpawned)
         {
             justSpawned = false;
@@ -51,12 +53,11 @@ struct ElunaCreatureAI : ScriptedAI
 
     // Called for reaction when initially engaged - this will always happen _after_ JustEnteredCombat
     // Called at creature aggro either by MoveInLOS or Attack Start
-
-    // void JustEngagedWith(Unit* target) override
-    // {
-    //     if (!sEluna->EnterCombat(me, target))
-    //         ScriptedAI::JustEngagedWith(target);
-    // }
+    void JustEngagedWith(Unit* target) override
+    {
+        if (!sEluna->EnterCombat(me, target))
+            ScriptedAI::JustEngagedWith(target);
+    }
 
     // Called at any Damage from any attacker (before damage apply)
     void DamageTaken(Unit* attacker, uint32& damage) override
@@ -132,12 +133,12 @@ struct ElunaCreatureAI : ScriptedAI
              ScriptedAI::JustAppeared();
      }
 
-     // Called when creature is spawned or respawned (for reseting variables) Not Realize
-     /*void JustRespawned() override
+     // Called when creature appears in the world (spawn, respawn, grid load etc...)
+     void JustAppeared() override
      {
          if (!sEluna->JustRespawned(me))
-             ScriptedAI::JustRespawned();
-     }*/
+             ScriptedAI::JustAppeared();
+     }
 
     // Called at reaching home after evade
     void JustReachedHome() override
