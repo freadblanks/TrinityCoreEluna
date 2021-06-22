@@ -817,6 +817,9 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_COSMETIC                               = 1030,
     RBAC_PERM_COMMAND_COSMETIC_AURA                          = 1031,
     RBAC_PERM_COMMAND_COSMETIC_UNAURA                        = 1032,
+    // Custom Script
+    RBAC_PERM_COMMAND_BLACKMARKET                            = 2004,
+    RBAC_PERM_COMMAND_BLACKMARKET_SET_DURATION               = 2005,
     RBAC_PERM_COMMAND_RELOAD_SPELL_SCRIPT_NAMES              = 2009,
     RBAC_PERM_MAX
 };
