@@ -2358,7 +2358,7 @@ namespace LuaUnit
         // flat melee damage without resistence/etc reduction
         if (school == MAX_SPELL_SCHOOL)
         {
-            unit->DealDamage(target, damage, NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, durabilityloss);
+            unit->DealDamage(unit, target, damage, NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, durabilityloss);
             unit->SendAttackStateUpdate(HITINFO_AFFECTS_VICTIM, target, 1, SPELL_SCHOOL_MASK_NORMAL, damage, 0, 0, VICTIMSTATE_HIT, 0);
             return 0;
         }
@@ -2381,8 +2381,8 @@ namespace LuaUnit
 
             uint32 absorb = dmgInfo.GetAbsorb();
             uint32 resist = dmgInfo.GetResist();
-            unit->DealDamageMods(target, damage, &absorb);
-            unit->DealDamage(target, damage, NULL, DIRECT_DAMAGE, schoolmask, NULL, false);
+            unit->DealDamageMods(unit, target, damage, &absorb);
+            unit->DealDamage(unit, target, damage, NULL, DIRECT_DAMAGE, schoolmask, NULL, false);
             unit->SendAttackStateUpdate(HITINFO_AFFECTS_VICTIM, target, 0, schoolmask, damage, absorb, resist, VICTIMSTATE_HIT, 0);
             return 0;
         }
@@ -2395,7 +2395,7 @@ namespace LuaUnit
             return 0;
 
         SpellNonMeleeDamage dmgInfo(unit, target, spelnfo, spellVisual, spellInfo->GetSchoolMask());
-        unit->DealDamageMods(dmgInfo.target, dmgInfo.damage, &dmgInfo.absorb);
+        unit->DealDamageMods(dmgInfo.attacker, dmgInfo.target, dmgInfo.damage, &dmgInfo.absorb);
 
         unit->SendSpellNonMeleeDamageLog(&dmgInfo);
         unit->DealSpellDamage(&dmgInfo, true);
@@ -2437,7 +2437,7 @@ namespace LuaUnit
         Unit* target = Eluna::CHECKOBJ<Unit>(L, 2);
         bool durLoss = Eluna::CHECKVAL<bool>(L, 3, true);
 
-        unit->Kill(target, durLoss);
+        unit->Kill(unit, target, durLoss);
         return 0;
     }
 

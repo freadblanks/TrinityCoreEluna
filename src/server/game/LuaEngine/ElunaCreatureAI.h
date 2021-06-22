@@ -111,14 +111,6 @@ struct ElunaCreatureAI : ScriptedAI
             ScriptedAI::AttackStart(target);
     }
 
-    // Called for reaction when initially engaged - this will always happen _after_ JustEnteredCombat
-    // Called at creature aggro either by MoveInLOS or Attack Start
-    void JustEngagedWith(Unit* target) override
-    {
-        if (!sEluna->EnterCombat(me, target))
-            ScriptedAI::JustEngagedWith(target);
-    }
-
     // Called for reaction at stopping attack at no attackers or targets
     void EnterEvadeMode(EvadeReason /*why*/) override
     {
@@ -127,13 +119,6 @@ struct ElunaCreatureAI : ScriptedAI
     }
 
     // Called when creature appears in the world (spawn, respawn, grid load etc...)
-     void JustAppeared() override
-     {
-         if (!sEluna->JustRespawned(me))
-             ScriptedAI::JustAppeared();
-     }
-
-     // Called when creature appears in the world (spawn, respawn, grid load etc...)
      void JustAppeared() override
      {
          if (!sEluna->JustRespawned(me))

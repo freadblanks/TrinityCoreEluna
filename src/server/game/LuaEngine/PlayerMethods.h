@@ -2408,13 +2408,13 @@ namespace LuaPlayer
             return 0;
 
         // check item starting quest (it can work incorrectly if added without item in inventory)
-        ItemTemplateContainer const* itc = sObjectMgr->GetItemTemplateStore();
-        ItemTemplateContainer::const_iterator result = std::find_if(itc->begin(), itc->end(), [quest](ItemTemplateContainer::value_type const& value)
+        ItemTemplateContainer const& itc = sObjectMgr->GetItemTemplateStore();
+        ItemTemplateContainer::const_iterator result = std::find_if(std::begin(itc), std::end(itc), [quest](ItemTemplateContainer::value_type const& value)
             {
                 return value.second.GetStartQuest() == quest->GetQuestId();
             });
 
-        if (result != itc->end())
+        if (result != std::end(itc))
             return 0;
 
         // ok, normal (creature/GO starting) quest
