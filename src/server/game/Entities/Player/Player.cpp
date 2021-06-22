@@ -667,7 +667,7 @@ uint32 Player::EnvironmentalDamage(EnviromentalDamage type, uint32 damage)
         case DAMAGE_SLIME:
         {
             DamageInfo dmgInfo(this, this, damage, nullptr, type == DAMAGE_LAVA ? SPELL_SCHOOL_MASK_FIRE : SPELL_SCHOOL_MASK_NATURE, DIRECT_DAMAGE, BASE_ATTACK);
-            CalcAbsorbResist(dmgInfo);
+            Unit::CalcAbsorbResist(dmgInfo);
             absorb = dmgInfo.GetAbsorb();
             resist = dmgInfo.GetResist();
             damage = dmgInfo.GetDamage();
@@ -677,7 +677,7 @@ uint32 Player::EnvironmentalDamage(EnviromentalDamage type, uint32 damage)
             break;
     }
 
-    DealDamageMods(this, damage, &absorb);
+    Unit::DealDamageMods(nullptr, this, damage, &absorb);
 
     WorldPackets::CombatLog::EnvironmentalDamageLog packet;
     packet.Victim = GetGUID();
@@ -686,7 +686,7 @@ uint32 Player::EnvironmentalDamage(EnviromentalDamage type, uint32 damage)
     packet.Absorbed = absorb;
     packet.Resisted = resist;
 
-    uint32 final_damage = DealDamage(this, damage, nullptr, SELF_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, nullptr, false);
+    uint32 final_damage = Unit::DealDamage(this, this, damage, nullptr, SELF_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, nullptr, false);
 
     packet.LogData.Initialize(this);
     SendCombatLogMessage(&packet);
@@ -7237,6 +7237,7 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea)
 {
     if (!IsInWorld())
         return;
+
     uint32 const oldZone = m_zoneUpdateId;
     m_zoneUpdateId = newZone;
     m_zoneUpdateTimer = ZONE_UPDATE_INTERVAL;
@@ -7246,8 +7247,8 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea)
     // call leave script hooks immedately (before updating flags)
     if (oldZone != newZone)
     {
-        sOutdoorPvPMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
-        sBattlefieldMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
+        sOutdoorPvPMgr->HandlePlayerLeaveZone(this, oldZone);
+        sBattlefieldMgr->HandlePlayerLeaveZone(this, oldZone);
     }
 
     // group update
@@ -7810,7 +7811,7 @@ void Player::_ApplyItemBonuses(Item* item, uint8 slot, bool apply)
             SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ShieldBlock), apply ? int32(armor * 2.5f) : 0);
     }
 
-    WeaponAttackType attType = GetAttackBySlot(slot, proto->GetInventoryType());
+    WeaponAttackType attType = Player::GetAttackBySlot(slot, proto->GetInventoryType());
     if (attType != MAX_ATTACK && CanUseAttackType(attType))
         _ApplyWeaponDamage(slot, item, apply);
 }
@@ -7818,14 +7819,11 @@ void Player::_ApplyItemBonuses(Item* item, uint8 slot, bool apply)
 void Player::_ApplyWeaponDamage(uint8 slot, Item* item, bool apply)
 {
     ItemTemplate const* proto = item->GetTemplate();
-    WeaponAttackType attType = BASE_ATTACK;
+    WeaponAttackType attType = Player::GetAttackBySlot(slot, proto->GetInventoryType());
+    if (attType == MAX_ATTACK)
+        return;
+
     float damage = 0.0f;
-
-    if (slot == EQUIPMENT_SLOT_MAINHAND && (proto->GetInventoryType() == INVTYPE_RANGED || proto->GetInventoryType() == INVTYPE_RANGEDRIGHT))
-        attType = RANGED_ATTACK;
-    else if (slot == EQUIPMENT_SLOT_OFFHAND)
-        attType = OFF_ATTACK;
-
     uint32 itemLevel = item->GetItemLevel(this);
     float minDamage, maxDamage;
     proto->GetDamage(itemLevel, minDamage, maxDamage);
@@ -7864,6 +7862,14 @@ void Player::_ApplyWeaponDamage(uint8 slot, Item* item, bool apply)
 
     if (CanModifyStats() && (damage || proto->GetDelay()))
         UpdateDamagePhysical(attType);
+}
+
+SpellSchoolMask Player::GetMeleeDamageSchoolMask(WeaponAttackType attackType /*= BASE_ATTACK*/) const
+{
+    if (Item const* weapon = GetWeaponForAttack(attackType, true))
+        return SpellSchoolMask(1 << weapon->GetTemplate()->GetDamageType());
+
+    return SPELL_SCHOOL_MASK_NORMAL;
 }
 
 void Player::CastAllObtainSpells()
@@ -8222,7 +8228,11 @@ void Player::ApplyAzeriteEssence(AzeriteItem* item, uint32 azeriteEssenceId, uin
             if (major && currentRank == 1)
             {
                 if (apply)
-                    CastSpell(this, SPELL_ID_HEART_ESSENCE_ACTION_BAR_OVERRIDE, CastSpellExtraArgs(TRIGGERED_FULL_MASK).AddSpellBP0(azeriteEssencePower->MajorPowerDescription));
+                {
+                    CastSpellExtraArgs args(TRIGGERED_FULL_MASK);
+                    args.AddSpellMod(SPELLVALUE_BASE_POINT0, azeriteEssencePower->MajorPowerDescription);
+                    CastSpell(this, SPELL_ID_HEART_ESSENCE_ACTION_BAR_OVERRIDE, args);
+                }
                 else
                     RemoveAurasDueToSpell(SPELL_ID_HEART_ESSENCE_ACTION_BAR_OVERRIDE);
             }
@@ -8444,7 +8454,7 @@ void Player::CastItemCombatSpell(DamageInfo const& damageInfo, Item* item, ItemT
                     for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
                     {
                         if (spellInfo->GetEffect(i)->IsEffect())
-                            args.SpellValueOverrides.AddMod(static_cast<SpellValueMod>(SPELLVALUE_BASE_POINT0 + i), CalculatePct(spellInfo->GetEffect(i)->CalcValue(this), effectPct));
+                            args.AddSpellMod(static_cast<SpellValueMod>(SPELLVALUE_BASE_POINT0 + i), CalculatePct(spellInfo->GetEffect(i)->CalcValue(this), effectPct));
                     }
                 }
                 CastSpell(target, spellInfo->Id, args);
@@ -22321,6 +22331,10 @@ bool Player::IsAffectedBySpellmod(SpellInfo const* spellInfo, SpellModifier* mod
     if (mod->op == SpellModOp::Duration && spellInfo->GetDuration() == -1)
         return false;
 
+    // mod crit to spells that can't crit
+    if (mod->op == SpellModOp::CritChance && !spellInfo->HasAttribute(SPELL_ATTR0_CU_CAN_CRIT))
+        return false;
+
     return spellInfo->IsAffectedBySpellMod(mod);
 }
 
@@ -23794,6 +23808,7 @@ void Player::ReportedAfkBy(Player* reporter)
 WorldLocation Player::GetStartPosition() const
 {
     PlayerInfo const* info = sObjectMgr->GetPlayerInfo(getRace(), getClass());
+    ASSERT(info);
     uint32 mapId = info->mapId;
     if (getClass() == CLASS_DEATH_KNIGHT && HasSpell(50977))
         mapId = 0;
@@ -24573,6 +24588,7 @@ void Player::LearnCustomSpells()
 
     // learn default race/class spells
     PlayerInfo const* info = sObjectMgr->GetPlayerInfo(getRace(), getClass());
+    ASSERT(info);
     for (PlayerCreateInfoSpells::const_iterator itr = info->customSpells.begin(); itr != info->customSpells.end(); ++itr)
     {
         uint32 tspell = *itr;
@@ -24589,6 +24605,7 @@ void Player::LearnDefaultSkills()
 {
     // learn default race/class skills
     PlayerInfo const* info = sObjectMgr->GetPlayerInfo(getRace(), getClass());
+    ASSERT(info);
     for (PlayerCreateInfoSkills::const_iterator itr = info->skills.begin(); itr != info->skills.end(); ++itr)
     {
         SkillRaceClassInfoEntry const* rcInfo = *itr;
@@ -25360,16 +25377,27 @@ bool Player::HasItemFitToSpellRequirements(SpellInfo const* spellInfo, Item cons
         {
             if (!spellInfo->HasAttribute(SPELL_ATTR8_ARMOR_SPECIALIZATION))
             {
+                // most used check: shield only
+                if (spellInfo->EquippedItemSubClassMask & (1 << ITEM_SUBCLASS_ARMOR_SHIELD))
+                {
+                    if (Item* item = GetUseableItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND))
+                        if (item != ignoreItem && item->IsFitToSpellRequirements(spellInfo))
+                            return true;
+
+                    // special check to filter things like Shield Wall, the aura is not permanent and must stay even without required item
+                    if (!spellInfo->IsPassive())
+                    {
+                        for (SpellEffectInfo const* effect : spellInfo->GetEffects())
+                            if (effect && effect->IsAura())
+                                return true;
+                    }
+                }
+
                 // tabard not have dependent spells
                 for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_MAINHAND; ++i)
                     if (Item* item = GetUseableItemByPos(INVENTORY_SLOT_BAG_0, i))
                         if (item != ignoreItem && item->IsFitToSpellRequirements(spellInfo))
                             return true;
-
-                // shields can be equipped to offhand slot
-                if (Item* item = GetUseableItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND))
-                    if (item != ignoreItem && item->IsFitToSpellRequirements(spellInfo))
-                        return true;
             }
             else
             {
@@ -25383,7 +25411,6 @@ bool Player::HasItemFitToSpellRequirements(SpellInfo const* spellInfo, Item cons
 
                 return true;
             }
-
             break;
         }
         default:
@@ -25645,8 +25672,13 @@ void Player::SetClientControl(Unit* target, bool allowMove)
 void Player::SetMover(Unit* target)
 {
     m_unitMovedByMe->m_playerMovingMe = nullptr;
+    if (m_unitMovedByMe->GetTypeId() == TYPEID_UNIT)
+        m_unitMovedByMe->GetMotionMaster()->Initialize();
+
     m_unitMovedByMe = target;
     m_unitMovedByMe->m_playerMovingMe = this;
+    if (m_unitMovedByMe->GetTypeId() == TYPEID_UNIT)
+        m_unitMovedByMe->GetMotionMaster()->Initialize();
 
     WorldPackets::Movement::MoveSetActiveMover packet;
     packet.MoverGUID = target->GetGUID();

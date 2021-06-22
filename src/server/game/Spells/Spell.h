@@ -306,6 +306,7 @@ struct SpellValue
     float     RadiusMod;
     int32     AuraStackAmount;
     float     DurationMul;
+    float     CriticalChance;
 };
 
 enum SpellState
@@ -493,7 +494,7 @@ class TC_GAME_API Spell
 
         typedef std::unordered_set<Aura*> UsedSpellMods;
 
-        Spell(Unit* caster, SpellInfo const* info, TriggerCastFlags triggerFlags, ObjectGuid originalCasterGUID = ObjectGuid::Empty, bool skipCheck = false);
+        Spell(Unit* caster, SpellInfo const* info, TriggerCastFlags triggerFlags, ObjectGuid originalCasterGUID = ObjectGuid::Empty);
         ~Spell();
 
         void InitExplicitTargets(SpellCastTargets const& targets);
@@ -660,6 +661,7 @@ class TC_GAME_API Spell
         void ReSetTimer() { m_timer = m_casttime > 0 ? m_casttime : 0; }
         bool IsTriggered() const;
         bool IsIgnoringCooldowns() const;
+        bool IsFocusDisabled() const;
         bool IsProcDisabled() const;
         bool IsChannelActive() const;
         bool IsAutoActionResetSpell() const;
@@ -854,7 +856,7 @@ class TC_GAME_API Spell
         void CallScriptOnHitHandlers();
         void CallScriptAfterHitHandlers();
     public:
-        void CallScriptCalcCritChanceHandlers(Unit* victim, float& chance);
+        void CallScriptCalcCritChanceHandlers(Unit const* victim, float& chance);
     protected:
         void CallScriptObjectAreaTargetSelectHandlers(std::list<WorldObject*>& targets, SpellEffIndex effIndex, SpellImplicitTargetInfo const& targetType);
         void CallScriptObjectTargetSelectHandlers(WorldObject*& target, SpellEffIndex effIndex, SpellImplicitTargetInfo const& targetType);
@@ -899,7 +901,6 @@ class TC_GAME_API Spell
         // and in same time need aura data and after aura deleting.
         SpellInfo const* m_triggeredByAuraSpell;
 
-        bool m_skipCheck;
         std::unique_ptr<PathGenerator> m_preGeneratedPath;
 
         std::vector<SpellLogEffectPowerDrainParams> _powerDrainTargets[MAX_SPELL_EFFECTS];

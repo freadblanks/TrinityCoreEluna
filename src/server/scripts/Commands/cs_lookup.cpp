@@ -178,16 +178,16 @@ public:
         uint32 count = 0;
         uint32 maxResults = sWorld->getIntConfig(CONFIG_MAX_RESULTS_LOOKUP_COMMANDS);
 
-        CreatureTemplateContainer const* ctc = sObjectMgr->GetCreatureTemplates();
-        for (CreatureTemplateContainer::const_iterator itr = ctc->begin(); itr != ctc->end(); ++itr)
+        CreatureTemplateContainer const& ctc = sObjectMgr->GetCreatureTemplates();
+        for (auto const& creatureTemplatePair : ctc)
         {
-            uint32 id = itr->second.Entry;
+            uint32 id = creatureTemplatePair.first;
             uint8 localeIndex = handler->GetSessionDbLocaleIndex();
             if (CreatureLocale const* creatureLocale = sObjectMgr->GetCreatureLocale(id))
             {
                 if (creatureLocale->Name.size() > localeIndex && !creatureLocale->Name[localeIndex].empty())
                 {
-                    std::string name = creatureLocale->Name[localeIndex];
+                    std::string const& name = creatureLocale->Name[localeIndex];
 
                     if (Utf8FitTo(name, wNamePart))
                     {
@@ -210,7 +210,7 @@ public:
                 }
             }
 
-            std::string name = itr->second.Name;
+            std::string const& name = creatureTemplatePair.second.Name;
             if (name.empty())
                 continue;
 
@@ -413,10 +413,10 @@ public:
         uint32 maxResults = sWorld->getIntConfig(CONFIG_MAX_RESULTS_LOOKUP_COMMANDS);
 
         // Search in ItemSparse
-        ItemTemplateContainer const* its = sObjectMgr->GetItemTemplateStore();
-        for (ItemTemplateContainer::const_iterator itr = its->begin(); itr != its->end(); ++itr)
+        ItemTemplateContainer const& its = sObjectMgr->GetItemTemplateStore();
+        for (auto const& itemTemplatePair : its)
         {
-            std::string name = itr->second.GetName(handler->GetSessionDbcLocale());
+            std::string name = itemTemplatePair.second.GetName(handler->GetSessionDbcLocale());
             if (name.empty())
                 continue;
 
@@ -429,9 +429,9 @@ public:
                 }
 
                 if (handler->GetSession())
-                    handler->PSendSysMessage(LANG_ITEM_LIST_CHAT, itr->second.GetId(), itr->second.GetId(), name.c_str());
+                    handler->PSendSysMessage(LANG_ITEM_LIST_CHAT, itemTemplatePair.first, itemTemplatePair.first, name.c_str());
                 else
-                    handler->PSendSysMessage(LANG_ITEM_LIST_CONSOLE, itr->second.GetId(), name.c_str());
+                    handler->PSendSysMessage(LANG_ITEM_LIST_CONSOLE, itemTemplatePair.first, name.c_str());
 
                 if (!found)
                     found = true;
@@ -533,16 +533,15 @@ public:
         uint32 count = 0;
         uint32 maxResults = sWorld->getIntConfig(CONFIG_MAX_RESULTS_LOOKUP_COMMANDS);
 
-        GameObjectTemplateContainer const* gotc = sObjectMgr->GetGameObjectTemplates();
-        for (GameObjectTemplateContainer::const_iterator itr = gotc->begin(); itr != gotc->end(); ++itr)
+        GameObjectTemplateContainer const& gotc = sObjectMgr->GetGameObjectTemplates();
+        for (auto const& gameObjectTemplatePair : gotc)
         {
             uint8 localeIndex = handler->GetSessionDbLocaleIndex();
-            if (GameObjectLocale const* objectLocalte = sObjectMgr->GetGameObjectLocale(itr->second.entry))
+            if (GameObjectLocale const* objectLocalte = sObjectMgr->GetGameObjectLocale(gameObjectTemplatePair.first))
             {
                 if (objectLocalte->Name.size() > localeIndex && !objectLocalte->Name[localeIndex].empty())
                 {
-                    std::string name = objectLocalte->Name[localeIndex];
-
+                    std::string const& name = objectLocalte->Name[localeIndex];
                     if (Utf8FitTo(name, wNamePart))
                     {
                         if (maxResults && count++ == maxResults)
@@ -552,9 +551,9 @@ public:
                         }
 
                         if (handler->GetSession())
-                            handler->PSendSysMessage(LANG_GO_ENTRY_LIST_CHAT, itr->second.entry, itr->second.entry, name.c_str());
+                            handler->PSendSysMessage(LANG_GO_ENTRY_LIST_CHAT, gameObjectTemplatePair.first, gameObjectTemplatePair.first, name.c_str());
                         else
-                            handler->PSendSysMessage(LANG_GO_ENTRY_LIST_CONSOLE, itr->second.entry, name.c_str());
+                            handler->PSendSysMessage(LANG_GO_ENTRY_LIST_CONSOLE, gameObjectTemplatePair.first, name.c_str());
 
                         if (!found)
                             found = true;
@@ -564,7 +563,7 @@ public:
                 }
             }
 
-            std::string name = itr->second.name;
+            std::string const& name = gameObjectTemplatePair.second.name;
             if (name.empty())
                 continue;
 
@@ -577,9 +576,9 @@ public:
                 }
 
                 if (handler->GetSession())
-                    handler->PSendSysMessage(LANG_GO_ENTRY_LIST_CHAT, itr->second.entry, itr->second.entry, name.c_str());
+                    handler->PSendSysMessage(LANG_GO_ENTRY_LIST_CHAT, gameObjectTemplatePair.first, gameObjectTemplatePair.first, name.c_str());
                 else
-                    handler->PSendSysMessage(LANG_GO_ENTRY_LIST_CONSOLE, itr->second.entry, name.c_str());
+                    handler->PSendSysMessage(LANG_GO_ENTRY_LIST_CONSOLE, gameObjectTemplatePair.first, name.c_str());
 
                 if (!found)
                     found = true;
@@ -613,81 +612,73 @@ public:
         uint32 count = 0;
         uint32 maxResults = sWorld->getIntConfig(CONFIG_MAX_RESULTS_LOOKUP_COMMANDS);
 
-        ObjectMgr::QuestMap const& qTemplates = sObjectMgr->GetQuestTemplates();
-        for (ObjectMgr::QuestMap::const_iterator iter = qTemplates.begin(); iter != qTemplates.end(); ++iter)
+        ObjectMgr::QuestContainer const& questTemplates = sObjectMgr->GetQuestTemplates();
+        for (auto const& questTemplatePair : questTemplates)
         {
-            Quest* qInfo = iter->second;
-
-            int localeIndex = handler->GetSessionDbLocaleIndex();
-            if (localeIndex >= 0)
+            uint8 localeIndex = handler->GetSessionDbLocaleIndex();
+            if (QuestTemplateLocale const* questLocale = sObjectMgr->GetQuestLocale(questTemplatePair.first))
             {
-                uint8 ulocaleIndex = uint8(localeIndex);
-                if (QuestTemplateLocale const* questLocale = sObjectMgr->GetQuestLocale(qInfo->GetQuestId()))
+                if (questLocale->LogTitle.size() > localeIndex && !questLocale->LogTitle[localeIndex].empty())
                 {
-                    if (questLocale->LogTitle.size() > ulocaleIndex && !questLocale->LogTitle[ulocaleIndex].empty())
+                    std::string title = questLocale->LogTitle[localeIndex];
+
+                    if (Utf8FitTo(title, wNamePart))
                     {
-                        std::string title = questLocale->LogTitle[ulocaleIndex];
-
-                        if (Utf8FitTo(title, wNamePart))
+                        if (maxResults && count++ == maxResults)
                         {
-                            if (maxResults && count++ == maxResults)
-                            {
-                                handler->PSendSysMessage(LANG_COMMAND_LOOKUP_MAX_RESULTS, maxResults);
-                                return true;
-                            }
-
-                            char const* statusStr = "";
-
-                            if (target)
-                            {
-                                QuestStatus status = target->GetQuestStatus(qInfo->GetQuestId());
-
-                                switch (status)
-                                {
-                                    case QUEST_STATUS_COMPLETE:
-                                        statusStr = handler->GetTrinityString(LANG_COMMAND_QUEST_COMPLETE);
-                                        break;
-                                    case QUEST_STATUS_INCOMPLETE:
-                                        statusStr = handler->GetTrinityString(LANG_COMMAND_QUEST_ACTIVE);
-                                        break;
-                                    case QUEST_STATUS_REWARDED:
-                                        statusStr = handler->GetTrinityString(LANG_COMMAND_QUEST_REWARDED);
-                                        break;
-                                    default:
-                                        break;
-                                }
-                            }
-
-                            if (handler->GetSession())
-                            {
-                                int32 maxLevel = 0;
-                                if (Optional<ContentTuningLevels> questLevels = sDB2Manager.GetContentTuningData(qInfo->GetContentTuningId(),
-                                    handler->GetSession()->GetPlayer()->m_playerData->CtrOptions->ContentTuningConditionMask))
-                                    maxLevel = questLevels->MaxLevel;
-
-                                int32 scalingFactionGroup = 0;
-                                if (ContentTuningEntry const* contentTuning = sContentTuningStore.LookupEntry(qInfo->GetContentTuningId()))
-                                    scalingFactionGroup = contentTuning->GetScalingFactionGroup();
-
-                                handler->PSendSysMessage(LANG_QUEST_LIST_CHAT, qInfo->GetQuestId(), qInfo->GetQuestId(),
-                                    handler->GetSession()->GetPlayer()->GetQuestLevel(qInfo),
-                                    handler->GetSession()->GetPlayer()->GetQuestMinLevel(qInfo),
-                                    maxLevel, scalingFactionGroup,
-                                    title.c_str(), statusStr);
-                            }
-                            else
-                                handler->PSendSysMessage(LANG_QUEST_LIST_CONSOLE, qInfo->GetQuestId(), title.c_str(), statusStr);
-
-                            if (!found)
-                                found = true;
-
-                            continue;
+                            handler->PSendSysMessage(LANG_COMMAND_LOOKUP_MAX_RESULTS, maxResults);
+                            return true;
                         }
+
+                        char const* statusStr = "";
+
+                        if (target)
+                        {
+                            switch (target->GetQuestStatus(questTemplatePair.first))
+                            {
+                                case QUEST_STATUS_COMPLETE:
+                                    statusStr = handler->GetTrinityString(LANG_COMMAND_QUEST_COMPLETE);
+                                    break;
+                                case QUEST_STATUS_INCOMPLETE:
+                                    statusStr = handler->GetTrinityString(LANG_COMMAND_QUEST_ACTIVE);
+                                    break;
+                                case QUEST_STATUS_REWARDED:
+                                    statusStr = handler->GetTrinityString(LANG_COMMAND_QUEST_REWARDED);
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+
+                        if (handler->GetSession())
+                        {
+                            int32 maxLevel = 0;
+                            if (Optional<ContentTuningLevels> questLevels = sDB2Manager.GetContentTuningData(questTemplatePair.second.GetContentTuningId(),
+                                handler->GetSession()->GetPlayer()->m_playerData->CtrOptions->ContentTuningConditionMask))
+                                maxLevel = questLevels->MaxLevel;
+
+                            int32 scalingFactionGroup = 0;
+                            if (ContentTuningEntry const* contentTuning = sContentTuningStore.LookupEntry(questTemplatePair.second.GetContentTuningId()))
+                                scalingFactionGroup = contentTuning->GetScalingFactionGroup();
+
+                            handler->PSendSysMessage(LANG_QUEST_LIST_CHAT, questTemplatePair.first, questTemplatePair.first,
+                                handler->GetSession()->GetPlayer()->GetQuestLevel(&questTemplatePair.second),
+                                handler->GetSession()->GetPlayer()->GetQuestMinLevel(&questTemplatePair.second),
+                                maxLevel, scalingFactionGroup,
+                                title.c_str(), statusStr);
+                        }
+                        else
+                            handler->PSendSysMessage(LANG_QUEST_LIST_CONSOLE, questTemplatePair.first, title.c_str(), statusStr);
+
+                        if (!found)
+                            found = true;
+
+                        continue;
                     }
                 }
             }
 
-            std::string title = qInfo->GetLogTitle();
+            std::string title = questTemplatePair.second.GetLogTitle();
             if (title.empty())
                 continue;
 
@@ -703,9 +694,7 @@ public:
 
                 if (target)
                 {
-                    QuestStatus status = target->GetQuestStatus(qInfo->GetQuestId());
-
-                    switch (status)
+                    switch (target->GetQuestStatus(questTemplatePair.first))
                     {
                         case QUEST_STATUS_COMPLETE:
                             statusStr = handler->GetTrinityString(LANG_COMMAND_QUEST_COMPLETE);
@@ -724,22 +713,22 @@ public:
                 if (handler->GetSession())
                 {
                     int32 maxLevel = 0;
-                    if (Optional<ContentTuningLevels> questLevels = sDB2Manager.GetContentTuningData(qInfo->GetContentTuningId(),
+                    if (Optional<ContentTuningLevels> questLevels = sDB2Manager.GetContentTuningData(questTemplatePair.second.GetContentTuningId(),
                         handler->GetSession()->GetPlayer()->m_playerData->CtrOptions->ContentTuningConditionMask))
                         maxLevel = questLevels->MaxLevel;
 
                     int32 scalingFactionGroup = 0;
-                    if (ContentTuningEntry const* contentTuning = sContentTuningStore.LookupEntry(qInfo->GetContentTuningId()))
+                    if (ContentTuningEntry const* contentTuning = sContentTuningStore.LookupEntry(questTemplatePair.second.GetContentTuningId()))
                         scalingFactionGroup = contentTuning->GetScalingFactionGroup();
 
-                    handler->PSendSysMessage(LANG_QUEST_LIST_CHAT, qInfo->GetQuestId(), qInfo->GetQuestId(),
-                        handler->GetSession()->GetPlayer()->GetQuestLevel(qInfo),
-                        handler->GetSession()->GetPlayer()->GetQuestMinLevel(qInfo),
+                    handler->PSendSysMessage(LANG_QUEST_LIST_CHAT, questTemplatePair.first, questTemplatePair.first,
+                        handler->GetSession()->GetPlayer()->GetQuestLevel(&questTemplatePair.second),
+                        handler->GetSession()->GetPlayer()->GetQuestMinLevel(&questTemplatePair.second),
                         maxLevel, scalingFactionGroup,
                         title.c_str(), statusStr);
                 }
                 else
-                    handler->PSendSysMessage(LANG_QUEST_LIST_CONSOLE, qInfo->GetQuestId(), title.c_str(), statusStr);
+                    handler->PSendSysMessage(LANG_QUEST_LIST_CONSOLE, questTemplatePair.first, title.c_str(), statusStr);
 
                 if (!found)
                     found = true;

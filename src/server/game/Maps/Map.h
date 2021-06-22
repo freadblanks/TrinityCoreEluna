@@ -210,8 +210,6 @@ struct ZoneDynamicInfo
 #define MIN_UNLOAD_DELAY      1                             // immediate unload
 #define MAP_INVALID_ZONE      0xFFFFFFFF
 
-typedef std::map<ObjectGuid::LowType/*leaderDBGUID*/, CreatureGroup*> CreatureGroupHolderType;
-
 struct RespawnInfo; // forward declaration
 struct CompareRespawnInfo
 {
@@ -435,7 +433,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void RemoveFromActive(T* obj);
 
         template<class T> void SwitchGridContainers(T* obj, bool on);
-        CreatureGroupHolderType CreatureGroupHolder;
+        std::unordered_map<ObjectGuid::LowType /*leaderSpawnId*/, CreatureGroup*> CreatureGroupHolder;
 
         void UpdateIteratorBack(Player* player);
 
@@ -772,7 +770,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         SpawnGroupTemplateData const* GetSpawnGroupData(uint32 groupId) const;
         bool SpawnGroupSpawn(uint32 groupId, bool ignoreRespawn = false, bool force = false, std::vector<WorldObject*>* spawnedObjects = nullptr);
-        bool SpawnGroupDespawn(uint32 groupId, bool deleteRespawnTimes = false);
+        bool SpawnGroupDespawn(uint32 groupId, bool deleteRespawnTimes = false, size_t* count = nullptr);
         void SetSpawnGroupActive(uint32 groupId, bool state);
         bool IsSpawnGroupActive(uint32 groupId) const;
 
