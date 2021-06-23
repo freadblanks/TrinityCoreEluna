@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Bag.h"
 #include "BankPackets.h"
+#include "Bag.h"
 #include "Item.h"
 #include "DB2Stores.h"
 #include "Log.h"
@@ -57,6 +57,56 @@ void WorldSession::HandleAutoBankItemOpcode(WorldPackets::Bank::AutoBankItem& pa
     _player->RemoveItem(packet.Bag, packet.Slot, true);
     _player->ItemRemovedQuestCheck(item->GetEntry(), item->GetCount());
     _player->BankItem(dest, item, true);
+}
+
+void WorldSession::HandleAutoBankReagentOpcode(WorldPackets::Bank::AutoBankReagent& packet)
+{
+    TC_LOG_DEBUG("network", "STORAGE: receive bag = %u, slot = %u", packet.Bag, packet.Slot);
+
+    if (!CanUseBank())
+    {
+        TC_LOG_ERROR("network", "WORLD: HandleAutoBankReagentOpcode - Unit (%s) not found or you can't interact with him.", m_currentBankerGUID.ToString().c_str());
+        return;
+    }
+
+    if (!GetPlayer()->HasUnlockedReagentBank())
+    {
+        TC_LOG_ERROR("network", "WORLD: HandleAutoBankReagentOpcode - Player(%s) can not use reagent bank", GetPlayer()->GetGUID().ToString().c_str());
+        return;
+    }
+
+    Item* item = _player->GetItemByPos(packet.Bag, packet.Slot);
+    if (!item)
+        return;
+
+    if (_player->IsReagentBankPos(packet.Bag, packet.Slot))             // moving from reagent bank to inventory
+    {
+        ItemPosCountVec dest;
+        InventoryResult msg = _player->CanStoreItem(NULL_BAG, NULL_SLOT, dest, item, false, true);
+        if (msg != EQUIP_ERR_OK)
+        {
+            _player->SendEquipError(msg, item, NULL);
+            return;
+        }
+
+        _player->RemoveItem(packet.Bag, packet.Slot, true);
+        if (Item const* storedItem = _player->StoreItem(dest, item, true))
+            _player->ItemAddedQuestCheck(storedItem->GetEntry(), storedItem->GetCount());
+
+    }
+    else                                                                // moving from inventory to reagent bank
+    {
+        ItemPosCountVec dest;
+        InventoryResult msg = _player->CanBankItem(NULL_BAG, NULL_SLOT, dest, item, false, true, true);
+        if (msg != EQUIP_ERR_OK)
+        {
+            _player->SendEquipError(msg, item, NULL);
+            return;
+        }
+
+        _player->RemoveItem(packet.Bag, packet.Slot, true);
+        _player->BankItem(dest, item, true);
+    }
 }
 
 void WorldSession::HandleBankerActivateOpcode(WorldPackets::NPC::Hello& packet)
@@ -121,6 +171,56 @@ void WorldSession::HandleAutoStoreBankItemOpcode(WorldPackets::Bank::AutoStoreBa
     }
 }
 
+void WorldSession::HandleAutoStoreBankReagentOpcode(WorldPackets::Bank::AutoStoreBankReagent& packet)
+{
+    TC_LOG_DEBUG("network", "STORAGE: receive bag = %u, slot = %u", packet.Bag, packet.Slot);
+
+    if (!CanUseBank())
+    {
+        TC_LOG_ERROR("network", "WORLD: HandleAutoStoreReagentBankItemOpcode - Unit (%s) not found or you can't interact with him.", m_currentBankerGUID.ToString().c_str());
+        return;
+    }
+
+    if (!GetPlayer()->HasUnlockedReagentBank())
+    {
+        TC_LOG_ERROR("network", "WORLD: HandleAutoStoreReagentBankItemOpcode - Player(%s) can not use reagent bank", GetPlayer()->GetGUID().ToString().c_str());
+        return;
+    }
+
+    Item* item = _player->GetItemByPos(packet.Bag, packet.Slot);
+    if (!item)
+        return;
+
+    if (_player->IsReagentBankPos(packet.Bag, packet.Slot))             // moving from reagent bank to inventory
+    {
+        ItemPosCountVec dest;
+        InventoryResult msg = _player->CanStoreItem(NULL_BAG, NULL_SLOT, dest, item, false, true);
+        if (msg != EQUIP_ERR_OK)
+        {
+            _player->SendEquipError(msg, item, NULL);
+            return;
+        }
+
+        _player->RemoveItem(packet.Bag, packet.Slot, true);
+        if (Item const* storedItem = _player->StoreItem(dest, item, true))
+            _player->ItemAddedQuestCheck(storedItem->GetEntry(), storedItem->GetCount());
+
+    }
+    else                                                                // moving from inventory to reagent bank
+    {
+        ItemPosCountVec dest;
+        InventoryResult msg = _player->CanBankItem(NULL_BAG, NULL_SLOT, dest, item, false, true, true);
+        if (msg != EQUIP_ERR_OK)
+        {
+            _player->SendEquipError(msg, item, NULL);
+            return;
+        }
+
+        _player->RemoveItem(packet.Bag, packet.Slot, true);
+        _player->BankItem(dest, item, true);
+    }
+}
+
 void WorldSession::HandleBuyBankSlotOpcode(WorldPackets::Bank::BuyBankSlot& packet)
 {
     if (!CanUseBank(packet.Guid))
@@ -151,14 +251,6 @@ void WorldSession::HandleBuyBankSlotOpcode(WorldPackets::Bank::BuyBankSlot& pack
     _player->UpdateCriteria(CRITERIA_TYPE_BUY_BANK_SLOT);
 }
 
-void WorldSession::SendShowBank(ObjectGuid guid)
-{
-    m_currentBankerGUID = guid;
-    WorldPackets::NPC::ShowBank packet;
-    packet.Guid = guid;
-    SendPacket(packet.Write());
-}
-
 void WorldSession::HandleBuyReagentBankOpcode(WorldPackets::NPC::Hello& packet)
 {
     Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(packet.Unit, UNIT_NPC_FLAG_BANKER, UNIT_NPC_FLAG_2_NONE);
@@ -181,56 +273,6 @@ void WorldSession::HandleBuyReagentBankOpcode(WorldPackets::NPC::Hello& packet)
 
     GetPlayer()->ModifyMoney(-int64(price));
     GetPlayer()->UnlockReagentBank();
-}
-
-void WorldSession::HandleAutoBankReagentOpcode(WorldPackets::Bank::AutoBankReagent& packet)
-{
-    TC_LOG_DEBUG("network", "STORAGE: receive bag = %u, slot = %u", packet.Bag, packet.Slot);
-
-    if (!CanUseBank())
-    {
-        TC_LOG_ERROR("network", "WORLD: HandleAutoBankReagentOpcode - Unit (%s) not found or you can't interact with him.", m_currentBankerGUID.ToString().c_str());
-        return;
-    }
-
-    if (!GetPlayer()->HasUnlockedReagentBank())
-    {
-        TC_LOG_ERROR("network", "WORLD: HandleAutoBankReagentOpcode - Player(%s) can not use reagent bank", GetPlayer()->GetGUID().ToString().c_str());
-        return;
-    }
-
-    Item* item = _player->GetItemByPos(packet.Bag, packet.Slot);
-    if (!item)
-        return;
-
-    if (_player->IsReagentBankPos(packet.Bag, packet.Slot))             // moving from reagent bank to inventory
-    {
-        ItemPosCountVec dest;
-        InventoryResult msg = _player->CanStoreItem(NULL_BAG, NULL_SLOT, dest, item, false);
-        if (msg != EQUIP_ERR_OK)
-        {
-            _player->SendEquipError(msg, item, NULL);
-            return;
-        }
-
-        _player->RemoveItem(packet.Bag, packet.Slot, true);
-        if (Item const* storedItem = _player->StoreItem(dest, item, true))
-            _player->ItemAddedQuestCheck(storedItem->GetEntry(), storedItem->GetCount());
-
-    }
-    else                                                                // moving from inventory to reagent bank
-    {
-        ItemPosCountVec dest;
-        InventoryResult msg = _player->CanBankItem(NULL_BAG, NULL_SLOT, dest, item, false, true);
-        if (msg != EQUIP_ERR_OK)
-        {
-            _player->SendEquipError(msg, item, NULL);
-            return;
-        }
-
-        _player->RemoveItem(packet.Bag, packet.Slot, true);
-        _player->BankItem(dest, item, true);
-    }
 }
 
 void WorldSession::HandleDepositReagentBankOpcode(WorldPackets::Bank::DepositReagentBank& packet)
@@ -260,10 +302,10 @@ void WorldSession::HandleDepositReagentBankOpcode(WorldPackets::Bank::DepositRea
                         continue;
 
                     ItemPosCountVec dest;
-                    InventoryResult msg = _player->CanBankItem(NULL_BAG, NULL_SLOT, dest, item, false, true);
+                    InventoryResult msg = _player->CanBankItem(NULL_BAG, NULL_SLOT, dest, item, false, true, true);
                     if (msg != EQUIP_ERR_OK)
                     {
-                        _player->SendEquipError(msg, item, NULL);
+                        _player->SendEquipError(msg, item, nullptr);
                         return;
                     }
 
@@ -285,10 +327,10 @@ void WorldSession::HandleDepositReagentBankOpcode(WorldPackets::Bank::DepositRea
                 continue;
 
             ItemPosCountVec dest;
-            InventoryResult msg = _player->CanBankItem(NULL_BAG, NULL_SLOT, dest, item, false, true);
+            InventoryResult msg = _player->CanBankItem(NULL_BAG, NULL_SLOT, dest, item, false, true, true);
             if (msg != EQUIP_ERR_OK)
             {
-                _player->SendEquipError(msg, item, NULL);
+                _player->SendEquipError(msg, item, nullptr);
                 return;
             }
 
@@ -298,52 +340,10 @@ void WorldSession::HandleDepositReagentBankOpcode(WorldPackets::Bank::DepositRea
     }
 }
 
-void WorldSession::HandleAutoStoreBankReagentOpcode(WorldPackets::Bank::AutoStoreBankReagent& packet)
+void WorldSession::SendShowBank(ObjectGuid guid)
 {
-    TC_LOG_DEBUG("network", "STORAGE: receive bag = %u, slot = %u", packet.Bag, packet.Slot);
-
-    if (!CanUseBank())
-    {
-        TC_LOG_ERROR("network", "WORLD: HandleAutoStoreReagentBankItemOpcode - Unit (%s) not found or you can't interact with him.", m_currentBankerGUID.ToString().c_str());
-        return;
-    }
-
-    if (!GetPlayer()->HasUnlockedReagentBank())
-    {
-        TC_LOG_ERROR("network", "WORLD: HandleAutoStoreReagentBankItemOpcode - Player(%s) can not use reagent bank", GetPlayer()->GetGUID().ToString().c_str());
-        return;
-    }
-
-    Item* item = _player->GetItemByPos(packet.Bag, packet.Slot);
-    if (!item)
-        return;
-
-    if (_player->IsReagentBankPos(packet.Bag, packet.Slot))             // moving from reagent bank to inventory
-    {
-        ItemPosCountVec dest;
-        InventoryResult msg = _player->CanStoreItem(NULL_BAG, NULL_SLOT, dest, item, false);
-        if (msg != EQUIP_ERR_OK)
-        {
-            _player->SendEquipError(msg, item, NULL);
-            return;
-        }
-
-        _player->RemoveItem(packet.Bag, packet.Slot, true);
-        if (Item const* storedItem = _player->StoreItem(dest, item, true))
-            _player->ItemAddedQuestCheck(storedItem->GetEntry(), storedItem->GetCount());
-
-    }
-    else                                                                // moving from inventory to reagent bank
-    {
-        ItemPosCountVec dest;
-        InventoryResult msg = _player->CanBankItem(NULL_BAG, NULL_SLOT, dest, item, false, true);
-        if (msg != EQUIP_ERR_OK)
-        {
-            _player->SendEquipError(msg, item, NULL);
-            return;
-        }
-
-        _player->RemoveItem(packet.Bag, packet.Slot, true);
-        _player->BankItem(dest, item, true);
-    }
+    m_currentBankerGUID = guid;
+    WorldPackets::NPC::ShowBank packet;
+    packet.Guid = guid;
+    SendPacket(packet.Write());
 }
