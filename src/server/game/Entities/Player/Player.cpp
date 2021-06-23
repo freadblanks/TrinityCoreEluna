@@ -10299,6 +10299,11 @@ bool Player::IsBankPos(uint8 bag, uint8 slot)
     return false;
 }
 
+bool Player::IsReagentBankPos(uint8 bag, uint8 slot)
+{
+    return bag == INVENTORY_SLOT_BAG_0 && (slot >= REAGENT_SLOT_START && slot < REAGENT_SLOT_END);
+}
+
 bool Player::IsBagPos(uint16 pos)
 {
     uint8 bag = pos >> 8;
@@ -28831,6 +28836,16 @@ void Player::UpdateItemLevelAreaBasedScaling()
         SetHealth(CalculatePct(GetMaxHealth(), healthPct));
     }
     // @todo other types of power scaling such as timewalking
+}
+
+void Player::UnlockReagentBank()
+{
+    AddPlayerFlagEx(PLAYER_FLAGS_EX_REAGENT_BANK_UNLOCKED);
+}
+
+bool Player::HasUnlockedReagentBank() const
+{
+    return HasPlayerFlagEx(PLAYER_FLAGS_EX_REAGENT_BANK_UNLOCKED);
 }
 
 uint8 Player::GetItemLimitCategoryQuantity(ItemLimitCategoryEntry const* limitEntry) const
