@@ -18,6 +18,8 @@
 #include "WorldSession.h"
 #include "AuthenticationPackets.h"
 #include "BattlenetRpcErrorCodes.h"
+#include "BattlePayMgr.h"
+#include "BattlePayData.h"
 #include "CharacterTemplateDataStore.h"
 #include "ClientConfigPackets.h"
 #include "GameTime.h"
@@ -39,6 +41,7 @@ void WorldSession::SendAuthResponse(uint32 code, bool queued, uint32 queuePos)
         response.SuccessInfo->ActiveExpansionLevel = GetExpansion();
         response.SuccessInfo->AccountExpansionLevel = GetAccountExpansion();
         response.SuccessInfo->VirtualRealmAddress = realm.Id.GetAddress();
+        response.SuccessInfo->CurrencyID = GetBattlePayMgr()->GetShopCurrency();
         response.SuccessInfo->Time = int32(GameTime::GetGameTime());
 
         // Send current home realm. Also there is no need to send it later in realm queries.

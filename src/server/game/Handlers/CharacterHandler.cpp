@@ -26,6 +26,7 @@
 #include "Battleground.h"
 #include "BattlegroundPackets.h"
 #include "BattlePetPackets.h"
+#include "BattlePayMgr.h"
 #include "CalendarMgr.h"
 #include "CharacterCache.h"
 #include "CharacterPackets.h"
@@ -1415,6 +1416,8 @@ void WorldSession::SendFeatureSystemStatus()
 
     features.CharUndeleteEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_CHARACTER_UNDELETE_ENABLED);
     features.BpayStoreEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED);
+    features.BpayStoreEnabled = GetBattlePayMgr()->IsAvailable();
+    features.BpayStoreAvailable = GetBattlePayMgr()->IsAvailable();
     features.WarModeFeatureEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_WAR_MODE_ENABLED);
     features.IsMuted = !CanSpeak();
 

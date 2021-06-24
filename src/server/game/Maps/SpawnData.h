@@ -73,6 +73,7 @@ struct SpawnData
     SpawnGroupTemplateData const* spawnGroupData = nullptr;
     uint32 scriptId = 0;
     bool dbData = true;
+    bool isActive = false;
 
     protected:
     SpawnData(SpawnObjectType t) : type(t) {}

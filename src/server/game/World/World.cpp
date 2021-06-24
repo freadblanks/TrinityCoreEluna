@@ -30,6 +30,7 @@
 #include "BattlefieldMgr.h"
 #include "BattlegroundMgr.h"
 #include "BattlenetRpcErrorCodes.h"
+#include "BattlePayData.h"
 #include "BattlePetMgr.h"
 #include "BlackMarketMgr.h"
 #include "CalendarMgr.h"
@@ -1501,10 +1502,11 @@ void World::LoadConfigSettings(bool reload)
     m_int_configs[CONFIG_WARDEN_CLIENT_RESPONSE_DELAY] = sConfigMgr->GetIntDefault("Warden.ClientResponseDelay", 600);
 
     // Feature System
+    m_bool_configs[CONFIG_FEATURE_SYSTEM_BATTLE_PAY_AVAILABLE]       = sConfigMgr->GetBoolDefault("FeatureSystem.BattlePay.Available", false);
     m_bool_configs[CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED]         = sConfigMgr->GetBoolDefault("FeatureSystem.BpayStore.Enabled", false);
     m_bool_configs[CONFIG_FEATURE_SYSTEM_CHARACTER_UNDELETE_ENABLED] = sConfigMgr->GetBoolDefault("FeatureSystem.CharacterUndelete.Enabled", false);
     m_int_configs[CONFIG_FEATURE_SYSTEM_CHARACTER_UNDELETE_COOLDOWN] = sConfigMgr->GetIntDefault("FeatureSystem.CharacterUndelete.Cooldown", 2592000);
-    m_bool_configs[CONFIG_FEATURE_SYSTEM_WAR_MODE_ENABLED] = sConfigMgr->GetBoolDefault("FeatureSystem.WarMode.Enabled", false);
+    m_bool_configs[CONFIG_FEATURE_SYSTEM_WAR_MODE_ENABLED]           = sConfigMgr->GetBoolDefault("FeatureSystem.WarMode.Enabled", false);
 
     // Dungeon finder
     m_int_configs[CONFIG_LFG_OPTIONSMASK] = sConfigMgr->GetIntDefault("DungeonFinder.OptionsMask", 1);
@@ -1603,6 +1605,10 @@ void World::LoadConfigSettings(bool reload)
 
     m_int_configs[CONFIG_BLACKMARKET_MAXAUCTIONS] = sConfigMgr->GetIntDefault("BlackMarket.MaxAuctions", 12);
     m_int_configs[CONFIG_BLACKMARKET_UPDATE_PERIOD] = sConfigMgr->GetIntDefault("BlackMarket.UpdatePeriod", 24);
+
+    // BattlePay
+    m_bool_configs[CONFIG_BATTLE_PAY_ENABLED] = sConfigMgr->GetBoolDefault("BattlePay.Enabled", true);
+    m_int_configs[CONFIG_BATTLE_PAY_CURRENCY] = sConfigMgr->GetIntDefault("BattlePay.Currency", 1);
 
     // HotSwap
     m_bool_configs[CONFIG_HOTSWAP_ENABLED] = sConfigMgr->GetBoolDefault("HotSwap.Enabled", true);
@@ -2401,6 +2407,10 @@ void World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Loading scenario poi data");
     sScenarioMgr->LoadScenarioPOI();
+
+    // load battle pay
+    TC_LOG_INFO("server.loading", "Loading battlepay data...");
+    sBattlePayDataStore->Initialize();
 
 #ifdef ELUNA
     ///- Run eluna scripts.

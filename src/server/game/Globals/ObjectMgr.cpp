@@ -2241,8 +2241,8 @@ void ObjectMgr::LoadGameObjects()
     QueryResult result = WorldDatabase.Query("SELECT gameobject.guid, id, map, position_x, position_y, position_z, orientation, "
     //   7          8          9          10         11             12            13     14                 15          16
         "rotation0, rotation1, rotation2, rotation3, spawntimesecs, animprogress, state, spawnDifficulties, eventEntry, pool_entry, "
-    //   17             18       19          20              21          22     23          24
-        "phaseUseFlags, phaseid, phasegroup, terrainSwapMap, ScriptName, size, hasDoodads, visibility "
+    //   17             18       19          20              21          22        23          24    25
+        "phaseUseFlags, phaseid, phasegroup, terrainSwapMap, isActive, ScriptName, size, hasDoodads, visibility "
         "FROM gameobject LEFT OUTER JOIN game_event_gameobject ON gameobject.guid = game_event_gameobject.guid "
         "LEFT OUTER JOIN pool_gameobject ON gameobject.guid = pool_gameobject.guid");
 
@@ -2417,7 +2417,9 @@ void ObjectMgr::LoadGameObjects()
             }
         }
 
-        data.scriptId = GetScriptId(fields[21].GetString());
+        data.isActive = fields[21].GetBool();
+
+        data.scriptId = GetScriptId(fields[22].GetString());
 
         if (data.rotation.x < -1.0f || data.rotation.x > 1.0f)
         {
@@ -2465,9 +2467,9 @@ void ObjectMgr::LoadGameObjects()
             WorldDatabase.Execute(stmt);
         }
 
-        data.size = fields[22].GetFloat();
-        data.hasDoodads = fields[23].GetBool();
-        data.visibility = fields[24].GetFloat();
+        data.size = fields[23].GetFloat();
+        data.hasDoodads = fields[24].GetBool();
+        data.visibility = fields[25].GetFloat();
 
         if (gameEvent == 0 && PoolId == 0)                      // if not this is to be managed by GameEvent System or Pool system
             AddGameobjectToGrid(guid, &data);

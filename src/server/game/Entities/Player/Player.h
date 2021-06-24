@@ -2680,6 +2680,14 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         void SetSummonedBattlePetGUID(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SummonedBattlePetGUID), guid);  }
 
+        //BattlePay
+        uint32 GetBattlePayCredits() const;
+        bool HasBattlePayCredits(uint32 count) const;
+        bool UpdateBattlePayCredits(uint64 price) const;
+        bool ModifyBattlePayCredits(uint64 credits) const;
+        void SendBattlePayMessage(uint32 bpaymessageID, std::string name, uint32 value = 0) const;
+        void SendBattlePayBattlePetDelivered(ObjectGuid petguid, uint32 creatureID) const;
+
         void AddTrackCreatureFlag(uint32 flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TrackCreatureMask), flags); }
         void RemoveTrackCreatureFlag(uint32 flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::TrackCreatureMask), flags); }
 
