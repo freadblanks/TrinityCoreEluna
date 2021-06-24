@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "BankPackets.h"
 #include "Bag.h"
+#include "BankPackets.h"
 #include "Item.h"
 #include "DB2Stores.h"
 #include "Log.h"
@@ -40,23 +40,34 @@ void WorldSession::HandleAutoBankItemOpcode(WorldPackets::Bank::AutoBankItem& pa
     if (!item)
         return;
 
-    ItemPosCountVec dest;
-    InventoryResult msg = _player->CanBankItem(NULL_BAG, NULL_SLOT, dest, item, false);
-    if (msg != EQUIP_ERR_OK)
+    if (_player->IsBankPos(packet.Bag, packet.Slot))                    // moving from bank to inventory
     {
-        _player->SendEquipError(msg, item, nullptr);
-        return;
-    }
+        ItemPosCountVec dest;
+        InventoryResult msg = _player->CanStoreItem(NULL_BAG, NULL_SLOT, dest, item, false, true);
+        if (msg != EQUIP_ERR_OK)
+        {
+            _player->SendEquipError(msg, item, nullptr);
+            return;
+        }
 
-    if (dest.size() == 1 && dest[0].pos == item->GetPos())
+        _player->RemoveItem(packet.Bag, packet.Slot, true);
+        if (Item const* storedItem = _player->StoreItem(dest, item, true))
+            _player->ItemAddedQuestCheck(storedItem->GetEntry(), storedItem->GetCount());
+
+    }
+    else                                                                // moving from inventory to bank
     {
-        _player->SendEquipError(EQUIP_ERR_CANT_SWAP, item, nullptr);
-        return;
-    }
+        ItemPosCountVec dest;
+        InventoryResult msg = _player->CanBankItem(NULL_BAG, NULL_SLOT, dest, item, false);
+        if (msg != EQUIP_ERR_OK)
+        {
+            _player->SendEquipError(msg, item, nullptr);
+            return;
+        }
 
-    _player->RemoveItem(packet.Bag, packet.Slot, true);
-    _player->ItemRemovedQuestCheck(item->GetEntry(), item->GetCount());
-    _player->BankItem(dest, item, true);
+        _player->RemoveItem(packet.Bag, packet.Slot, true);
+        _player->BankItem(dest, item, true);
+    }
 }
 
 void WorldSession::HandleAutoBankReagentOpcode(WorldPackets::Bank::AutoBankReagent& packet)
@@ -194,7 +205,7 @@ void WorldSession::HandleAutoStoreBankReagentOpcode(WorldPackets::Bank::AutoStor
     if (_player->IsReagentBankPos(packet.Bag, packet.Slot))             // moving from reagent bank to inventory
     {
         ItemPosCountVec dest;
-        InventoryResult msg = _player->CanStoreItem(NULL_BAG, NULL_SLOT, dest, item, false, true);
+        InventoryResult msg = _player->CanStoreItem(NULL_BAG, NULL_SLOT, dest, item, false);
         if (msg != EQUIP_ERR_OK)
         {
             _player->SendEquipError(msg, item, NULL);
@@ -251,6 +262,14 @@ void WorldSession::HandleBuyBankSlotOpcode(WorldPackets::Bank::BuyBankSlot& pack
     _player->UpdateCriteria(CRITERIA_TYPE_BUY_BANK_SLOT);
 }
 
+void WorldSession::SendShowBank(ObjectGuid guid)
+{
+    m_currentBankerGUID = guid;
+    WorldPackets::NPC::ShowBank packet;
+    packet.Guid = guid;
+    SendPacket(packet.Write());
+}
+
 void WorldSession::HandleBuyReagentBankOpcode(WorldPackets::NPC::Hello& packet)
 {
     Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(packet.Unit, UNIT_NPC_FLAG_BANKER, UNIT_NPC_FLAG_2_NONE);
@@ -305,7 +324,7 @@ void WorldSession::HandleDepositReagentBankOpcode(WorldPackets::Bank::DepositRea
                     InventoryResult msg = _player->CanBankItem(NULL_BAG, NULL_SLOT, dest, item, false, true, true);
                     if (msg != EQUIP_ERR_OK)
                     {
-                        _player->SendEquipError(msg, item, nullptr);
+                        _player->SendEquipError(msg, item, NULL);
                         return;
                     }
 
@@ -330,7 +349,7 @@ void WorldSession::HandleDepositReagentBankOpcode(WorldPackets::Bank::DepositRea
             InventoryResult msg = _player->CanBankItem(NULL_BAG, NULL_SLOT, dest, item, false, true, true);
             if (msg != EQUIP_ERR_OK)
             {
-                _player->SendEquipError(msg, item, nullptr);
+                _player->SendEquipError(msg, item, NULL);
                 return;
             }
 
@@ -338,12 +357,4 @@ void WorldSession::HandleDepositReagentBankOpcode(WorldPackets::Bank::DepositRea
             _player->BankItem(dest, item, true);
         }
     }
-}
-
-void WorldSession::SendShowBank(ObjectGuid guid)
-{
-    m_currentBankerGUID = guid;
-    WorldPackets::NPC::ShowBank packet;
-    packet.Guid = guid;
-    SendPacket(packet.Write());
 }
