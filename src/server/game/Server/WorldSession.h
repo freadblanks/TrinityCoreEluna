@@ -151,10 +151,10 @@ namespace WorldPackets
     namespace Bank
     {
         class AutoBankItem;
-        class AutoStoreBankItem;
-        class BuyBankSlot;
         class AutoBankReagent;
+        class AutoStoreBankItem;
         class AutoStoreBankReagent;
+        class BuyBankSlot;
         class DepositReagentBank;
     }
 
