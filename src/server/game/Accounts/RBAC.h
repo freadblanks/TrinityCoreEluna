@@ -821,6 +821,7 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_BLACKMARKET                            = 2004,
     RBAC_PERM_COMMAND_BLACKMARKET_SET_DURATION               = 2005,
     RBAC_PERM_COMMAND_RELOAD_SPELL_SCRIPT_NAMES              = 2009,
+    RBAC_PERM_COMMAND_MODIFY_BP_CREDITS                      = 2012,
     RBAC_PERM_MAX
 };
 
