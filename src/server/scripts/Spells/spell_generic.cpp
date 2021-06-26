@@ -42,6 +42,7 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include "Vehicle.h"
+#include "DatabaseEnv.h"
 
 class spell_gen_absorb0_hitlimit1 : public AuraScript
 {
@@ -4117,6 +4118,150 @@ public:
     }
 };
 
+//312372
+class spell_back_camp : public SpellScript
+{
+    PrepareSpellScript(spell_back_camp);
+
+    void HandleTeleport()
+    {
+        Unit* caster = GetCaster();
+        Player* player = caster->ToPlayer();
+        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_CAMP);
+        stmt->setUInt64(0, player->GetGUID().GetCounter());
+        PreparedQueryResult result = CharacterDatabase.Query(stmt);
+
+        Field* fields = result->Fetch();
+        float camp_x = fields[0].GetFloat();
+        float camp_y = fields[1].GetFloat();
+        float camp_z = fields[2].GetFloat();
+        float camp_o = fields[3].GetFloat();
+        int camp_mapid = fields[4].GetUInt16();
+
+        player->TeleportTo(camp_mapid, camp_x, camp_y, camp_z, camp_o);
+        player->RemoveMovementImpairingAuras(true);
+
+        Player* gamer = GetCaster()->ToPlayer();
+        int mapid = caster->GetMapId();
+
+        // Tente: 292769
+        // Sac: 276247
+        // campfire: 301125
+
+        while (caster->GetPositionX() == camp_x) {
+            uint32 spawntm = 300;
+            uint32 objectId = atoul("292769");
+            GameObject* tempGob = gamer->SummonGameObject(objectId, *gamer, QuaternionData::fromEulerAnglesZYX(gamer->GetOrientation(), 0.0f, 0.0f), spawntm);
+            gamer->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
+
+            objectId = atoul("276247");
+            tempGob = gamer->SummonGameObject(objectId, Position(camp_x + 2.0f, camp_y + 2.0f, camp_z, camp_o), QuaternionData::fromEulerAnglesZYX(gamer->GetOrientation(), 0.0f, 0.0f), spawntm);
+            gamer->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
+
+            objectId = atoul("301125");
+            tempGob = gamer->SummonGameObject(objectId, Position(camp_x + -2.0f, camp_y + -2.0f, camp_z, camp_o), QuaternionData::fromEulerAnglesZYX(gamer->GetOrientation(), 0.0f, 0.0f), spawntm);
+            gamer->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
+        }
+    }
+
+    void Register() override
+    {
+        OnCast += SpellCastFn(spell_back_camp::HandleTeleport);
+    }
+
+};
+
+//312370
+class spell_make_camp : public SpellScript
+{
+    PrepareSpellScript(spell_make_camp);
+
+    void Oncast()
+    {
+        Unit* caster = GetCaster();
+        float x = caster->GetPositionX();
+        float y = caster->GetPositionY();
+        float z = caster->GetPositionZ();
+        float o = caster->GetOrientation();
+        int m = caster->GetMapId();
+        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_CHARACTER_CAMP);
+        stmt->setFloat(0, x);
+        stmt->setFloat(1, y);
+        stmt->setFloat(2, z);
+        stmt->setFloat(3, o);
+        stmt->setUInt16(4, uint16(m));
+        stmt->setUInt64(5, caster->GetGUID().GetCounter());
+        CharacterDatabase.Execute(stmt);
+        // Tente: 292769
+        // Sac: 276247
+        // campfire: 301125
+
+        Player* gamer = GetCaster()->ToPlayer();
+        uint32 spawntm = 300;
+        uint32 objectId = atoul("292769");
+        GameObject* tempGob = gamer->SummonGameObject(objectId, *gamer, QuaternionData::fromEulerAnglesZYX(gamer->GetOrientation(), 0.0f, 0.0f), spawntm);
+        gamer->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
+
+        objectId = atoul("276247");
+        tempGob = gamer->SummonGameObject(objectId, Position(x + 2.0f, y + 2.0f, z, o), QuaternionData::fromEulerAnglesZYX(gamer->GetOrientation(), 0.0f, 0.0f), spawntm);
+        gamer->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
+
+        objectId = atoul("301125");
+        tempGob = gamer->SummonGameObject(objectId, Position(x + -2.0f, y + -2.0f, z, o), QuaternionData::fromEulerAnglesZYX(gamer->GetOrientation(), 0.0f, 0.0f), spawntm);
+        gamer->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
+    }
+
+    void Register() override
+    {
+        OnCast += SpellCastFn(spell_make_camp::Oncast);
+    }
+
+};
+
+//274738
+class spell_maghar_orc_racial_ancestors_call : public SpellScript
+{
+    PrepareSpellScript(spell_maghar_orc_racial_ancestors_call);
+
+    void Oncast()
+    {
+        Unit* caster = GetCaster();
+        if (!caster)
+            return;
+
+        uint32 RandomStats = urand(0, 3);
+
+        switch (RandomStats)
+        {
+        case 0:
+            //mastery
+            caster->CastSpell(nullptr, 274741, true);
+            break;
+
+        case 1:
+
+            //versatility
+            caster->CastSpell(nullptr, 274742, true);
+            break;
+
+        case 2:
+            //haste
+            caster->CastSpell(nullptr, 274740, true);
+            break;
+
+        case 3:
+            //crit
+            caster->CastSpell(nullptr, 274739, true);
+            break;
+        }
+    }
+
+    void Register() override
+    {
+        OnCast += SpellCastFn(spell_maghar_orc_racial_ancestors_call::Oncast);
+    }
+};
+
 void AddSC_generic_spell_scripts()
 {
     RegisterAuraScript(spell_gen_absorb0_hitlimit1);
@@ -4242,4 +4387,7 @@ void AddSC_generic_spell_scripts()
     RegisterSpellScript(spell_spatial_rift_despawn);
     RegisterSpellScript(spell_light_judgement);
     new playerscript_light_reckoning();
+    RegisterSpellScript(spell_make_camp);
+    RegisterSpellScript(spell_back_camp);
+    RegisterSpellScript(spell_maghar_orc_racial_ancestors_call);
 }

@@ -545,6 +545,13 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     PrepareStatement(CHAR_SEL_CHARS_BY_ACCOUNT_ID, "SELECT guid FROM characters WHERE account = ?", CONNECTION_SYNCH);
     PrepareStatement(CHAR_SEL_CHAR_PINFO, "SELECT totaltime, level, money, account, race, class, map, zone, gender, health, playerFlags FROM characters WHERE guid = ?", CONNECTION_SYNCH);
     PrepareStatement(CHAR_SEL_PINFO_BANS, "SELECT unbandate, bandate = unbandate, bannedby, banreason FROM character_banned WHERE guid = ? AND active ORDER BY bandate ASC LIMIT 1", CONNECTION_SYNCH);
+    //Vulpera race ability
+    PrepareStatement(CHAR_UPD_CHARACTER_CAMP, "UPDATE characters SET camp_x = ?, camp_y = ?, camp_z = ?, camp_o = ?, camp_mapid = ? WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_UPD_CHARACTER_CAMP_X, "UPDATE characters SET camp_x = ? WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_UPD_CHARACTER_CAMP_Y, "UPDATE characters SET  camp_y = ? WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_UPD_CHARACTER_CAMP_Z, "UPDATE characters SET camp_z = ? WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_UPD_CHARACTER_CAMP_MAPID, "UPDATE characters SET camp_mapid = ? WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_SEL_CHARACTER_CAMP, "SELECT camp_x, camp_y, camp_z, camp_o, camp_mapid FROM characters WHERE guid = ?", CONNECTION_SYNCH);
     //0: lowGUID
     PrepareStatement(CHAR_SEL_PINFO_MAILS, "SELECT SUM(CASE WHEN (checked & 1) THEN 1 ELSE 0 END) AS 'readmail', COUNT(*) AS 'totalmail' FROM mail WHERE `receiver` = ?", CONNECTION_SYNCH);
     PrepareStatement(CHAR_SEL_PINFO_MAILINFO_SEND, "SELECT id, characters.`name`, subject FROM mail INNER JOIN characters on mail.receiver = characters.guid WHERE sender = ?", CONNECTION_SYNCH);

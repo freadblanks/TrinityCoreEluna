@@ -2570,6 +2570,9 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         VoidStorageItem* GetVoidStorageItem(uint8 slot) const;
         VoidStorageItem* GetVoidStorageItem(uint64 id, uint8& slot) const;
 
+        uint32 GetLastTargetedGO() { return _lastTargetedGO; }
+        void SetLastTargetedGO(uint32 lastTargetedGO) { _lastTargetedGO = lastTargetedGO; }
+
         void CreateGarrison(uint32 garrSiteId);
         void DeleteGarrison();
         Garrison* GetGarrison() const { return _garrison.get(); }
@@ -3060,6 +3063,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         InstanceTimeMap _instanceResetTimes;
         uint32 _pendingBindId;
         uint32 _pendingBindTimer;
+
+        uint32 _lastTargetedGO;
 
         uint32 _activeCheats;
 

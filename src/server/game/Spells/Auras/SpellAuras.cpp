@@ -1377,7 +1377,7 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
                 break;
             case SPELLFAMILY_ROGUE:
                 // Remove Vanish on stealth remove
-                if (GetId() == 1784)
+                if (GetId() == 1784 || GetId() == 115191)
                     target->RemoveAurasWithFamily(SPELLFAMILY_ROGUE, flag128(0x0000800, 0, 0, 0), target->GetGUID());
                 break;
         }
@@ -1386,6 +1386,77 @@ void Aura::HandleAuraSpecificMods(AuraApplication const* aurApp, Unit* caster, b
     // mods at aura apply or remove
     switch (GetSpellInfo()->SpellFamilyName)
     {
+    case SPELLFAMILY_ROGUE:
+    {
+        if (!caster)
+            return;
+
+        switch (GetId())
+        {
+
+        case 1784:   // Stealth
+        case 115191: // Stealth (Subterfuge)
+        case 11327:  // Vanish
+        {
+            if (!apply && (removeMode == AURA_REMOVE_BY_INTERRUPT || removeMode == AURA_REMOVE_BY_DEFAULT))
+            {
+                if (caster->HasAura(108208))
+                    caster->CastSpell(caster, 115192, true);
+            }
+            if (caster->HasAura(231718)) // Shadowstrike (lvl 2)
+            {
+                if (apply)
+                {
+                    caster->AddAura(245623, caster);
+                }
+                else
+                {
+                    if (!caster->HasAura(1784) && !caster->HasAura(11327))
+                    {
+                        caster->RemoveAurasDueToSpell(245623);
+                    }
+                }
+            }
+        }
+        case 115192: // Subterfuge
+        case 185313: // Shadowdance (Shapeshift)
+        {
+            bool removeTalentAura = false;
+
+            if (apply)
+            {
+                caster->AddAura(158188, caster);
+            }
+            else
+            {
+                if (!caster->HasAura(1784) && !caster->HasAura(11327) && !caster->HasAura(185313))
+                {
+                    removeTalentAura = true;
+
+                    if (!caster->HasAura(115192))
+                        caster->RemoveAurasDueToSpell(158188);
+                }
+            }
+
+            if (caster->HasAura(108209)) // Shadow Focus
+            {
+                if (apply)
+                {
+                    caster->AddAura(112942, caster);
+                }
+                else if (removeTalentAura)
+                {
+                    caster->RemoveAurasDueToSpell(112942);
+                }
+            }
+
+            break;
+        }
+        default:
+            break;
+        }
+        break;
+    }
         case SPELLFAMILY_HUNTER:
             switch (GetId())
             {

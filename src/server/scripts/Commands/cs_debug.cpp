@@ -112,6 +112,7 @@ public:
             { "neargraveyard", rbac::RBAC_PERM_COMMAND_NEARGRAVEYARD,       false, &HandleDebugNearGraveyard,           "" },
             { "instancespawn", rbac::RBAC_PERM_COMMAND_DEBUG_INSTANCESPAWN, false, &HandleDebugInstanceSpawns,          "" },
             { "conversation" , rbac::RBAC_PERM_COMMAND_DEBUG_CONVERSATION,  false, &HandleDebugConversationCommand,     "" },
+            { "armor" ,        rbac::RBAC_PERM_COMMAND_DEBUG,               false, &HandleDebugArmorCommand,           "" },
             { "worldstate" ,   rbac::RBAC_PERM_COMMAND_DEBUG,               false, &HandleDebugWorldStateCommand,       "" },
             { "wsexpression" , rbac::RBAC_PERM_COMMAND_DEBUG,               false, &HandleDebugWSExpressionCommand,     "" },
         };
@@ -1692,6 +1693,18 @@ public:
         else
             handler->PSendSysMessage("Expression %u not meet", expressionId);
 
+        return true;
+    }
+
+    static bool HandleDebugArmorCommand(ChatHandler* handler, char const* args)
+    {
+        CommandArgs commandArgs = CommandArgs(handler, args, { CommandArgs::ARG_UINT, CommandArgs::ARG_UINT });
+        if (!commandArgs.ValidArgs())
+            return false;
+
+        uint32 baseVal = commandArgs.GetNextArg<uint32>();
+        uint32 bonusVal = commandArgs.GetNextArg<uint32>();
+        handler->getSelectedPlayerOrSelf()->SetArmor(baseVal, bonusVal);
         return true;
     };
 };

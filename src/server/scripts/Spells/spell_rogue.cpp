@@ -75,6 +75,10 @@ enum RogueSpells
     SPELL_ROGUE_HONOR_AMONG_THIEVES_ENERGIZE        = 51699,
     SPELL_ROGUE_T5_2P_SET_BONUS                     = 37169,
     SPELL_ROGUE_VENOMOUS_WOUNDS                     = 79134,
+    SPELL_ROGUE_MASTER_OF_SHADOWS                   = 196976,
+    SPELL_ROGUE_SHADOW_DANCE_AURA                   = 185422,
+    SPELL_ROGUE_SUBTERFUGE                          = 108208,
+    SPELL_ROGUE_SUBTERFUGE_AURA                     = 115192,
 };
 
 /* Returns true if the spell is a finishing move.
@@ -704,9 +708,17 @@ class spell_rog_stealth : public AuraScript
         if (target->HasAura(SPELL_ROGUE_PREMEDITATION_PASSIVE))
             target->CastSpell(target, SPELL_ROGUE_PREMEDITATION_AURA, true);
 
+        target->RemoveAurasDueToSpell(SPELL_ROGUE_VANISH);
+        target->RemoveAurasDueToSpell(SPELL_ROGUE_VANISH_AURA);
+        target->RemoveAurasDueToSpell(SPELL_ROGUE_STEALTH_STEALTH_AURA);
+        target->RemoveAurasDueToSpell(SPELL_ROGUE_STEALTH_SHAPESHIFT_AURA);
+
         target->CastSpell(target, SPELL_ROGUE_SANCTUARY, TRIGGERED_FULL_MASK);
         target->CastSpell(target, SPELL_ROGUE_STEALTH_STEALTH_AURA, TRIGGERED_FULL_MASK);
         target->CastSpell(target, SPELL_ROGUE_STEALTH_SHAPESHIFT_AURA, TRIGGERED_FULL_MASK);
+
+        if (target->HasAura(SPELL_ROGUE_MASTER_OF_SHADOWS))
+            target->ModifyPower(POWER_ENERGY, +30);
     }
 
     void HandleEffectRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
@@ -729,6 +741,14 @@ class spell_rog_stealth : public AuraScript
         target->RemoveAurasDueToSpell(SPELL_ROGUE_SHADOW_FOCUS_EFFECT);
         target->RemoveAurasDueToSpell(SPELL_ROGUE_STEALTH_STEALTH_AURA);
         target->RemoveAurasDueToSpell(SPELL_ROGUE_STEALTH_SHAPESHIFT_AURA);
+
+        if (target->HasAura(SPELL_ROGUE_SUBTERFUGE))
+            target->CastSpell(target, SPELL_ROGUE_SUBTERFUGE_AURA, true);
+        if (Aura* aur = target->GetAura(SPELL_ROGUE_MASTER_OF_SUBTLETY_DAMAGE_PERCENT))
+        {
+            aur->SetMaxDuration(6000);
+            aur->SetDuration(6000);
+        }
     }
 
     void Register() override
@@ -817,6 +837,9 @@ class spell_rog_vanish_aura : public AuraScript
     void HandleEffectRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         GetTarget()->CastSpell(GetTarget(), SPELL_ROGUE_STEALTH, TRIGGERED_FULL_MASK);
+
+        if (GetTarget()->HasAura(SPELL_ROGUE_SUBTERFUGE))
+            GetTarget()->CastSpell(GetTarget(), SPELL_ROGUE_SUBTERFUGE_AURA, TRIGGERED_FULL_MASK);
     }
 
     void Register() override
@@ -1027,6 +1050,126 @@ class spell_rog_venomous_wounds : public AuraScript
     }
 };
 
+// 115192 - Subterfuge Aura
+class spell_rog_subterfuge : public SpellScriptLoader
+{
+public:
+    spell_rog_subterfuge() : SpellScriptLoader("spell_rog_subterfuge") {}
+
+    class spell_rog_subterfuge_AuraScript : public AuraScript
+    {
+        PrepareAuraScript(spell_rog_subterfuge_AuraScript);
+
+        void HandleApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        {
+            Unit* caster = GetCaster();
+            if (!caster)
+                return;
+            caster->CastSpell(caster, SPELL_ROGUE_STEALTH_SHAPESHIFT_AURA, true);
+        }
+
+        void HandleRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        {
+            Unit* caster = GetCaster();
+            if (!caster)
+                return;
+            caster->RemoveAurasDueToSpell(SPELL_ROGUE_STEALTH_SHAPESHIFT_AURA);
+        }
+
+        void Register() override
+        {
+            OnEffectApply += AuraEffectApplyFn(spell_rog_subterfuge_AuraScript::HandleApply, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+            OnEffectRemove += AuraEffectRemoveFn(spell_rog_subterfuge_AuraScript::HandleRemove, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
+        }
+    };
+
+    AuraScript* GetAuraScript() const override
+    {
+        return new spell_rog_subterfuge_AuraScript();
+    }
+};
+
+// Weaponmaster - 193537
+class spell_rog_weaponmaster : public SpellScriptLoader
+{
+public:
+    spell_rog_weaponmaster() : SpellScriptLoader("spell_rog_weaponmaster") {}
+
+    class spell_rog_weaponmaster_AuraScript : public AuraScript
+    {
+        PrepareAuraScript(spell_rog_weaponmaster_AuraScript);
+
+        bool CheckProc(ProcEventInfo& eventInfo)
+        {
+            Unit* caster = eventInfo.GetActor();
+            Unit* target = eventInfo.GetActionTarget();
+            if (!target || !caster)
+                return false;
+
+            SpellInfo const* triggerSpell = eventInfo.GetSpellInfo();
+            if (!triggerSpell)
+                return false;
+
+            if (!roll_chance_i(6))
+                return false;
+
+            if (!eventInfo.GetDamageInfo())
+                return false;
+
+            SpellNonMeleeDamage damageLog(caster, target, triggerSpell, { triggerSpell->GetSpellXSpellVisualId(), 0 }, triggerSpell->SchoolMask);
+            damageLog.damage = eventInfo.GetDamageInfo()->GetDamage();
+            damageLog.cleanDamage = damageLog.damage;
+            caster->DealSpellDamage(&damageLog, true);
+            caster->SendSpellNonMeleeDamageLog(&damageLog);
+            return true;
+        }
+
+        void Register() override
+        {
+            DoCheckProc += AuraCheckProcFn(spell_rog_weaponmaster_AuraScript::CheckProc);
+        }
+    };
+
+    AuraScript* GetAuraScript() const override
+    {
+        return new spell_rog_weaponmaster_AuraScript();
+    }
+};
+
+//185313 shadow dance
+class spell_rog_shadow_dance : public SpellScriptLoader
+{
+public:
+    spell_rog_shadow_dance() : SpellScriptLoader("spell_rog_shadow_dance") { }
+
+    class spell_rog_shadow_dance_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_rog_shadow_dance_SpellScript);
+
+        void HandleHit(SpellEffIndex /*effIndex*/)
+        {
+            Unit* caster = GetCaster();
+            if (!caster)
+                return;
+
+            if (caster->HasAura(SPELL_ROGUE_MASTER_OF_SHADOWS))
+                caster->ModifyPower(POWER_ENERGY, +30);
+
+            caster->CastSpell(caster, SPELL_ROGUE_SHADOW_DANCE_AURA, true);
+        }
+
+        void Register() override
+        {
+            OnEffectHit += SpellEffectFn(spell_rog_shadow_dance_SpellScript::HandleHit, EFFECT_0, SPELL_EFFECT_APPLY_AURA);
+        }
+    };
+
+    SpellScript* GetSpellScript() const override
+    {
+        return new spell_rog_shadow_dance_SpellScript();
+    }
+};
+
 void AddSC_rogue_spell_scripts()
 {
     RegisterSpellScript(spell_rog_backstab);
@@ -1052,4 +1195,7 @@ void AddSC_rogue_spell_scripts()
     new spell_rog_eviscerate();
     new spell_rog_envenom();
     RegisterAuraScript(spell_rog_venomous_wounds);
+    new spell_rog_subterfuge();
+    new spell_rog_weaponmaster();
+    new spell_rog_shadow_dance();
 }

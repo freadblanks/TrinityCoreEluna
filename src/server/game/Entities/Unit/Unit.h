@@ -871,8 +871,8 @@ class TC_GAME_API Unit : public WorldObject
         uint32 GetArmor() const { return GetResistance(SPELL_SCHOOL_NORMAL); }
         void SetArmor(int32 val, int32 bonusVal)
         {
-            SetResistance(SPELL_SCHOOL_NORMAL, val);
-            SetBonusResistanceMod(SPELL_SCHOOL_NORMAL, bonusVal);
+            SetResistance(SPELL_SCHOOL_NORMAL, val + bonusVal);
+            //SetBonusResistanceMod(SPELL_SCHOOL_NORMAL, bonusVal);
         }
 
         int32 GetResistance(SpellSchools school) const { return m_unitData->Resistances[school]; }
