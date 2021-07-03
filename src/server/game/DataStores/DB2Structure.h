@@ -3812,6 +3812,16 @@ struct VehicleSeatEntry
     inline bool IsEjectable() const { return HasFlag(VEHICLE_SEAT_FLAG_B_EJECTABLE); }
 };
 
+struct VehiclePOITypeEntry
+{
+    int32 ID;
+    int32 Flags;
+    int32 TextureWidth;
+    int32 TextureHeight;
+    int32 OccupiedTexture;
+    int32 UnoccupiedTexture;
+};
+
 struct WMOAreaTableEntry
 {
     LocalizedString AreaName;

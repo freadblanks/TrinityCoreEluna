@@ -6393,6 +6393,24 @@ struct VehicleSeatLoadInfo
     }
 };
 
+struct VehiclePoiTypeLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { true, FT_INT, "Flags" },
+            { true, FT_INT, "TextureWidth" },
+            { true, FT_INT, "TextureHeight" },
+            { true, FT_INT, "OccupiedTexture" },
+            { true, FT_INT, "UnoccupiedTexture" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, VehiclePOITypeMeta::Instance(), HOTFIX_SEL_VEHICLE_POI_TYPE);
+        return &loadInfo;
+    }
+};
+
 struct WmoAreaTableLoadInfo
 {
     static DB2LoadInfo const* Instance()

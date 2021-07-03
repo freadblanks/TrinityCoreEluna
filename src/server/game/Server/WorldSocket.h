@@ -57,7 +57,7 @@ struct PacketHeader
     uint32 Size;
     uint8 Tag[12];
 
-    bool IsValidSize() { return Size < std::numeric_limits<uint32>::max(); }
+    bool IsValidSize() { return Size < 0x8000000; }
 };
 
 struct IncomingPacketHeader : PacketHeader

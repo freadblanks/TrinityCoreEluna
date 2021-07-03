@@ -1645,6 +1645,11 @@ void HotfixDatabaseConnection::DoPrepareStatements()
         " WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_VEHICLE_SEAT, "SELECT MAX(ID) + 1 FROM vehicle_seat", CONNECTION_SYNCH);
 
+    // VehiclePoiType.db2
+    PrepareStatement(HOTFIX_SEL_VEHICLE_POI_TYPE, "SELECT ID, Flags, TextureWidth, TextureHeight, OccupiedTexture, UnoccupiedTexture"
+        " FROM vehicle_poi_type WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
+    PREPARE_MAX_ID_STMT(HOTFIX_SEL_VEHICLE_POI_TYPE, "SELECT MAX(ID) + 1 FROM vehicle_poi_type", CONNECTION_SYNCH);
+
     // WmoAreaTable.db2
     PrepareStatement(HOTFIX_SEL_WMO_AREA_TABLE, "SELECT AreaName, ID, WmoID, NameSetID, WmoGroupID, SoundProviderPref, SoundProviderPrefUnderwater, "
         "AmbienceID, UwAmbience, ZoneMusic, UwZoneMusic, IntroSound, UwIntroSound, AreaTableID, Flags FROM wmo_area_table"
