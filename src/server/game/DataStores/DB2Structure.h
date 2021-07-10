@@ -3048,6 +3048,13 @@ struct SpecializationSpellsEntry
     uint8 DisplayOrder;
 };
 
+struct SpecializationSpellsDisplayEntry
+{
+    uint32 ID;
+    uint16 SpecializationID;
+    uint32 SpecllID[6];
+};
+
 struct SpecSetMemberEntry
 {
     uint32 ID;

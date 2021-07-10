@@ -1312,6 +1312,11 @@ void HotfixDatabaseConnection::DoPrepareStatements()
     PREPARE_LOCALE_STMT(HOTFIX_SEL_SPECIALIZATION_SPELLS, "SELECT ID, Description_lang FROM specialization_spells_locale"
         " WHERE (`VerifiedBuild` > 0) = ? AND locale = ?", CONNECTION_SYNCH);
 
+    // SpecializationSpellsDisplay.db2
+    PrepareStatement(HOTFIX_SEL_SPECIALIZATION_SPELLS_DISPLAY, "SELECT ID, SpecializationID, SpecllID1, SpecllID2, SpecllID3, SpecllID4, SpecllID5, "
+        "SpecllID6 FROM specialization_spells_display WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
+    PREPARE_MAX_ID_STMT(HOTFIX_SEL_SPECIALIZATION_SPELLS_DISPLAY, "SELECT MAX(ID) + 1 FROM specialization_spells_display", CONNECTION_SYNCH);
+
     // SpecSetMember.db2
     PrepareStatement(HOTFIX_SEL_SPEC_SET_MEMBER, "SELECT ID, ChrSpecializationID, SpecSetID FROM spec_set_member WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_SPEC_SET_MEMBER, "SELECT MAX(ID) + 1 FROM spec_set_member", CONNECTION_SYNCH);

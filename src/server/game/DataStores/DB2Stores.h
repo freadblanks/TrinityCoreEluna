@@ -197,6 +197,7 @@ TC_GAME_API extern DB2Storage<SkillRaceClassInfoEntry>              sSkillRaceCl
 TC_GAME_API extern DB2Storage<SoundKitEntry>                        sSoundKitStore;
 TC_GAME_API extern DB2Storage<SoundKitEntryEntry>                   sSoundKitEntryStore;
 TC_GAME_API extern DB2Storage<SoundKitAdvancedEntry>                sSoundKitAdvancedStore;
+TC_GAME_API extern DB2Storage<SpecializationSpellsDisplayEntry>     sSpecializationSpellsDisplayStore;
 TC_GAME_API extern DB2Storage<SpellAuraOptionsEntry>                sSpellAuraOptionsStore;
 TC_GAME_API extern DB2Storage<SpellAuraRestrictionsEntry>           sSpellAuraRestrictionsStore;
 TC_GAME_API extern DB2Storage<SpellCastTimesEntry>                  sSpellCastTimesStore;

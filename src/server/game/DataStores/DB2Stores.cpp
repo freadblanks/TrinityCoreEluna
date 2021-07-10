@@ -268,6 +268,7 @@ DB2Storage<SoundKitEntry>                       sSoundKitStore("SoundKit.db2", S
 DB2Storage<SoundKitEntryEntry>                  sSoundKitEntryStore("SoundKitEntry.db2", SoundKitEntryLoadInfo::Instance());
 DB2Storage<SoundKitAdvancedEntry>               sSoundKitAdvancedStore("SoundKitAdvanced.db2", SoundKitAdvancedLoadInfo::Instance());
 DB2Storage<SpecializationSpellsEntry>           sSpecializationSpellsStore("SpecializationSpells.db2", SpecializationSpellsLoadInfo::Instance());
+DB2Storage<SpecializationSpellsDisplayEntry>    sSpecializationSpellsDisplayStore("SpecializationSpellsDisplay.db2", SpecializationSpellsDisplayLoadInfo::Instance());
 DB2Storage<SpellEntry>                          sSpellStore("Spell.db2", SpellLoadInfo::Instance());
 DB2Storage<SpecSetMemberEntry>                  sSpecSetMemberStore("SpecSetMember.db2", SpecSetMemberLoadInfo::Instance());
 DB2Storage<SpellAuraOptionsEntry>               sSpellAuraOptionsStore("SpellAuraOptions.db2", SpellAuraOptionsLoadInfo::Instance());
@@ -830,6 +831,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sSoundKitEntryStore);
     LOAD_DB2(sSoundKitAdvancedStore);
     LOAD_DB2(sSpecializationSpellsStore);
+    LOAD_DB2(sSpecializationSpellsDisplayStore);
     LOAD_DB2(sSpecSetMemberStore);
     LOAD_DB2(sSpellStore);
     LOAD_DB2(sSpellAuraOptionsStore);

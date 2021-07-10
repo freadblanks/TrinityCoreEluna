@@ -5042,6 +5042,26 @@ struct SpecializationSpellsLoadInfo
     }
 };
 
+struct SpecializationSpellsDisplayLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { false, FT_SHORT, "SpecializationID" },
+            { false, FT_INT, "SpecllID1" },
+            { false, FT_INT, "SpecllID2" },
+            { false, FT_INT, "SpecllID3" },
+            { false, FT_INT, "SpecllID4" },
+            { false, FT_INT, "SpecllID5" },
+            { false, FT_INT, "SpecllID6" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SpecializationSpellsDisplayMeta::Instance(), HOTFIX_SEL_SPECIALIZATION_SPELLS_DISPLAY);
+        return &loadInfo;
+    }
+};
+
 struct SpecSetMemberLoadInfo
 {
     static DB2LoadInfo const* Instance()

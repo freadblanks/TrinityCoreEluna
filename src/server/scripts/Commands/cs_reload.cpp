@@ -1248,7 +1248,6 @@ public:
         sDB2Manager.LoadHotfixData();
 
         // DB2
-        sAnimKitStore.LoadFromDB();
         sAreaTableStore.LoadFromDB();
         sAreaTriggerStore.LoadFromDB();
         sArmorLocationStore.LoadFromDB();
@@ -1260,12 +1259,6 @@ public:
         sArtifactPowerPickerStore.LoadFromDB();
         sAuctionHouseStore.LoadFromDB();
         sBankBagSlotPricesStore.LoadFromDB();
-        sBarberShopStyleStore.LoadFromDB();
-        sBattlePetBreedQualityStore.LoadFromDB();
-        sBattlePetBreedStateStore.LoadFromDB();
-        sBattlePetSpeciesStore.LoadFromDB();
-        sBattlePetSpeciesStateStore.LoadFromDB();
-        sBattlemasterListStore.LoadFromDB();
         sBroadcastTextStore.LoadFromDB();
         sCharTitlesStore.LoadFromDB();
         sChatChannelsStore.LoadFromDB();
@@ -1274,50 +1267,19 @@ public:
         sChrSpecializationStore.LoadFromDB();
         sChrCustomizationChoiceStore.LoadFromDB();
         sChrCustomizationOptionStore.LoadFromDB();
-        sCinematicCameraStore.LoadFromDB();
-        sCinematicSequencesStore.LoadFromDB();
-        sConversationLineStore.LoadFromDB();
         sCreatureDisplayInfoExtraStore.LoadFromDB();
-        sCreatureFamilyStore.LoadFromDB();
-        sCreatureModelDataStore.LoadFromDB();
-        sCreatureTypeStore.LoadFromDB();
         sCriteriaStore.LoadFromDB();
         sCriteriaTreeStore.LoadFromDB();
         sCurrencyTypesStore.LoadFromDB();
-        sCurveStore.LoadFromDB();
         sDestructibleModelDataStore.LoadFromDB();
-        sDifficultyStore.LoadFromDB();
-        sDungeonEncounterStore.LoadFromDB();
-        sDurabilityCostsStore.LoadFromDB();
-        sDurabilityQualityStore.LoadFromDB();
         sEmotesStore.LoadFromDB();
         sEmotesTextStore.LoadFromDB();
         sFactionStore.LoadFromDB();
         sFactionTemplateStore.LoadFromDB();
         sGameObjectsStore.LoadFromDB();
         sGameObjectDisplayInfoStore.LoadFromDB();
-        sGarrAbilityStore.LoadFromDB();
-        sGarrBuildingStore.LoadFromDB();
-        sGarrBuildingPlotInstStore.LoadFromDB();
-        sGarrClassSpecStore.LoadFromDB();
-        sGarrFollowerStore.LoadFromDB();
-        sGarrFollowerXAbilityStore.LoadFromDB();
-        sGarrPlotBuildingStore.LoadFromDB();
-        sGarrPlotStore.LoadFromDB();
-        sGarrPlotInstanceStore.LoadFromDB();
-        sGarrSiteLevelStore.LoadFromDB();
-        sGarrSiteLevelPlotInstStore.LoadFromDB();
         sGemPropertiesStore.LoadFromDB();
         sGlyphPropertiesStore.LoadFromDB();
-        sGuildColorBackgroundStore.LoadFromDB();
-        sGuildColorBorderStore.LoadFromDB();
-        sGuildColorEmblemStore.LoadFromDB();
-        sGuildPerkSpellsStore.LoadFromDB();
-        sHolidaysStore.LoadFromDB();
-        sImportPriceArmorStore.LoadFromDB();
-        sImportPriceQualityStore.LoadFromDB();
-        sImportPriceShieldStore.LoadFromDB();
-        sImportPriceWeaponStore.LoadFromDB();
         sItemAppearanceStore.LoadFromDB();
         sItemArmorQualityStore.LoadFromDB();
         sItemArmorShieldStore.LoadFromDB();
@@ -1342,35 +1304,20 @@ public:
         sItemSparseStore.LoadStringsFromDB(LocaleConstant::LOCALE_ruRU); // locale frFR
         sItemSpecStore.LoadFromDB();
         sItemSpecOverrideStore.LoadFromDB();
-        sLFGDungeonsStore.LoadFromDB();
-        sLiquidTypeStore.LoadFromDB();
-        sLockStore.LoadFromDB();
-        sMailTemplateStore.LoadFromDB();
         sMapStore.LoadFromDB();
         sModifierTreeStore.LoadFromDB();
         sMountCapabilityStore.LoadFromDB();
         sMountStore.LoadFromDB();
-        sMovieStore.LoadFromDB();
         sOverrideSpellDataStore.LoadFromDB();
-        sPhaseStore.LoadFromDB();
         sPlayerConditionStore.LoadFromDB();
         sPowerDisplayStore.LoadFromDB();
-        sQuestFactionRewardStore.LoadFromDB();
-        sQuestMoneyRewardStore.LoadFromDB();
-        sQuestSortStore.LoadFromDB();
-        sQuestXPStore.LoadFromDB();
-        sRandPropPointsStore.LoadFromDB();
-        sRewardPackStore.LoadFromDB();
         sScenarioStore.LoadFromDB();
         sScenarioStepStore.LoadFromDB();
         sSceneScriptPackageStore.LoadFromDB();
-        sScreenEffectStore.LoadFromDB();
         sSkillLineStore.LoadFromDB();
         sSkillLineAbilityStore.LoadFromDB();
         sSkillRaceClassInfoStore.LoadFromDB();
-        sSoundKitStore.LoadFromDB();
-        sSoundKitEntryStore.LoadFromDB();
-        sSoundKitAdvancedStore.LoadFromDB();
+        sSpecializationSpellsDisplayStore.LoadFromDB();
         sSpellStore.LoadFromDB();
         sSpellAuraOptionsStore.LoadFromDB();
         sSpellAuraRestrictionsStore.LoadFromDB();
@@ -1396,21 +1343,10 @@ public:
         sSpellRangeStore.LoadFromDB();
         sSpellReagentsStore.LoadFromDB();
         sSpellScalingStore.LoadFromDB();
-        sSpellShapeshiftStore.LoadFromDB();
-        sSpellShapeshiftFormStore.LoadFromDB();
         sSpellTargetRestrictionsStore.LoadFromDB();
-        sSpellTotemsStore.LoadFromDB();
-        sSpellXSpellVisualStore.LoadFromDB();
-        sSummonPropertiesStore.LoadFromDB();
         sTalentStore.LoadFromDB();
         sTaxiNodesStore.LoadFromDB();
         sTaxiPathStore.LoadFromDB();
-        sTransportAnimationStore.LoadFromDB();
-        sTransportRotationStore.LoadFromDB();
-        sUnitPowerBarStore.LoadFromDB();
-        sVehicleStore.LoadFromDB();
-        sVehicleSeatStore.LoadFromDB();
-        sWorldMapOverlayStore.LoadFromDB();
 
         // For items.
         sObjectMgr->LoadItemTemplates();
@@ -1425,7 +1361,7 @@ public:
         for (HashMapHolder<Player>::MapType::const_iterator itr = m.begin(); itr != m.end(); ++itr)
             itr->second->GetSession()->SendAvailableHotfixes();
 
-        handler->SendGlobalGMSysMessage("All DB2 reloaded.");
+        handler->SendGlobalGMSysMessage("98 DB2 reloaded.");
         handler->SendGlobalGMSysMessage("Hotfixes data reloaded.");
 
         return true;
