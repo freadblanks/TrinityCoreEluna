@@ -29044,6 +29044,8 @@ void Player::SendBattlePayMessage(uint32 bpaymessageID, std::string name, uint32
         msg << "The purchase '" << name << "' was successful!";
     if (bpaymessageID == 2)
         msg << "Remaining credits: " << GetBattlePayCredits() << " .";
+    if (bpaymessageID == 3)
+        msg << "You have now '" << value << "' credits.";
 
     if (bpaymessageID == 10)
         msg << "You cannot purchase '" << name << "' . Contact a game master to find out more.";
@@ -29104,7 +29106,7 @@ bool Player::ModifyBattlePayCredits(uint64 credits) const
     stmt->setUInt64(0, credits);
     stmt->setUInt32(1, GetSession()->GetBattlenetAccountId());
     LoginDatabase.Execute(stmt);
-
+    SendBattlePayMessage(3, "", credits);
     return true;
 }
 

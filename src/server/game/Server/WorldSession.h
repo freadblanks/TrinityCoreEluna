@@ -91,6 +91,13 @@ namespace UF
     struct ChrCustomizationChoice;
 }
 
+enum AuthFlags
+{
+    AT_AUTH_FLAG_NONE = 0x0,
+    AT_AUTH_FLAG_50_LVL_UP = 0x1,
+    AT_AUTH_FLAG_RESTORE_DELETED_CHARACTER = 0x2,
+};
+
 namespace WorldPackets
 {
     namespace Achievement
@@ -1467,6 +1474,13 @@ class TC_GAME_API WorldSession
         void HandleBuyReagentBankOpcode(WorldPackets::NPC::Hello& packet);
         void HandleDepositReagentBankOpcode(WorldPackets::Bank::DepositReagentBank& packet);
 
+        // Battle Pay
+        AuthFlags GetAF() const { return atAuthFlag; }
+        bool HasAuthFlag(AuthFlags f) const { return atAuthFlag & f; }
+        void AddAuthFlag(AuthFlags f);
+        void RemoveAuthFlag(AuthFlags f);
+        void SaveAuthFlag();
+
         // Black Market
         void HandleBlackMarketOpen(WorldPackets::BlackMarket::BlackMarketOpen& blackMarketOpen);
         void HandleBlackMarketRequestItems(WorldPackets::BlackMarket::BlackMarketRequestItems& blackMarketRequestItems);
@@ -1971,6 +1985,8 @@ class TC_GAME_API WorldSession
         std::unique_ptr<BattlePetMgr> _battlePetMgr;
 
         std::unique_ptr<CollectionMgr> _collectionMgr;
+
+        AuthFlags atAuthFlag = AT_AUTH_FLAG_NONE;
 
         ConnectToKey _instanceConnectKey;
 

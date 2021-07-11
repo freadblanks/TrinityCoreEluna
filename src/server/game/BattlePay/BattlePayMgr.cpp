@@ -35,7 +35,7 @@ BattlepayManager::BattlepayManager(WorldSession* session)
     _session = session;
     _purchaseIDCount = 0;
     _distributionIDCount = 0;
-    _walletName = "Credits";
+    _walletName = "AP";
 }
 
 BattlepayManager::~BattlepayManager() = default;
@@ -115,10 +115,6 @@ void BattlepayManager::ProcessDelivery(Purchase * purchase)
         if (player)
             player->ModifyMoney(product.CustomValue);
         break;
-        /*case Battlepay::Currency:
-            if (player)
-                player->ModifyCurrency(currencyID, product.CustomValue); // implement currencyID in DB
-            break;*/
     case Battlepay::Level:
     {
         if (player)
@@ -128,10 +124,6 @@ void BattlepayManager::ProcessDelivery(Purchase * purchase)
         }
         break;
     }
-    /*case Battlepay::BattlePet:
-        if (player)
-            player->AddBattlePetByCreatureId(product.CustomValue, true, true);
-        break;*/
     case Battlepay::CharacterRename:
         if (player)
             player->SetAtLoginFlag(AT_LOGIN_RENAME);
