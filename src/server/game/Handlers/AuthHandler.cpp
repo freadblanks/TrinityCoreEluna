@@ -98,10 +98,11 @@ void WorldSession::SendSetTimeZoneInformation()
 void WorldSession::SendFeatureSystemStatusGlueScreen()
 {
     WorldPackets::System::FeatureSystemStatusGlueScreen features;
+    features.BpayStoreEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_BATTLE_PAY_ENABLED);
     features.BpayStoreAvailable = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_BATTLE_PAY_AVAILABLE);
+    features.CommerceSystemEnabled = true;
     features.BpayStoreDisabledByParentalControls = false;
     features.CharUndeleteEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_CHARACTER_UNDELETE_ENABLED);
-    features.BpayStoreEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED);
     features.MaxCharactersPerRealm = sWorld->getIntConfig(CONFIG_CHARACTERS_PER_REALM);
     features.MinimumExpansionLevel = EXPANSION_CLASSIC;
     features.MaximumExpansionLevel = sWorld->getIntConfig(CONFIG_EXPANSION);

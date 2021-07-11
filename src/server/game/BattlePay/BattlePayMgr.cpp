@@ -35,7 +35,7 @@ BattlepayManager::BattlepayManager(WorldSession* session)
     _session = session;
     _purchaseIDCount = 0;
     _distributionIDCount = 0;
-    _walletName = "AP";
+    _walletName = "Aviana Points";
 }
 
 BattlepayManager::~BattlepayManager() = default;
