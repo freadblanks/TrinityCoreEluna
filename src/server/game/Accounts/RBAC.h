@@ -817,6 +817,10 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_COSMETIC                               = 1030,
     RBAC_PERM_COMMAND_COSMETIC_AURA                          = 1031,
     RBAC_PERM_COMMAND_COSMETIC_UNAURA                        = 1032,
+    // Aura system 2
+    RBAC_PERM_COMMAND_PLUS                                   = 1035,
+    RBAC_PERM_COMMAND_PLUS_AURA                              = 1036,
+    RBAC_PERM_COMMAND_PLUS_UNAURA                            = 1037,
     // Custom Script
     RBAC_PERM_COMMAND_BLACKMARKET                            = 2004,
     RBAC_PERM_COMMAND_BLACKMARKET_SET_DURATION               = 2005,

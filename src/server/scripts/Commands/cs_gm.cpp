@@ -215,12 +215,19 @@ public:
                 uint8 security = itrSec;
                 uint8 max = ((16 - size) / 2);
                 uint8 max2 = max;
+                QueryResult result = LoginDatabase.PQuery("SELECT rank FROM rbac_default_permissions WHERE secId = %i;", security);
+                Field* fields = result->Fetch();
+                std::string rank = fields[0].GetString();
                 if ((max + max2 + size) == 16)
                     max2 = max - 1;
                 if (handler->GetSession())
-                    handler->PSendSysMessage("|    %s GMLevel %u", name.c_str(), security);
+                {
+                    handler->PSendSysMessage("|  %s %s GMLevel %u", rank.c_str(), name.c_str(), security);
+                }
                 else
+                {
                     handler->PSendSysMessage("|%*s%s%*s|   %u  |", max, " ", name.c_str(), max2, " ", security);
+                }
             }
         }
         if (footer)

@@ -29041,23 +29041,23 @@ void Player::SendBattlePayMessage(uint32 bpaymessageID, std::string name, uint32
 {
     std::ostringstream msg;
     if (bpaymessageID == 1)
-        msg << "The purchase '" << name << "' was successful!";
+        msg << "Покупка '" << name << "' успешно завершена!";
     if (bpaymessageID == 2)
-        msg << "Remaining credits: " << GetBattlePayCredits() << " .";
+        msg << "Осталось валюты: " << GetBattlePayCredits() << ".";
     if (bpaymessageID == 3)
-        msg << "You have now '" << value << "' credits.";
+        msg << "Теперь у вас на счете '" << value << "' валюты.";
 
     if (bpaymessageID == 10)
-        msg << "You cannot purchase '" << name << "' . Contact a game master to find out more.";
+        msg << "Вы не можете купить '" << name << "' . Свяжитесь с администрацией.";
     if (bpaymessageID == 11)
-        msg << "Your bags are too full to add : " << name << " .";
+        msg << "Ваша сумка переполнена, чтобы добавить туда : " << name << " .";
     if (bpaymessageID == 12)
-        msg << "You have already purchased : " << name << " .";
+        msg << "Вы уже приобрели : " << name << " .";
 
     if (bpaymessageID == 20)
-        msg << "The battle pay credits have been updated for the character '" << name << "' ! Available credits:" << value << " .";
+        msg << "Количество донатной валюты было обновлено, для '" << name << "' ! Доступно валюты:" << value << " .";
     if (bpaymessageID == 21)
-        msg << "You must enter an amount !";
+        msg << "Необходимо ввести количество !";
 
     ChatHandler(GetSession()).SendSysMessage(msg.str().c_str());
 }
