@@ -737,6 +737,37 @@ enum ReactiveType
 
 #define MAX_GAMEOBJECT_SLOT 4
 
+enum class ToastType : uint32
+{
+    ITEM = 0,
+    CURRENCY = 1,
+    MONEY = 2,
+    HONOR = 3,
+};
+
+enum class DisplayToastMethod : uint8
+{
+    // entry_* - used for all ToastType
+    DISPLAY_TOAST_NONE = 0,
+    DISPLAY_TOAST_DEFAULT = 1,  // LootToast-Default
+    DISPLAY_TOAST_PET_BATTLE_LOOT = 2,  // triggers PET_BATTLE_LOOT_RECEIVED
+    DISPLAY_TOAST_ENTRY_LOOT_PERSONAL_1 = 3,  // in LUA events isPersonal = true
+    DISPLAY_TOAST_GARRISON_BONUS_ROLL = 4,
+    DISPLAY_TOAST_ITEM_UPGRADE_1 = 5,  // old draenor quest upgrade
+    DISPLAY_TOAST_ITEM_UPGRADE_2 = 6,  // old draenor quest upgrade
+    DISPLAY_TOAST_ENTRY_LOOT_PERSONAL_2 = 7,  // in LUA events isPersonal = true
+    DISPLAY_TOAST_GARRISON_BONUS_ROLL_2 = 8,
+    DISPLAY_TOAST_ENTRY_PVP_FACTION = 9,  // PvP background (Alliance/Horde) in toast frame
+    DISPLAY_TOAST_ENTRY_LOOT_PERSONAL_3 = 10, // in LUA events isPersonal = true
+    DISPLAY_TOAST_UNK_LESS_AWESOME = 11, // in LUA events lessAwesome = true, LootToast-LessAwesome, not glowing and less bright color
+    DISPLAY_TOAST_ITEM_WARFORGE = 12, // LootToast-MoreAwesome
+    DISPLAY_TOAST_ITEM_LEGENDARY = 13, // triggers SHOW_LOOT_TOAST_LEGENDARY_LOOTED
+    DISPLAY_TOAST_UNK = 14,
+    DISPLAY_TOAST_UNK_1 = 15,
+    TOAST_METHOD_WORLD_QUEST_REWARD = 16,
+    DISPLAY_TOAST_ENTRY_RATED_PVP_REWARD = 17, // more awesome PvP background (Alliance/Horde) in toast frame
+};
+
 // delay time next attack to prevent client attack animation problems
 #define ATTACK_DISPLAY_DELAY 200
 #define MAX_PLAYER_STEALTH_DETECT_RANGE 30.0f               // max distance for detection targets by player
@@ -1534,6 +1565,8 @@ class TC_GAME_API Unit : public WorldObject
 
         virtual bool IsFocusing(Spell const* /*focusSpell*/ = nullptr, bool /*withDelay*/ = false) { return false; }
         virtual bool IsMovementPreventedByCasting() const;
+
+        void SendDisplayToast(uint32 entry, ToastType displayToastMethod, bool isBonusRoll, uint32 count, DisplayToastMethod type, uint32 questID = 0, Item* item = nullptr);
 
         SpellHistory* GetSpellHistory() { return _spellHistory; }
         SpellHistory const* GetSpellHistory() const { return _spellHistory; }

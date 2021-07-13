@@ -52,6 +52,7 @@
 #include "DatabaseEnv.h"
 #include "World.h"
 #include "WorldSession.h"
+#include "Mail.h"
 
 
 
@@ -131,8 +132,64 @@ public:
 
 };
 
+class playerscript_recruiter : public PlayerScript
+{
+public:
+    playerscript_recruiter() : PlayerScript("playerscript_recruiter") {}
+
+    void OnLogin(Player* player, bool /*firstLogin*/) override
+    {
+        if (player->getLevel() != 60)
+            return;
+
+        QueryResult result = LoginDatabase.PQuery("SELECT recruiter, recruiter_rewarded FROM account WHERE id = %u", player->GetSession()->GetAccountId());
+        if (!result)
+            return;
+
+        Field* fields = result->Fetch();
+        uint32 recruiter = fields[0].GetUInt32();
+        bool recruiterRewarded = fields[1].GetBool();
+
+        if (recruiterRewarded)
+            return;
+
+        result = CharacterDatabase.PQuery("SELECT guid, NAME FROM characters WHERE account = %u ORDER BY totaltime DESC LIMIT 1", recruiter);
+        if (!result)
+            return;
+
+        fields = result->Fetch();
+        uint64 recruiterCharacterGUID = fields[0].GetUInt64();
+
+        if (!recruiterCharacterGUID)
+            return;
+
+        result = LoginDatabase.PQuery("SELECT COUNT(*) FROM account WHERE recruiter = %u AND recruiter_rewarded = 1", recruiter);
+        if (!result)
+            return;
+
+        fields = result->Fetch();
+        uint32 recruiterRewardCount = fields[0].GetUInt32();
+        uint32 rewardItem = 0;
+
+        switch (++recruiterRewardCount)
+        {
+        case 1: rewardItem = 54860;     break; // X-53 Touring Rocket
+        case 2: rewardItem = 37719;     break; // Swift Zhevra
+        case 5: rewardItem = 106246;    break; // Emerald Hippogryph
+        default: break;
+        }
+
+        if (rewardItem)
+        {
+            CharacterDatabase.PExecute("INSERT INTO character_shop (guid, type, itemId, itemCount) VALUES (" UI64FMTD ", 0, %u, 1)", recruiterCharacterGUID, rewardItem);
+            LoginDatabase.PExecute("UPDATE account SET recruiter_rewarded = 1 WHERE id = %u", player->GetSession()->GetAccountId());
+        }
+    }
+};
+
 void AddSC_PandarenFaction()
 {
     new PandarenFaction;
     new Player_skybox;
+    new playerscript_recruiter;
 }

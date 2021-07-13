@@ -136,6 +136,7 @@
 #include <sstream>
 
 #define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
+#define SHOP_UPDATE_INTERVAL (30*IN_MILLISECONDS)
 
 // corpse reclaim times
 #define DEATH_EXPIRE_STEP (5*MINUTE)
@@ -363,6 +364,8 @@ Player::Player(WorldSession* session) : Unit(true), m_sceneMgr(this)
     _advancedCombatLoggingEnabled = false;
 
     _restMgr = std::make_unique<RestMgr>(this);
+
+    m_shopTimer = 0;
 
     _usePvpItemLevels = false;
 }
@@ -593,7 +596,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     return true;
 }
 
-bool Player::StoreNewItemInBestSlots(uint32 titem_id, uint32 titem_amount)
+bool Player::StoreNewItemInBestSlots(uint32 titem_id, uint32 titem_amount, ItemContext /*context*/)
 {
     TC_LOG_DEBUG("entities.player.items", "Player::StoreNewItemInBestSlots: Player '%s' (%s) creates initial item (ItemID: %u, Count: %u)",
         GetName().c_str(), GetGUID().ToString().c_str(), titem_id, titem_amount);
@@ -1245,6 +1248,8 @@ void Player::Update(uint32 p_time)
     if (pet && !pet->IsWithinDistInMap(this, GetMap()->GetVisibilityRange()) && !pet->isPossessed())
     //if (pet && !pet->IsWithinDistInMap(this, GetMap()->GetVisibilityDistance()) && (GetCharmGUID() && (pet->GetGUID() != GetCharmGUID())))
         RemovePet(pet, PET_SAVE_NOT_IN_SLOT, true);
+
+    UpdateShop(p_time);
 
     if (IsAlive())
     {
@@ -29041,23 +29046,23 @@ void Player::SendBattlePayMessage(uint32 bpaymessageID, std::string name, uint32
 {
     std::ostringstream msg;
     if (bpaymessageID == 1)
-        msg << "Покупка '" << name << "' успешно завершена!";
+        msg << "??????? '" << name << "' ??????? ?????????!";
     if (bpaymessageID == 2)
-        msg << "Осталось валюты: " << GetBattlePayCredits() << ".";
+        msg << "???????? ??????: " << GetBattlePayCredits() << ".";
     if (bpaymessageID == 3)
-        msg << "Теперь у вас на счете '" << value << "' валюты.";
+        msg << "?????? ? ??? ?? ????? '" << value << "' ??????.";
 
     if (bpaymessageID == 10)
-        msg << "Вы не можете купить '" << name << "' . Свяжитесь с администрацией.";
+        msg << "?? ?? ?????? ?????? '" << name << "' . ????????? ? ??????????????.";
     if (bpaymessageID == 11)
-        msg << "Ваша сумка переполнена, чтобы добавить туда : " << name << " .";
+        msg << "???? ????? ???????????, ????? ???????? ???? : " << name << " .";
     if (bpaymessageID == 12)
-        msg << "Вы уже приобрели : " << name << " .";
+        msg << "?? ??? ????????? : " << name << " .";
 
     if (bpaymessageID == 20)
-        msg << "Количество донатной валюты было обновлено, для '" << name << "' ! Доступно валюты:" << value << " .";
+        msg << "?????????? ???????? ?????? ???? ?????????, ??? '" << name << "' ! ???????? ??????:" << value << " .";
     if (bpaymessageID == 21)
-        msg << "Необходимо ввести количество !";
+        msg << "?????????? ?????? ?????????? !";
 
     ChatHandler(GetSession()).SendSysMessage(msg.str().c_str());
 }
@@ -29117,4 +29122,74 @@ void Player::SendBattlePayBattlePetDelivered(ObjectGuid petguid, uint32 creature
     response.BattlePetGuid = petguid;
     m_session->SendPacket(response.Write());
     TC_LOG_ERROR("", "Send BattlePayBattlePetDelivered guid : %u && creatureID : %u", petguid.GetCounter(), creatureID);
+}
+
+void Player::UpdateShop(uint32 diff)
+{
+    if (m_shopTimer > diff)
+    {
+        m_shopTimer -= diff;
+        return;
+    }
+
+    m_shopTimer = SHOP_UPDATE_INTERVAL;
+
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_SHOP);
+    stmt->setUInt64(0, GetGUID().GetCounter());
+    PreparedQueryResult result = CharacterDatabase.Query(stmt);
+
+    if (!result)
+        return;
+
+    CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+
+    do
+    {
+        Field* fields = result->Fetch();
+
+        uint32 id = fields[0].GetUInt32();
+        uint8  type = fields[1].GetUInt8();
+        uint32 itemId = fields[2].GetUInt32();
+        int32  itemCount = fields[3].GetInt32();
+
+        bool delivered = false;
+
+        switch (type)
+        {
+        case 0: // ITEM
+        {
+            if (itemCount < 0)
+            {
+                DestroyItemCount(itemId, -itemCount, true, false);
+                delivered = true;
+            }
+            else
+            {
+                delivered = AddItem(itemId, itemCount);
+
+                if (delivered)
+                {
+                    SendDisplayToast(itemId, ToastType::ITEM, false, itemCount, DisplayToastMethod::DISPLAY_TOAST_DEFAULT, 0);
+                }
+            }
+
+            break;
+        }
+        case 1: // APPEARANCE
+        {
+            GetSession()->GetCollectionMgr()->AddItemAppearance(itemId, uint32(itemCount));
+            delivered = true;
+            break;
+        }
+        }
+
+        if (delivered)
+        {
+            CharacterDatabasePreparedStatement* deliveredStmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_SHOP_DELIVERED);
+            deliveredStmt->setUInt32(0, id);
+            trans->Append(deliveredStmt);
+        }
+    } while (result->NextRow());
+
+    CharacterDatabase.CommitTransaction(trans);
 }
