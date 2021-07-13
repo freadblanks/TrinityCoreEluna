@@ -63,6 +63,14 @@ enum SpellEffIndex : uint8
 #define EFFECT_FIRST_FOUND 254
 #define EFFECT_ALL 255
 
+enum Roles
+{
+    ROLE_TANK = 0,
+    ROLE_HEALER = 1,
+    ROLE_DAMAGE = 2,
+    ROLES_DEFAULT = 3
+};
+
 // loot modes for creatures and gameobjects, bitmask!
 enum LootModes
 {
@@ -6016,6 +6024,20 @@ enum BattlegroundTypeId : uint32
 
 #define MAX_BATTLEGROUND_TYPE_ID 845
 
+enum BracketType
+{
+    BRACKET_TYPE_ARENA_2 = 0,
+    BRACKET_TYPE_ARENA_3 = 1,
+    BRACKET_TYPE_ARENA_5 = 2,
+    BRACKET_TYPE_RATED_BG = 3,
+    BRACKET_TYPE_SKIRMISH_2V2 = 4,
+    BRACKET_TYPE_SKIRMISH_3V3 = 5,
+    BRACKET_TYPE_BRAWL_BATTLEGROUND = 6,
+    BRACKET_TYPE_BRAWL_ARENA = 7,
+
+    BRACKET_TYPE_MAX
+};
+
 enum MailResponseType
 {
     MAIL_SEND               = 0,
@@ -7508,6 +7530,18 @@ enum class MountResult : uint32
     Shapeshifted   = 8,
     ForcedDismount = 9,
     Ok             = 10 // never sent
+};
+
+enum BattleGroundCapturePointState : int8
+{
+    NODE_STATE_NONE = 0,
+    NODE_STATE_NEUTRAL = 1,
+
+    NODE_STATE_HORDE_ASSAULT = 2,
+    NODE_STATE_ALLIANCE_ASSAULT = 3,
+
+    NODE_STATE_HORDE_CAPTURE = 4,
+    NODE_STATE_ALLIANCE_CAPTURE = 5,
 };
 
 #endif

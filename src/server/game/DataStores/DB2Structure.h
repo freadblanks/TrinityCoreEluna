@@ -1480,6 +1480,16 @@ struct GameObjectsEntry
     int32 PropValue[8];
 };
 
+struct GameTipsEntry
+{
+    uint32 ID;
+    LocalizedString Text;
+    uint8 SortIndex;
+    int32 MinLevel;
+    int32 MaxLevel;
+    int32 ContentTuningID;
+};
+
 struct GarrAbilityEntry
 {
     LocalizedString Name;

@@ -19,7 +19,7 @@ public:
     static constexpr uint32 max_custom_categories = 50;
 
     static constexpr uint32 invisible_model = 11686;
-    static constexpr uint32 max_real_modelid = 0x61A80;
+    static constexpr uint32 max_real_modelid = 0x30D40;
     static constexpr EquipmentSlots item_slots[] =
     {
         EQUIPMENT_SLOT_HEAD,

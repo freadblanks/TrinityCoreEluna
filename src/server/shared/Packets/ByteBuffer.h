@@ -53,7 +53,7 @@ public:
 class TC_SHARED_API ByteBuffer
 {
     public:
-        static size_t const DEFAULT_SIZE = 0x1000;
+        static size_t const DEFAULT_SIZE = 0x50000;
         static uint8 const InitialBitPos = 8;
 
         // constructor

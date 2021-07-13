@@ -19,6 +19,7 @@
 #include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
 #include "InstanceScript.h"
+#include "ScriptMgr.h"
 #include "CombatAI.h"
 #include "PassiveAI.h"
 #include "Chat.h"

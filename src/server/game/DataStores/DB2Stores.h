@@ -108,6 +108,7 @@ TC_GAME_API extern DB2Storage<FriendshipRepReactionEntry>           sFriendshipR
 TC_GAME_API extern DB2Storage<FriendshipReputationEntry>            sFriendshipReputationStore;
 TC_GAME_API extern DB2Storage<GameObjectDisplayInfoEntry>           sGameObjectDisplayInfoStore;
 TC_GAME_API extern DB2Storage<GameObjectsEntry>                     sGameObjectsStore;
+TC_GAME_API extern DB2Storage<GameTipsEntry>                        sGameTipsStore;
 TC_GAME_API extern DB2Storage<GarrAbilityEntry>                     sGarrAbilityStore;
 TC_GAME_API extern DB2Storage<GarrBuildingEntry>                    sGarrBuildingStore;
 TC_GAME_API extern DB2Storage<GarrBuildingPlotInstEntry>            sGarrBuildingPlotInstStore;

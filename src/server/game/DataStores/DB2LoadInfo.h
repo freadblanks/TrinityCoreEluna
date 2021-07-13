@@ -2123,6 +2123,24 @@ struct GameobjectsLoadInfo
     }
 };
 
+struct GameTipsLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_INT, "ID" },
+            { false, FT_STRING, "Text" },
+            { false, FT_BYTE, "SortIndex" },
+            { true, FT_INT, "MinLevel" },
+            { true, FT_INT, "MaxLevel" },
+            { true, FT_INT, "ContentTuningID" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, GameTipsMeta::Instance(), HOTFIX_SEL_GAME_TIPS);
+        return &loadInfo;
+    }
+};
+
 struct GarrAbilityLoadInfo
 {
     static DB2LoadInfo const* Instance()
