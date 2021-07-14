@@ -139,7 +139,7 @@ public:
 
     void OnLogin(Player* player, bool /*firstLogin*/) override
     {
-        if (player->getLevel() != 60)
+        if (player->getLevel() != 80)
             return;
 
         QueryResult result = LoginDatabase.PQuery("SELECT recruiter, recruiter_rewarded FROM account WHERE id = %u", player->GetSession()->GetAccountId());
