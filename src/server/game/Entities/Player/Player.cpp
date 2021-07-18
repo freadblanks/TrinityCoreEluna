@@ -443,13 +443,13 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     {
         if (GetTeam() == ALLIANCE)
         {
-            Relocate(-9.2511635f, -13.294308f, 10.663386f, 1.7356367f); // aliance
+            Relocate(1775.42f, 1506.26f, 8.6f, 2.78051f); // aliance NPE
         }
         else if (GetTeam() == HORDE)
         {
-            Relocate(-10.7291f, -7.14635f, 8.73113f, 1.563205957412719726f); // orda scene 2486
+            Relocate(1775.42f, 1506.26f, 8.6f, 2.78051f); // horde NPE
         }
-            SetMap(sMapMgr->CreateMap(2175, this));
+            SetMap(sMapMgr->CreateMap(1540, this));
     }
     else
     {
@@ -29046,23 +29046,23 @@ void Player::SendBattlePayMessage(uint32 bpaymessageID, std::string name, uint32
 {
     std::ostringstream msg;
     if (bpaymessageID == 1)
-        msg << "??????? '" << name << "' ??????? ?????????!";
+        msg << "Покупка '" << name << "' успешно завершена!";
     if (bpaymessageID == 2)
-        msg << "???????? ??????: " << GetBattlePayCredits() << ".";
+        msg << "Осталось валюты: " << GetBattlePayCredits() << ".";
     if (bpaymessageID == 3)
-        msg << "?????? ? ??? ?? ????? '" << value << "' ??????.";
+        msg << "Теперь у вас на счете '" << value << "' валюты.";
 
     if (bpaymessageID == 10)
-        msg << "?? ?? ?????? ?????? '" << name << "' . ????????? ? ??????????????.";
+        msg << "Вы не можете приобрести '" << name << "' . Свяжитесь с администрацией.";
     if (bpaymessageID == 11)
-        msg << "???? ????? ???????????, ????? ???????? ???? : " << name << " .";
+        msg << "Ваша сумка переполнена, чтобы добавить туда : " << name << " .";
     if (bpaymessageID == 12)
-        msg << "?? ??? ????????? : " << name << " .";
+        msg << "Вы уже приобрели : " << name << " .";
 
     if (bpaymessageID == 20)
-        msg << "?????????? ???????? ?????? ???? ?????????, ??? '" << name << "' ! ???????? ??????:" << value << " .";
+        msg << "Количество донатной валюты было обновлено, для '" << name << "' ! Доступно валюты:" << value << " .";
     if (bpaymessageID == 21)
-        msg << "?????????? ?????? ?????????? !";
+        msg << "Необходимо ввести количество !";
 
     ChatHandler(GetSession()).SendSysMessage(msg.str().c_str());
 }

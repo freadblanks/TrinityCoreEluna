@@ -187,9 +187,25 @@ public:
     }
 };
 
+class OnLearnFishing : public PlayerScript //Temp Fix on Fishing Skill learn
+{
+public:
+    OnLearnFishing() : PlayerScript("OnLearnFishing") { }
+
+    void OnLogin(Player* player, bool /*firstLogin*/) override
+    {
+        if (player->HasSkill(2592))
+        {
+            player->SetSkill(356, 0, 1, 300);
+        }
+    }
+
+};
+
 void AddSC_PandarenFaction()
 {
     new PandarenFaction;
     new Player_skybox;
     new playerscript_recruiter;
+    new OnLearnFishing;
 }

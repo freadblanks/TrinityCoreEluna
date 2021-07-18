@@ -1336,6 +1336,7 @@ public:
         sSpellItemEnchantmentConditionStore.LoadFromDB();
         sSpellLearnSpellStore.LoadFromDB();
         sSpellLevelsStore.LoadFromDB();
+        sSpellLabelStore.LoadFromDB();
         sSpellMiscStore.LoadFromDB();
         sSpellPowerStore.LoadFromDB();
         sSpellProcsPerMinuteStore.LoadFromDB();

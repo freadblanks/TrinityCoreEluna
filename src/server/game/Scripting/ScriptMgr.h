@@ -659,6 +659,9 @@ class TC_GAME_API PlayerScript : public UnitScript
         // Called when a player's reputation changes (before it is actually changed)
         virtual void OnReputationChange(Player* /*player*/, uint32 /*factionId*/, int32& /*standing*/, bool /*incremental*/) { }
 
+        // Called when a player learned new spell
+        virtual void OnLearnSpell(Player* /*player*/, uint32 /*spellID*/) {}
+
         // Called when a duel is requested
         virtual void OnDuelRequest(Player* /*target*/, Player* /*challenger*/) { }
 
@@ -1082,6 +1085,7 @@ class TC_GAME_API ScriptMgr
         void OnPlayerMoneyLimit(Player* player, int64 amount);
         void OnGivePlayerXP(Player* player, uint32& amount, Unit* victim);
         void OnPlayerReputationChange(Player* player, uint32 factionID, int32& standing, bool incremental);
+        void OnPlayerLearnSpell(Player* player, uint32 spellID);
         void OnPlayerDuelRequest(Player* target, Player* challenger);
         void OnPlayerDuelStart(Player* player1, Player* player2);
         void OnPlayerDuelEnd(Player* winner, Player* loser, DuelCompleteType type);

@@ -3931,9 +3931,9 @@ class spell_item_water_strider : public AuraScript
         });
     }
 
-    void OnRemove(AuraEffect const* /*effect*/, AuraEffectHandleModes /*mode*/)
+    void OnRemove(AuraEffect const* effect, AuraEffectHandleModes /*mode*/)
     {
-        GetTarget()->RemoveAurasDueToSpell(GetSpellInfo()->GetEffect(EFFECT_1)->TriggerSpell);
+        GetTarget()->RemoveAurasDueToSpell(effect->GetSpellEffectInfo()->TriggerSpell);
     }
 
     void Register() override

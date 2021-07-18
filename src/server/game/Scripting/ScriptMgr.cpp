@@ -2105,6 +2105,11 @@ void ScriptMgr::OnPlayerReputationChange(Player* player, uint32 factionID, int32
     FOREACH_SCRIPT(PlayerScript)->OnReputationChange(player, factionID, standing, incremental);
 }
 
+void ScriptMgr::OnPlayerLearnSpell(Player* player, uint32 spellID)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnLearnSpell(player, spellID);
+}
+
 void ScriptMgr::OnPlayerDuelRequest(Player* target, Player* challenger)
 {
 #ifdef ELUNA
