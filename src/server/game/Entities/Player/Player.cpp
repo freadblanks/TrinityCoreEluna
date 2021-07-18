@@ -439,23 +439,24 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     for (uint8 i = 0; i < PLAYER_SLOTS_COUNT; i++)
         m_items[i] = nullptr;
 
-    if (createInfo->UseNPE)
-    {
-        if (GetTeam() == ALLIANCE)
-        {
-            Relocate(1775.42f, 1506.26f, 8.6f, 2.78051f); // aliance NPE
-        }
-        else if (GetTeam() == HORDE)
-        {
-            Relocate(1775.42f, 1506.26f, 8.6f, 2.78051f); // horde NPE
-        }
-            SetMap(sMapMgr->CreateMap(1540, this));
-    }
-    else
-    {
-        Relocate(info->positionX, info->positionY, info->positionZ, info->orientation);
-        SetMap(sMapMgr->CreateMap(info->mapId, this));
-    }
+    Relocate(info->positionX, info->positionY, info->positionZ, info->orientation);
+    //if (createInfo->UseNPE)
+    //{
+    //    if (GetTeam() == ALLIANCE)
+    //    {
+    //        Relocate(1775.42f, 1506.26f, 8.6f, 2.78051f); // aliance NPE
+    //    }
+    //    else if (GetTeam() == HORDE)
+    //    {
+    //        Relocate(1775.42f, 1506.26f, 8.6f, 2.78051f); // horde NPE
+    //    }
+    //        SetMap(sMapMgr->CreateMap(1540, this));
+    //}
+    //else
+    //{
+    //    Relocate(info->positionX, info->positionY, info->positionZ, info->orientation);
+    //    SetMap(sMapMgr->CreateMap(info->mapId, this));
+    //}
 
     ChrClassesEntry const* cEntry = sChrClassesStore.LookupEntry(createInfo->Class);
     if (!cEntry)
@@ -472,6 +473,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
         return false;
     }
 
+    SetMap(sMapMgr->CreateMap(info->mapId, this));
     UpdatePositionData();
 
     uint8 powertype = cEntry->DisplayPower;
@@ -18057,22 +18059,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder* holder)
 
     m_fishingSteps = fields.fishingSteps;
 
-    // Perma Morph
-    QueryResult result2 = CharacterDatabase.PQuery("SELECT morph FROM character_morph WHERE guid = %u", fields.guid);
-
-    if (result2)
-
-    {
-
-        Field* fields2 = result2->Fetch();
-
-        SetNativeDisplayId(fields2[0].GetUInt32());
-
-        SetDisplayId(fields2[0].GetUInt32());
-
-    }
-    else
-        InitDisplayIds();
+    InitDisplayIds();
 
     // cleanup inventory related item value fields (it will be filled correctly in _LoadInventory)
     for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)

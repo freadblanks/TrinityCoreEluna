@@ -2965,6 +2965,21 @@ namespace LuaPlayer
     }
 
     /**
+     * Adds or subtracts from the [Player]s battlepay credit
+     *
+     * @param int32 copperAmt : negative to remove, positive to add
+     */
+    int ModifyBattlePayCredits(lua_State* L, Player* player)
+    {
+        int32 amt = Eluna::CHECKVAL<int32>(L, 2);
+
+        uint64 getActualCredit = player->GetBattlePayCredits();
+        uint64 calcNewCredit = getActualCredit + amt;
+        player->ModifyBattlePayCredits(calcNewCredit);
+        return 1;
+    }
+
+    /**
      * Teaches the [Player] the [Spell] specified by entry ID
      *
      * @param uint32 spellId

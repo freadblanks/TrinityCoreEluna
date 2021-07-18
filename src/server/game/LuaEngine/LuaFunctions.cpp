@@ -576,6 +576,7 @@ ElunaRegister<Player> PlayerMethods[] =
     { "SendPacket", &LuaPlayer::SendPacket },
     { "SendAddonMessage", &LuaPlayer::SendAddonMessage },
     { "ModifyMoney", &LuaPlayer::ModifyMoney },
+    { "ModifyBattlePayCredits", &LuaPlayer::ModifyBattlePayCredits },
     { "LearnSpell", &LuaPlayer::LearnSpell },
     { "LearnTalent", &LuaPlayer::LearnTalent },
     { "RemoveItem", &LuaPlayer::RemoveItem },
