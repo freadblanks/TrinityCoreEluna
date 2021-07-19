@@ -672,7 +672,7 @@ int32 AuraEffect::CalculateAmount(Unit* caster)
     if (!GetSpellEffectInfo()->EffectAttributes.HasFlag(SpellEffectAttributes::NoScaleWithStack))
         amount *= GetBase()->GetStackAmount();
 
-    if (caster)
+    /*if (caster)
     {
         uint32 stackAmountForBonuses = !GetSpellEffectInfo()->EffectAttributes.HasFlag(SpellEffectAttributes::NoScaleWithStack) ? GetBase()->GetStackAmount() : 1;
 
@@ -688,7 +688,7 @@ int32 AuraEffect::CalculateAmount(Unit* caster)
             default:
                 break;
         }
-    }
+    }*/
 
     return amount;
 }
