@@ -137,6 +137,7 @@ void WorldSession::HandleChatMessage(ChatMsg type, Language lang, std::string ms
         {
             switch (type)
             {
+                case CHAT_MSG_EMOTE:
                 case CHAT_MSG_PARTY:
                 case CHAT_MSG_RAID:
                 case CHAT_MSG_RAID_WARNING:

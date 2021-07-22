@@ -139,9 +139,6 @@ public:
 
     void OnLogin(Player* player, bool /*firstLogin*/) override
     {
-        if (player->getLevel() != 80)
-            return;
-
         QueryResult result = LoginDatabase.PQuery("SELECT recruiter, recruiter_rewarded FROM account WHERE id = %u", player->GetSession()->GetAccountId());
         if (!result)
             return;
@@ -161,6 +158,22 @@ public:
         uint64 recruiterCharacterGUID = fields[0].GetUInt64();
 
         if (!recruiterCharacterGUID)
+            return;
+
+        //Check account ip - start
+        result = LoginDatabase.PQuery("SELECT last_ip, NAME FROM account WHERE id = %u", recruiter);
+        if (!result)
+            return;
+
+        QueryResult last_ip_player = LoginDatabase.PQuery("SELECT last_ip, NAME FROM account WHERE id = %u", player->GetSession()->GetAccountId());
+        if (!last_ip_player)
+            return;
+
+        if (result == last_ip_player)
+            return;
+        //Check account ip - end
+
+        if (player->getLevel() <= 15)
             return;
 
         result = LoginDatabase.PQuery("SELECT COUNT(*) FROM account WHERE recruiter = %u AND recruiter_rewarded = 1", recruiter);

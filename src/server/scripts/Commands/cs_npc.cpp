@@ -250,6 +250,8 @@ bool HandleNpcSpawnGroup(ChatHandler* handler, char const* args)
     }
 
     handler->PSendSysMessage(LANG_SPAWNGROUP_SPAWNCOUNT, creatureList.size());
+    for (WorldObject* obj : creatureList)
+        handler->PSendSysMessage("%s (%s)", obj->GetName(), obj->GetGUID().ToString().c_str());
 
     return true;
 }
@@ -418,6 +420,7 @@ public:
         if (!creature)
             return false;
 
+        handler->PSendSysMessage("Creature name: %s [GUID: %s]", creature->GetName().c_str(), std::to_string(db_guid).c_str());
         sObjectMgr->AddCreatureToGrid(db_guid, sObjectMgr->GetCreatureData(db_guid));
         return true;
     }
@@ -640,6 +643,8 @@ public:
         }
 
         handler->SendSysMessage(LANG_COMMAND_DELCREATMESSAGE);
+
+        TC_LOG_DEBUG("sql.dev", "DELETE FROM creature WHERE guid = %s;", std::to_string(creature->GetSpawnId()).c_str());
 
         return true;
     }
@@ -993,6 +998,9 @@ public:
         stmt->setFloat(3, player->GetOrientation());
         stmt->setUInt64(4, lowguid);
         WorldDatabase.Execute(stmt);
+
+        TC_LOG_DEBUG("sql.dev", "UPDATE creature SET position_x = %f, position_y = %f, position_z = %f, orientation = %f WHERE guid = %s;",
+            player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetOrientation(), std::to_string(creature->GetSpawnId()).c_str());
 
         // respawn selected creature at the new location
         if (creature)

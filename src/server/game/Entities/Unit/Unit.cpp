@@ -11851,13 +11851,16 @@ void Unit::SetConfused(bool apply)
         }
     }
 
-    if (Player* player = ToPlayer())
+    /*if (Player* player = ToPlayer())
     {
         if (apply)
             player->SetClientControl(this, false);
         else if (!HasUnitState(UNIT_STATE_LOST_CONTROL))
             player->SetClientControl(this, true);
-    }
+    }*/
+    if (Player* player = ToPlayer())
+        if (!player->HasUnitState(UNIT_STATE_POSSESSED))
+            player->SetClientControl(this, !apply);
 }
 
 bool Unit::SetCharmedBy(Unit* charmer, CharmType type, AuraApplication const* aurApp)
