@@ -1642,7 +1642,8 @@ void Spell::EffectOpenLock(SpellEffIndex effIndex)
         GameObjectTemplate const* goInfo = gameObjTarget->GetGOInfo();
         // Arathi Basin banner opening. /// @todo Verify correctness of this check
         if ((goInfo->type == GAMEOBJECT_TYPE_BUTTON && goInfo->button.noDamageImmune) ||
-            (goInfo->type == GAMEOBJECT_TYPE_GOOBER && goInfo->goober.requireLOS))
+            (goInfo->type == GAMEOBJECT_TYPE_GOOBER && goInfo->goober.requireLOS)     ||
+            (goInfo->type == GAMEOBJECT_TYPE_CAPTURE_POINT))
         {
             //CanUseBattlegroundObject() already called in CheckCast()
             // in battleground check
@@ -1673,6 +1674,11 @@ void Spell::EffectOpenLock(SpellEffIndex effIndex)
         // these objects must have been spawned by outdoorpvp!
         else if (gameObjTarget->GetGOInfo()->type == GAMEOBJECT_TYPE_GOOBER && sOutdoorPvPMgr->HandleOpenGo(player, gameObjTarget))
             return;
+        else if (player && gameObjTarget->GetGOInfo()->type == GAMEOBJECT_TYPE_CHEST)
+            if (PlayerConditionEntry const* playerCondition = sPlayerConditionStore.LookupEntry(goInfo->chest.conditionID1))
+                if (!sConditionMgr->IsPlayerMeetingCondition(player, playerCondition))
+                    return;
+
         lockId = goInfo->GetLockId();
         guid = gameObjTarget->GetGUID();
     }
@@ -1698,6 +1704,9 @@ void Spell::EffectOpenLock(SpellEffIndex effIndex)
         return;
     }
 
+    if (reqSkillValue == 0)
+        reqSkillValue = skillValue;
+
     if (gameObjTarget)
         SendLoot(guid, LOOT_SKINNING);
     else if (itemTarget)
@@ -1706,25 +1715,27 @@ void Spell::EffectOpenLock(SpellEffIndex effIndex)
         itemTarget->SetState(ITEM_CHANGED, itemTarget->GetOwner());
     }
 
-    // not allow use skill grow at item base open
-    if (!m_CastItem && skillId != SKILL_NONE)
+    GameObjectTemplate const* goInfo = gameObjTarget->GetGOInfo();
+    if (goInfo->type == GAMEOBJECT_TYPE_GATHERING_NODE || goInfo->type == GAMEOBJECT_TYPE_CHEST)
     {
-        // update skill if really known
-        if (uint32 pureSkillValue = player->GetPureSkillValue(skillId))
+        if (goInfo->IconName == "Herb")
         {
-            if (gameObjTarget)
-            {
-                // Allow one skill-up until respawned
-                if (!gameObjTarget->IsInSkillupList(player->GetGUID()) &&
-                    player->UpdateGatherSkill(skillId, pureSkillValue, reqSkillValue))
+            if (uint32 pureSkillValue = player->GetPureSkillValue(SKILL_HERBALISM_2) && gameObjTarget)
+                if (!gameObjTarget->IsInSkillupList(player->GetGUID()) && player->UpdateGatherSkill(SKILL_HERBALISM_2, pureSkillValue, reqSkillValue))
                     gameObjTarget->AddToSkillupList(player->GetGUID());
-            }
-            else if (itemTarget)
-            {
-                // Do one skill-up
-                player->UpdateGatherSkill(skillId, pureSkillValue, reqSkillValue);
-            }
         }
+        if (goInfo->IconName == "Mining")
+        {
+            if (uint32 pureSkillValue = player->GetPureSkillValue(SKILL_MINING_2) && gameObjTarget)
+                if (!gameObjTarget->IsInSkillupList(player->GetGUID()) && player->UpdateGatherSkill(SKILL_MINING_2, pureSkillValue, reqSkillValue))
+                    gameObjTarget->AddToSkillupList(player->GetGUID());
+        }
+    }
+
+    if (itemTarget)
+    {
+        if (uint32 pureSkillValue = player->GetPureSkillValue(skillId))
+            player->UpdateGatherSkill(skillId, pureSkillValue, reqSkillValue);
     }
     ExecuteLogEffectOpenLock(effIndex, gameObjTarget ? (Object*)gameObjTarget : (Object*)itemTarget);
 }
@@ -4086,7 +4097,7 @@ void Spell::EffectSkinning(SpellEffIndex /*effIndex*/)
     creature->AddDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
     m_caster->ToPlayer()->SendLoot(creature->GetGUID(), LOOT_SKINNING);
 
-    if (skill == SKILL_SKINNING)
+    if (skill == SKILL_SKINNING_2)
     {
         int32 reqValue;
         if (targetLevel <= 10)

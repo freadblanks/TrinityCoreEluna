@@ -186,9 +186,9 @@ public:
 
         switch (++recruiterRewardCount)
         {
-        case 1: rewardItem = 54860;     break; // X-53 Touring Rocket
-        case 2: rewardItem = 37719;     break; // Swift Zhevra
-        case 5: rewardItem = 106246;    break; // Emerald Hippogryph
+        case 1: rewardItem = 880003;     break; // X-53 Touring Rocket
+        case 2: rewardItem = 880003;     break; // Swift Zhevra
+        case 5: rewardItem = 348162;    break; // Emerald Hippogryph
         default: break;
         }
 
