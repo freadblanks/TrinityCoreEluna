@@ -338,6 +338,7 @@ public:
             { "data",       rbac::RBAC_PERM_COMMAND_NPC_SET_DATA,      false, &HandleNpcSetDataCommand,          "" },
             { "aura",       rbac::RBAC_PERM_COMMAND_NPC_ADD,           false, &HandleNpcSetAuraCommand,          "" },
             { "mount",      rbac::RBAC_PERM_COMMAND_NPC_ADD,           false, &HandleNpcSetMountCommand,         "" },
+            { "anim",       rbac::RBAC_PERM_COMMAND_NPC_ADD,           false, &HandleNpcSetAnimCommand,          "" },
             { "animkit",    rbac::RBAC_PERM_COMMAND_NPC_ADD,           false, &HandleNpcSetAnimKitCommand,       "" },
         };
         static std::vector<ChatCommand> npcCommandTable =
@@ -2125,6 +2126,46 @@ public:
             Position pos{ x, y, z };
             creature->AI()->EnterEvadeMode();
             creature->MonsterMoveWithSpeed(x, y, z, speed);
+        }
+
+        return true;
+    }
+
+    // npc set anim
+    static bool HandleNpcSetAnimCommand(ChatHandler* handler, char const* args)
+    {
+        if (!*args)
+            return false;
+
+        uint32 emote = atoi((char*)args);
+
+        Creature* target = handler->getSelectedCreature();
+        ObjectGuid::LowType guidLow = UI64LIT(0);
+
+        if (!target)
+        {
+            handler->SendSysMessage(LANG_SELECT_CREATURE);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+        target->SetEmoteState(Emote(emote));
+
+        //Cot� SQL
+        guidLow = target->GetSpawnId();
+        QueryResult guidSql = WorldDatabase.PQuery("SELECT guid FROM creature_addon WHERE guid = %u", guidLow);
+        if (!guidSql)
+        {
+            WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_INS_SET_ANIM);
+            stmt->setUInt64(0, guidLow);
+            stmt->setUInt32(1, emote);
+            WorldDatabase.Execute(stmt);
+        }
+        else
+        {
+            WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_UPD_SET_ANIM);
+            stmt->setUInt32(0, emote);
+            stmt->setUInt64(1, guidLow);
+            WorldDatabase.Execute(stmt);
         }
 
         return true;
