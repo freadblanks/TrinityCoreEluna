@@ -2749,6 +2749,7 @@ bool WorldObject::IsValidSpellAttackTarget(WorldObject const* target, SpellInfo 
                 // ignore stealth for aoe spells. Ignore stealth if target is player and unit in combat with same player
                 bool const ignoreStealthCheck = (bySpell && bySpell->IsAffectingArea()) ||
                     (target->GetTypeId() == TYPEID_PLAYER && target->HasStealthAura() && IsInCombatWith(target));
+
                 if (!CanSeeOrDetect(target, ignoreStealthCheck))
                     return false;
             }
