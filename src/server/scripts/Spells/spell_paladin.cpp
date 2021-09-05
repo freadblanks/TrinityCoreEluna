@@ -813,8 +813,8 @@ class spell_pal_light_s_beacon : public SpellScriptLoader
                 {
                     if ((*itr)->GetId() == SPELL_PALADIN_BEACON_OF_LIGHT)
                     {
-                        std::list<AuraApplication*> applications;
-                        (*itr)->GetApplicationList(applications);
+                        std::vector<AuraApplication*> applications;
+                        (*itr)->GetApplicationVector(applications);
                         if (!applications.empty())
                         {
                             CastSpellExtraArgs args(aurEff);
@@ -1035,8 +1035,6 @@ class spell_pal_t8_2p_bonus : public SpellScriptLoader
 
                 ASSERT(spellInfo->GetMaxTicks() > 0);
                 amount /= spellInfo->GetMaxTicks();
-                // Add remaining ticks to damage done
-                amount += target->GetRemainingPeriodicAmount(caster->GetGUID(), SPELL_PALADIN_HOLY_MENDING, SPELL_AURA_PERIODIC_HEAL);
 
                 CastSpellExtraArgs args(aurEff);
                 args.AddSpellBP0(amount);

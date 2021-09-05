@@ -1422,6 +1422,10 @@ void WorldSession::SendFeatureSystemStatus()
     features.IsMuted = !CanSpeak();
 
     SendPacket(features.Write());
+
+    WorldPackets::System::FeatureSystemStatus2 features2;
+    features2.TextToSpeechFeatureEnabled = false;
+    SendPacket(features2.Write());
 }
 
 void WorldSession::HandleSetFactionAtWar(WorldPackets::Character::SetFactionAtWar& packet)

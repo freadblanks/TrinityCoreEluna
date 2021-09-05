@@ -430,10 +430,11 @@ class TC_GAME_API SpellScript : public _SpellScript
         //
         // methods useable during all spell handling phases
         Unit* GetCaster() const;
+        GameObject* GetGObjCaster() const;
         Unit* GetOriginalCaster() const;
         SpellInfo const* GetSpellInfo() const;
+        SpellEffectInfo const& GetEffectInfo(SpellEffIndex effIndex) const;
         SpellValue const* GetSpellValue() const;
-        SpellEffectInfo const* GetEffectInfo(SpellEffIndex effIndex) const;
 
         // methods useable after spell is prepared
         // accessors to the explicit targets of the spell
@@ -493,7 +494,7 @@ class TC_GAME_API SpellScript : public _SpellScript
         void PreventHitHeal() { SetHitHeal(0); }
         Spell* GetSpell() const { return m_spell; }
         // returns current spell hit target aura
-        Aura* GetHitAura() const;
+        Aura* GetHitAura(bool dynObjAura = false) const;
         // prevents applying aura on current spell hit target
         void PreventHitAura();
 
@@ -509,7 +510,7 @@ class TC_GAME_API SpellScript : public _SpellScript
         void PreventHitDefaultEffect(SpellEffIndex effIndex);
 
         // method available only in EffectHandler method
-        SpellEffectInfo const* GetEffectInfo() const;
+        SpellEffectInfo const& GetEffectInfo() const;
         int32 GetEffectValue() const;
         void SetEffectValue(int32 value);
 
@@ -517,7 +518,7 @@ class TC_GAME_API SpellScript : public _SpellScript
         Item* GetCastItem() const;
 
         // Creates item. Calls Spell::DoCreateItem method.
-        void CreateItem(uint32 effIndex, uint32 itemId, ItemContext context);
+        void CreateItem(uint32 itemId, ItemContext context);
 
         // Returns SpellInfo from the spell that triggered the current one
         SpellInfo const* GetTriggeringSpell() const;
@@ -946,6 +947,7 @@ class TC_GAME_API AuraScript : public _SpellScript
 
         // returns proto of the spell
         SpellInfo const* GetSpellInfo() const;
+        SpellEffectInfo const& GetEffectInfo(SpellEffIndex effIndex) const;
         // returns spellid of the spell
         uint32 GetId() const;
 
@@ -953,6 +955,8 @@ class TC_GAME_API AuraScript : public _SpellScript
         ObjectGuid GetCasterGUID() const;
         // returns unit which cast the aura or NULL if not avalible (caster logged out for example)
         Unit* GetCaster() const;
+        // returns gameobject which cast the aura or NULL if not available
+        GameObject* GetGObjCaster() const;
         // returns object on which aura was cast, target for non-area auras, area aura source for area auras
         WorldObject* GetOwner() const;
         // returns owner if it's unit or unit derived object, NULL otherwise (only for persistent area auras NULL is returned)

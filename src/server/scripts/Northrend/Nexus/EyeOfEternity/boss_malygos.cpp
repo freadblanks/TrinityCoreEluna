@@ -968,7 +968,9 @@ public:
                         }
                         else if (GetDifficulty() == DIFFICULTY_25_N)
                         {
-                            memset(_surgeTargetGUID, 0, sizeof(_surgeTargetGUID));
+                            for (ObjectGuid& guid : _surgeTargetGUID)
+                                guid.Clear();
+
                             DoCastAOE(SPELL_SURGE_OF_POWER_WARNING_SELECTOR_25, true);
                         }
 
@@ -1897,7 +1899,7 @@ class spell_arcane_overload : public SpellScriptLoader
             {
                 Creature* arcaneOverload = GetCaster()->ToCreature();
                 targets.remove_if(ExactDistanceCheck(arcaneOverload,
-                    GetSpellInfo()->GetEffect(EFFECT_0)->CalcRadius(arcaneOverload) * arcaneOverload->GetObjectScale()));
+                    GetEffectInfo(EFFECT_0).CalcRadius(arcaneOverload) * arcaneOverload->GetObjectScale()));
             }
 
             void Register() override

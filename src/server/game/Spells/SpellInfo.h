@@ -27,18 +27,18 @@
 #include <boost/container/flat_set.hpp>
 #include <bitset>
 
-class Unit;
-class Player;
+class AuraEffect;
 class Item;
+class Player;
 class Spell;
 class SpellMgr;
 class SpellInfo;
+class Unit;
 class WorldObject;
-class AuraEffect;
+struct Condition;
 struct SpellChainNode;
 struct SpellModifier;
 struct SpellTargetPosition;
-struct Condition;
 enum WeaponAttackType : uint8;
 
 enum SpellCastTargetFlags : uint32
@@ -86,7 +86,8 @@ enum SpellTargetSelectionCategories
     TARGET_SELECT_CATEGORY_NEARBY,
     TARGET_SELECT_CATEGORY_CONE,
     TARGET_SELECT_CATEGORY_AREA,
-    TARGET_SELECT_CATEGORY_TRAJ
+    TARGET_SELECT_CATEGORY_TRAJ,
+    TARGET_SELECT_CATEGORY_LINE
 };
 
 enum SpellTargetReferenceTypes
@@ -195,6 +196,7 @@ enum SpellCustomAttributes
     SPELL_ATTR0_CU_DIRECT_DAMAGE                 = 0x00000100,
     SPELL_ATTR0_CU_CHARGE                        = 0x00000200,
     SPELL_ATTR0_CU_PICKPOCKET                    = 0x00000400,
+    SPELL_ATTR0_CU_DEPRECATED_ROLLING_PERIODIC   = 0x00000800, // DO NOT REUSE
     SPELL_ATTR0_CU_DEPRECATED_NEGATIVE_EFF0      = 0x00001000, // DO NOT REUSE
     SPELL_ATTR0_CU_DEPRECATED_NEGATIVE_EFF1      = 0x00002000, // DO NOT REUSE
     SPELL_ATTR0_CU_DEPRECATED_NEGATIVE_EFF2      = 0x00004000, // DO NOT REUSE
@@ -261,11 +263,12 @@ struct TC_GAME_API ImmunityInfo
 
 class TC_GAME_API SpellEffectInfo
 {
+    friend class SpellInfo;
     SpellInfo const* _spellInfo;
 public:
-    uint32    EffectIndex;
-    uint32    Effect;
-    uint32    ApplyAuraName;
+    SpellEffIndex EffectIndex;
+    SpellEffectName Effect;
+    AuraType  ApplyAuraName;
     uint32    ApplyAuraPeriod;
     int32     BasePoints;
     float     RealPointsPerLevel;
@@ -291,12 +294,13 @@ public:
     // SpellScalingEntry
     struct ScalingInfo
     {
+        int32 Class;
         float Coefficient;
         float Variance;
         float ResourceCoefficient;
     } Scaling;
 
-    SpellEffectInfo() : _spellInfo(nullptr), EffectIndex(0), Effect(0), ApplyAuraName(0), ApplyAuraPeriod(0),
+    SpellEffectInfo(SpellInfo const* spellInfo) : _spellInfo(spellInfo), EffectIndex(EFFECT_0), Effect(SPELL_EFFECT_NONE), ApplyAuraName(AuraType(0)), ApplyAuraPeriod(0),
                         BasePoints(0), RealPointsPerLevel(0), PointsPerResource(0), Amplitude(0), ChainAmplitude(0),
                         BonusCoefficient(0), MiscValue(0), MiscValueB(0), Mechanic(MECHANIC_NONE), PositionFacing(0),
                         RadiusEntry(nullptr), MaxRadiusEntry(nullptr), ChainTargets(0), ItemType(0), TriggerSpell(0),
@@ -310,18 +314,16 @@ public:
     bool IsAura(AuraType aura) const;
     bool IsTargetingArea() const;
     bool IsAreaAuraEffect() const;
-    bool IsFarUnitTargetEffect() const;
-    bool IsFarDestTargetEffect() const;
     bool IsUnitOwnedAuraEffect() const;
 
-    int32 CalcValue(Unit const* caster = nullptr, int32 const* basePoints = nullptr, Unit const* target = nullptr, float* variance = nullptr, uint32 castItemId = 0, int32 itemLevel = -1) const;
-    int32 CalcBaseValue(Unit const* caster, Unit const* target, uint32 itemId, int32 itemLevel) const;
-    float CalcValueMultiplier(Unit* caster, Spell* spell = nullptr) const;
-    float CalcDamageMultiplier(Unit* caster, Spell* spell = nullptr) const;
+    int32 CalcValue(WorldObject const* caster = nullptr, int32 const* basePoints = nullptr, Unit const* target = nullptr, float* variance = nullptr, uint32 castItemId = 0, int32 itemLevel = -1) const;
+    int32 CalcBaseValue(WorldObject const* caster, Unit const* target, uint32 itemId, int32 itemLevel) const;
+    float CalcValueMultiplier(WorldObject* caster, Spell* spell = nullptr) const;
+    float CalcDamageMultiplier(WorldObject* caster, Spell* spell = nullptr) const;
 
     bool HasRadius() const;
     bool HasMaxRadius() const;
-    float CalcRadius(Unit* caster = nullptr, Spell* = nullptr) const;
+    float CalcRadius(WorldObject* caster = nullptr, Spell* = nullptr) const;
 
     uint32 GetProvidedTargetMask() const;
     uint32 GetMissingTargetMask(bool srcSet = false, bool destSet = false, uint32 mask = 0) const;
@@ -345,8 +347,6 @@ private:
 
     ImmunityInfo _immunityInfo;
 };
-
-typedef std::vector<SpellEffectInfo const*> SpellEffectInfoVector;
 
 typedef std::vector<SpellXSpellVisualEntry const*> SpellVisualVector;
 typedef std::unordered_map<uint32, SpellVisualVector> SpellVisualMap;
@@ -463,7 +463,6 @@ class TC_GAME_API SpellInfo
         // SpellScalingEntry
         struct ScalingInfo
         {
-            int32 Class = 0;
             uint32 MinScalingLevel = 0;
             uint32 MaxScalingLevel = 0;
             uint32 ScalesFromItemLevel = 0;
@@ -501,7 +500,7 @@ class TC_GAME_API SpellInfo
         bool HasAttribute(SpellAttr14 attribute) const { return !!(AttributesEx14 & attribute); }
         bool HasAttribute(SpellCustomAttributes customAttribute) const { return !!(AttributesCu & customAttribute); }
 
-        bool CanBeInterrupted(Unit* interruptCaster, Unit* interruptTarget) const;
+        bool CanBeInterrupted(WorldObject const* interruptCaster, Unit const* interruptTarget) const;
 
         bool HasAnyAuraInterruptFlag() const;
         bool HasAuraInterruptFlag(SpellAuraInterruptFlags flag) const { return AuraInterruptFlags.HasFlag(flag); }
@@ -565,17 +564,16 @@ class TC_GAME_API SpellInfo
 
         SpellCastResult CheckShapeshift(uint32 form) const;
         SpellCastResult CheckLocation(uint32 map_id, uint32 zone_id, uint32 area_id, Player const* player = nullptr) const;
-        SpellCastResult CheckTarget(Unit const* caster, WorldObject const* target, bool implicit = true) const;
-        SpellCastResult CheckExplicitTarget(Unit const* caster, WorldObject const* target, Item const* itemTarget = nullptr) const;
+        SpellCastResult CheckTarget(WorldObject const* caster, WorldObject const* target, bool implicit = true) const;
+        SpellCastResult CheckExplicitTarget(WorldObject const* caster, WorldObject const* target, Item const* itemTarget = nullptr) const;
         SpellCastResult CheckVehicle(Unit const* caster) const;
         bool CheckTargetCreatureType(Unit const* target) const;
 
         SpellSchoolMask GetSchoolMask() const;
         uint32 GetAllEffectsMechanicMask() const;
-        uint32 GetEffectMechanicMask(uint32 effIndex) const;
+        uint32 GetEffectMechanicMask(SpellEffIndex effIndex) const;
         uint32 GetSpellMechanicMaskByEffectMask(uint32 effectMask) const;
-        Mechanics GetEffectMechanic(uint32 effIndex) const;
-        //bool HasAnyEffectMechanic() const;
+        Mechanics GetEffectMechanic(SpellEffIndex effIndex) const;
         uint32 GetDispelMask() const;
         static uint32 GetDispelMask(DispelType type);
         uint32 GetExplicitTargetMask() const;
@@ -584,9 +582,9 @@ class TC_GAME_API SpellInfo
         SpellSpecificType GetSpellSpecific() const;
 
         float GetMinRange(bool positive = false) const;
-        float GetMaxRange(bool positive = false, Unit* caster = nullptr, Spell* spell = nullptr) const;
+        float GetMaxRange(bool positive = false, WorldObject* caster = nullptr, Spell* spell = nullptr) const;
 
-        int32 CalcDuration(Unit* caster = nullptr) const;
+        int32 CalcDuration(WorldObject const* caster = nullptr) const;
         int32 GetDuration() const;
         int32 GetMaxDuration() const;
 
@@ -595,9 +593,9 @@ class TC_GAME_API SpellInfo
         uint32 CalcCastTime(Spell* spell = nullptr) const;
         uint32 GetRecoveryTime() const;
 
-        Optional<SpellPowerCost> CalcPowerCost(Powers powerType, bool optionalCost, Unit const* caster, SpellSchoolMask schoolMask, Spell* spell = nullptr) const;
-        Optional<SpellPowerCost> CalcPowerCost(SpellPowerEntry const* power, bool optionalCost, Unit const* caster, SpellSchoolMask schoolMask, Spell* spell = nullptr) const;
-        std::vector<SpellPowerCost> CalcPowerCost(Unit const* caster, SpellSchoolMask schoolMask, Spell* spell = nullptr) const;
+        Optional<SpellPowerCost> CalcPowerCost(Powers powerType, bool optionalCost, WorldObject const* caster, SpellSchoolMask schoolMask, Spell* spell = nullptr) const;
+        Optional<SpellPowerCost> CalcPowerCost(SpellPowerEntry const* power, bool optionalCost, WorldObject const* caster, SpellSchoolMask schoolMask, Spell* spell = nullptr) const;
+        std::vector<SpellPowerCost> CalcPowerCost(WorldObject const* caster, SpellSchoolMask schoolMask, Spell* spell = nullptr) const;
 
         float CalcProcPPM(Unit* caster, int32 itemLevel) const;
 
@@ -612,11 +610,11 @@ class TC_GAME_API SpellInfo
         bool IsDifferentRankOf(SpellInfo const* spellInfo) const;
         bool IsHighRankOf(SpellInfo const* spellInfo) const;
 
-        uint32 GetSpellXSpellVisualId(Unit const* caster = nullptr) const;
-        uint32 GetSpellVisual(Unit const* caster = nullptr) const;
+        uint32 GetSpellXSpellVisualId(WorldObject const* caster = nullptr) const;
+        uint32 GetSpellVisual(WorldObject const* caster = nullptr) const;
 
-        SpellEffectInfoVector const& GetEffects() const { return _effects; }
-        SpellEffectInfo const* GetEffect(uint32 index) const { return index < _effects.size() ? _effects[index] : nullptr; }
+        std::vector<SpellEffectInfo> const& GetEffects() const { return _effects; }
+        SpellEffectInfo const& GetEffect(SpellEffIndex index) const { ASSERT(index < _effects.size()); return _effects[index]; }
 
         // spell diminishing returns
         DiminishingGroup GetDiminishingReturnsGroupForSpell() const;
@@ -625,7 +623,7 @@ class TC_GAME_API SpellInfo
         int32 GetDiminishingReturnsLimitDuration() const;
 
         // spell immunities
-        void ApplyAllSpellImmunitiesTo(Unit* target, SpellEffectInfo const* effect, bool apply) const;
+        void ApplyAllSpellImmunitiesTo(Unit* target, SpellEffectInfo const& spellEffectInfo, bool apply) const;
         bool CanSpellProvideImmunityAgainstAura(SpellInfo const* auraSpellInfo) const;
         bool SpellCancelsAuraEffect(AuraEffect const* aurEff) const;
 
@@ -639,9 +637,7 @@ class TC_GAME_API SpellInfo
     private:
         // loading helpers
         void _InitializeExplicitTargetMask();
-        bool _IsPositiveEffect(uint32 effIndex, bool deep) const;
-        bool _IsPositiveSpell() const;
-        static bool _IsPositiveTarget(uint32 targetA, uint32 targetB);
+        void _InitializeSpellPositivity();
         void _LoadSpellSpecific();
         void _LoadAuraState();
         void _LoadSpellDiminishInfo();
@@ -649,10 +645,9 @@ class TC_GAME_API SpellInfo
 
         // unloading helpers
         void _UnloadImplicitTargetConditionLists();
-        void _UnloadSpellEffects();
 
     private:
-        SpellEffectInfoVector _effects;
+        std::vector<SpellEffectInfo> _effects;
         SpellVisualVector _visuals;
         SpellSpecificType _spellSpecific = SPELL_SPECIFIC_NORMAL;
         AuraStateType _auraState = AURA_STATE_NONE;

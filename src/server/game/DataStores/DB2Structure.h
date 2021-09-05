@@ -332,9 +332,9 @@ struct AzeriteEmpoweredItemEntry
 
 struct AzeriteEssenceEntry
 {
+    uint32 ID;
     LocalizedString Name;
     LocalizedString Description;
-    uint32 ID;
     int32 SpecSetID;
 };
 
@@ -440,9 +440,9 @@ struct BannedAddonsEntry
 
 struct BarberShopStyleEntry
 {
+    uint32 ID;
     LocalizedString DisplayName;
     LocalizedString Description;
-    uint32 ID;
     uint8 Type;                                                     // value 0 -> hair, value 2 -> facialhair
     float CostModifier;
     uint8 Race;
@@ -454,7 +454,7 @@ struct BattlePetBreedQualityEntry
 {
     uint32 ID;
     float StateMultiplier;
-    uint8 QualityEnum;
+    int8 QualityEnum;
 };
 
 struct BattlePetBreedStateEntry
@@ -473,7 +473,7 @@ struct BattlePetSpeciesEntry
     int32 CreatureID;
     int32 SummonSpellID;
     int32 IconFileDataID;
-    uint8 PetTypeEnum;
+    int8 PetTypeEnum;
     uint16 Flags;
     int8 SourceTypeEnum;
     int32 CardUIModelSceneID;
@@ -509,6 +509,8 @@ struct BattlemasterListEntry
     int32 IconFileDataID;
     int32 RequiredPlayerConditionID;
     int16 MapID[16];
+
+    EnumFlag<BattlemasterListFlags> GetFlags() const { return static_cast<BattlemasterListFlags>(Flags); }
 };
 
 #define MAX_BROADCAST_TEXT_EMOTES 3
@@ -565,10 +567,11 @@ struct CharHairGeosetsEntry
 
 struct CharacterLoadoutEntry
 {
-    Trinity::RaceMask<int64> RaceMask;
     uint32 ID;
+    Trinity::RaceMask<int64> RaceMask;
     int8 ChrClassID;
     int8 Purpose;
+    int8 Unused910;
 
     bool IsForNewCharacter() const { return Purpose == 9; }
 };
@@ -582,9 +585,9 @@ struct CharacterLoadoutItemEntry
 
 struct ChatChannelsEntry
 {
+    uint32 ID;
     LocalizedString Name;
     LocalizedString Shortcut;
-    uint32 ID;
     int32 Flags;
     int8 FactionGroup;
     int32 Ruleset;
@@ -655,10 +658,9 @@ struct ChrCustomizationChoiceEntry
     int32 ChrCustomizationOptionID;
     int32 ChrCustomizationReqID;
     uint16 SortOrder;
-    int32 SwatchColor1;
-    int32 SwatchColor2;
     uint16 UiOrderIndex;
     int32 Flags;
+    int32 SwatchColor[2];
 };
 
 struct ChrCustomizationDisplayInfoEntry
@@ -743,6 +745,7 @@ struct ChrModelEntry
     float CustomizeFacing;
     float CameraDistanceOffset;
     float BarberShopCameraOffsetScale;
+    float BarberShopCameraHeightOffsetScale; // applied after BarberShopCameraOffsetScale
     float BarberShopCameraRotationOffset;
 };
 
@@ -755,6 +758,7 @@ struct ChrRaceXChrModelEntry
 
 struct ChrRacesEntry
 {
+    uint32 ID;
     char const* ClientPrefix;
     char const* ClientFileString;
     LocalizedString Name;
@@ -770,41 +774,42 @@ struct ChrRacesEntry
     LocalizedString NameFemaleL;
     LocalizedString NameLowercaseL;
     LocalizedString NameFemaleLowercaseL;
-    uint32 ID;
     int32 Flags;
-    int32 BaseLanguage;
+    int32 FactionID;
+    int32 CinematicSequenceID;
     int32 ResSicknessSpellID;
     int32 SplashSoundID;
+    int32 Alliance;
+    int32 RaceRelated;
+    int32 UnalteredVisualRaceID;
+    int32 DefaultClassID;
     int32 CreateScreenFileDataID;
     int32 SelectScreenFileDataID;
+    int32 NeutralRaceID;
     int32 LowResScreenFileDataID;
-    uint32 AlteredFormStartVisualKitID[3];
-    uint32 AlteredFormFinishVisualKitID[3];
+    int32 AlteredFormStartVisualKitID[3];
+    int32 AlteredFormFinishVisualKitID[3];
     int32 HeritageArmorAchievementID;
     int32 StartingLevel;
     int32 UiDisplayOrder;
+    int32 MaleModelFallbackRaceID;
+    int32 FemaleModelFallbackRaceID;
+    int32 MaleTextureFallbackRaceID;
+    int32 FemaleTextureFallbackRaceID;
     int32 PlayableRaceBit;
     int32 HelmetAnimScalingRaceID;
     int32 TransmogrifyDisabledSlotMask;
+    int32 UnalteredVisualCustomizationRaceID;
     float AlteredFormCustomizeOffsetFallback[3];
     float AlteredFormCustomizeRotationFallback;
-    int16 FactionID;
-    int16 CinematicSequenceID;
+    float Unknown910_1[3];
+    float Unknown910_2[3];
+    int8 BaseLanguage;
     int8 CreatureType;
-    int8 Alliance;
-    int8 RaceRelated;
-    int8 UnalteredVisualRaceID;
-    int8 DefaultClassID;
-    int8 NeutralRaceID;
-    int8 MaleModelFallbackRaceID;
     int8 MaleModelFallbackSex;
-    int8 FemaleModelFallbackRaceID;
     int8 FemaleModelFallbackSex;
-    int8 MaleTextureFallbackRaceID;
     int8 MaleTextureFallbackSex;
-    int8 FemaleTextureFallbackRaceID;
     int8 FemaleTextureFallbackSex;
-    int8 UnalteredVisualCustomizationRaceID;
 
     EnumFlag<ChrRacesFlag> GetFlags() const { return static_cast<ChrRacesFlag>(Flags); }
 };
@@ -883,7 +888,8 @@ struct ContentTuningXExpectedEntry
 {
     uint32 ID;
     int32 ExpectedStatModID;
-    int32 MythicPlusSeasonID;
+    int32 MinMythicPlusSeasonID;
+    int32 MaxMythicPlusSeasonID;
     uint32 ContentTuningID;
 };
 
@@ -908,6 +914,17 @@ struct CorruptionEffectsEntry
     int32 PlayerConditionID;
     int32 Flags;
 };
+
+//struct CreatureDifficultyEntry
+//{
+//    uint32 ID;
+//    int32 LevelDeltaMin;
+//    int32 LevelDeltaMax;
+//    uint16 FactionID;
+//    int32 ContentTuningID;
+//    int32 Flags[8];
+//    uint32 CreatureID;
+//};
 
 struct CreatureDisplayInfoEntry
 {
@@ -1021,137 +1038,173 @@ struct CriteriaEntry
     union AssetNameAlias
     {
         int32 ID;
-        // CRITERIA_TYPE_KILL_CREATURE          = 0
-        // CRITERIA_TYPE_KILLED_BY_CREATURE     = 20
+        // CRITERIA_TYPE_KILL_CREATURE                       = 0
+        // CRITERIA_TYPE_KILLED_BY_CREATURE                  = 20
+        // CRITERIA_TYPE_OWN_PET                             = 96
+        // CRITERIA_TYPE_208                                 = 208
         int32 CreatureID;
 
-        // CRITERIA_TYPE_WIN_BG                 = 1
-        // CRITERIA_TYPE_COMPLETE_BATTLEGROUND  = 15
-        // CRITERIA_TYPE_DEATH_AT_MAP           = 16
-        // CRITERIA_TYPE_WIN_ARENA              = 32
-        // CRITERIA_TYPE_PLAY_ARENA             = 33
+        // CRITERIA_TYPE_WIN_BG                              = 1
+        // CRITERIA_TYPE_COMPLETE_BATTLEGROUND               = 15
+        // CRITERIA_TYPE_DEATH_AT_MAP                        = 16
+        // CRITERIA_TYPE_WIN_ARENA                           = 32
+        // CRITERIA_TYPE_PLAY_ARENA                          = 33
+        // CRITERIA_TYPE_COMPLETE_CHALLENGE_MODE             = 71
         int32 MapID;
 
-        // CRITERIA_TYPE_REACH_SKILL_LEVEL      = 7
-        // CRITERIA_TYPE_LEARN_SKILL_LEVEL      = 40
-        // CRITERIA_TYPE_LEARN_SKILLLINE_SPELLS = 75
-        // CRITERIA_TYPE_LEARN_SKILL_LINE       = 112
-        int32 SkillID;
-
-        // CRITERIA_TYPE_COMPLETE_ACHIEVEMENT   = 8
-        int32 AchievementID;
-
-        // CRITERIA_TYPE_COMPLETE_QUESTS_IN_ZONE = 11
-        int32 ZoneID;
-
-        // CRITERIA_TYPE_CURRENCY = 12
-        int32 CurrencyID;
-
-        // CRITERIA_TYPE_DEATH_IN_DUNGEON       = 18
-        // CRITERIA_TYPE_COMPLETE_RAID          = 19
-        int32 GroupSize;
-
-        // CRITERIA_TYPE_DEATHS_FROM            = 26
-        int32 DamageType;
-
-        // CRITERIA_TYPE_COMPLETE_QUEST         = 27
-        int32 QuestID;
-
-        // CRITERIA_TYPE_BE_SPELL_TARGET        = 28
-        // CRITERIA_TYPE_BE_SPELL_TARGET2       = 69
-        // CRITERIA_TYPE_CAST_SPELL             = 29
-        // CRITERIA_TYPE_CAST_SPELL2            = 110
-        // CRITERIA_TYPE_LEARN_SPELL            = 34
-        int32 SpellID;
-
-        // CRITERIA_TYPE_BG_OBJECTIVE_CAPTURE
-        int32 ObjectiveId;
-
-        // CRITERIA_TYPE_HONORABLE_KILL_AT_AREA = 31
-        // CRITERIA_TYPE_ENTER_AREA             = 163
-        // CRITERIA_TYPE_LEAVE_AREA             = 164
-        // CRITERIA_TYPE_TRAVELED_TO_AREA       = 225
-        int32 AreaID;
-
-        // CRITERIA_TYPE_OWN_ITEM               = 36
-        // CRITERIA_TYPE_USE_ITEM               = 41
-        // CRITERIA_TYPE_LOOT_ITEM              = 42
-        // CRITERIA_TYPE_EQUIP_ITEM             = 57
-        // CRITERIA_TYPE_OWN_TOY                = 185
-        int32 ItemID;
-
-        // CRITERIA_TYPE_HIGHEST_TEAM_RATING    = 38
-        // CRITERIA_TYPE_REACH_TEAM_RATING      = 39
-        // CRITERIA_TYPE_HIGHEST_PERSONAL_RATING = 39
-        int32 TeamType;
-
-        // CRITERIA_TYPE_EXPLORE_AREA           = 43
-        int32 WorldMapOverlayID;
-
-        // CRITERIA_TYPE_GAIN_REPUTATION        = 46
-        // CRITERIA_TYPE_GAIN_PARAGON_REPUTATION = 206
-        int32 FactionID;
-
-        // CRITERIA_TYPE_EQUIP_EPIC_ITEM        = 49
-        int32 ItemSlot;
-
-        // CRITERIA_TYPE_ROLL_NEED_ON_LOOT      = 50
-        // CRITERIA_TYPE_ROLL_GREED_ON_LOOT      = 51
-        int32 RollValue;
-
-        // CRITERIA_TYPE_HK_CLASS               = 52
-        int32 ClassID;
-
-        // CRITERIA_TYPE_HK_RACE                = 53
-        int32 RaceID;
-
-        // CRITERIA_TYPE_DO_EMOTE               = 54
-        int32 EmoteID;
-
-        // CRITERIA_TYPE_USE_GAMEOBJECT         = 68
-        // CRITERIA_TYPE_FISH_IN_GAMEOBJECT     = 72
+        // CRITERIA_TYPE_SURVEY_GAMEOBJECT                   = 4
+        // CRITERIA_TYPE_USE_GAMEOBJECT                      = 68
+        // CRITERIA_TYPE_FISH_IN_GAMEOBJECT                  = 72
         int32 GameObjectID;
 
-        // CRITERIA_TYPE_HIGHEST_POWER          = 96
-        int32 PowerType;
+        // CRITERIA_TYPE_REACH_SKILL_LEVEL                   = 7
+        // CRITERIA_TYPE_LEARN_SKILL_LEVEL                   = 40
+        // CRITERIA_TYPE_LEARN_SKILLLINE_SPELLS              = 75
+        // CRITERIA_TYPE_LEARN_SKILL_LINE                    = 112
+        int32 SkillID;
 
-        // CRITERIA_TYPE_HIGHEST_STAT           = 97
-        int32 StatType;
+        // CRITERIA_TYPE_COMPLETE_ACHIEVEMENT                = 8
+        int32 AchievementID;
 
-        // CRITERIA_TYPE_HIGHEST_SPELLPOWER     = 98
-        int32 SpellSchool;
+        // CRITERIA_TYPE_COMPLETE_QUESTS_IN_ZONE             = 11
+        int32 ZoneID;
 
-        // CRITERIA_TYPE_LOOT_TYPE              = 109
-        int32 LootType;
+        // CRITERIA_TYPE_CURRENCY                            = 12
+        // CRITERIA_TYPE_CONVERT_ITEMS_TO_CURRENCY           = 229
+        int32 CurrencyID;
 
-        // CRITERIA_TYPE_COMPLETE_DUNGEON_ENCOUNTER = 165
-        int32 DungeonEncounterID;
+        // CRITERIA_TYPE_DEATH_IN_DUNGEON                    = 18
+        // CRITERIA_TYPE_COMPLETE_RAID                       = 19
+        int32 GroupSize;
 
-        // CRITERIA_TYPE_CONSTRUCT_GARRISON_BUILDING = 169
-        int32 GarrBuildingID;
+        // CRITERIA_TYPE_MANUAL_COMPLETE_CRITERIA            = 21
+        int32 CriteriaID;
 
-        // CRITERIA_TYPE_UPGRADE_GARRISON       = 170
-        int32 GarrisonLevel;
+        // CRITERIA_TYPE_DEATHS_FROM                         = 26
+        int32 DamageType;
 
-        // CRITERIA_TYPE_COMPLETE_GARRISON_MISSION = 174
-        int32 GarrMissionID;
+        // CRITERIA_TYPE_COMPLETE_QUEST                      = 27
+        int32 QuestID;
 
-        // CRITERIA_TYPE_COMPLETE_GARRISON_SHIPMENT = 182
-        int32 CharShipmentContainerID;
+        // CRITERIA_TYPE_BE_SPELL_TARGET                     = 28
+        // CRITERIA_TYPE_CAST_SPELL                          = 29
+        // CRITERIA_TYPE_LEARN_SPELL                         = 34
+        // CRITERIA_TYPE_BE_SPELL_TARGET2                    = 69
+        // CRITERIA_TYPE_CAST_SPELL2                         = 110
+        int32 SpellID;
 
-        // CRITERIA_TYPE_APPEARANCE_UNLOCKED_BY_SLOT
+        // CRITERIA_TYPE_BG_OBJECTIVE_CAPTURE                = 30
+        int32 ObjectiveId;
+
+        // CRITERIA_TYPE_HONORABLE_KILL_AT_AREA              = 31
+        // CRITERIA_TYPE_ENTER_AREA                          = 163
+        // CRITERIA_TYPE_LEAVE_AREA                          = 164
+        // CRITERIA_TYPE_TRAVELLED_TO_AREA                   = 225
+        int32 AreaID;
+
+        // CRITERIA_TYPE_OWN_ITEM                            = 36
+        // CRITERIA_TYPE_USE_ITEM                            = 41
+        // CRITERIA_TYPE_LOOT_ITEM                           = 42
+        // CRITERIA_TYPE_EQUIP_ITEM                          = 57
+        // CRITERIA_TYPE_OWN_TOY                             = 185
+        int32 ItemID;
+
+        // CRITERIA_TYPE_HIGHEST_TEAM_RATING                 = 38
+        // CRITERIA_TYPE_HIGHEST_PERSONAL_RATING             = 39
+        int32 TeamType;
+
+        // CRITERIA_TYPE_EXPLORE_AREA                        = 43
+        int32 WorldMapOverlayID;
+
+        // CRITERIA_TYPE_GAIN_REPUTATION                     = 46
+        // CRITERIA_TYPE_GAIN_PARAGON_REPUTATION             = 206
+        int32 FactionID;
+
+        // CRITERIA_TYPE_EQUIP_ITEM_IN_SLOT                  = 49
+        // CRITERIA_TYPE_APPEARANCE_UNLOCKED_BY_SLOT         = 199
         int32 EquipmentSlot;
 
-        // CRITERIA_TYPE_TRANSMOG_SET_UNLOCKED = 205
+        // CRITERIA_TYPE_ROLL_NEED_ON_LOOT                   = 50
+        // CRITERIA_TYPE_ROLL_GREED_ON_LOOT                  = 51
+        int32 RollValue;
+
+        // CRITERIA_TYPE_HK_CLASS                            = 52
+        int32 ClassID;
+
+        // CRITERIA_TYPE_HK_RACE                             = 53
+        int32 RaceID;
+
+        // CRITERIA_TYPE_DO_EMOTE                            = 54
+        int32 EmoteID;
+
+        // CRITERIA_TYPE_SEND_EVENT                          = 73
+        // CRITERIA_TYPE_SEND_EVENT_SCENARIO                 = 92
+        int32 EventID;
+
+        // CRITERIA_TYPE_GARRISON_COMPLETE_DUNGEON_ENCOUNTER = 97
+        // CRITERIA_TYPE_COMPLETE_DUNGEON_ENCOUNTER          = 165
+        int32 DungeonEncounterID;
+
+        // CRITERIA_TYPE_LOOT_TYPE                           = 109
+        int32 LootType;
+
+        // CRITERIA_TYPE_COMPLETE_GUILD_CHALLENGE_TYPE       = 138
+        int32 GuildChallengeType;
+
+        // CRITERIA_TYPE_COMPLETE_SCENARIO                   = 152
+        int32 ScenarioID;
+
+        // CRITERIA_TYPE_REACH_AREATRIGGER_WITH_ACTIONSET    = 153
+        int32 AreaTriggerActionSetID;
+
+        // CRITERIA_TYPE_LEVEL_BATTLE_PET                    = 160
+        // CRITERIA_TYPE_LEVEL_BATTLE_PET_CREDIT             = 162
+        int32 PetLevel;
+
+        // CRITERIA_TYPE_PLACE_GARRISON_BUILDING             = 167
+        // CRITERIA_TYPE_CONSTRUCT_GARRISON_BUILDING         = 169
+        int32 GarrBuildingID;
+
+        // CRITERIA_TYPE_UPGRADE_GARRISON                    = 170
+        int32 GarrisonLevel;
+
+        // CRITERIA_TYPE_START_GARRISON_MISSION              = 171
+        // CRITERIA_TYPE_COMPLETE_GARRISON_MISSION_COUNT     = 173
+        int32 GarrFollowerTypeID;
+
+        // CRITERIA_TYPE_START_ORDER_HALL_MISSION            = 172
+        // CRITERIA_TYPE_COMPLETE_GARRISON_MISSION           = 174
+        int32 GarrMissionID;
+
+        // CRITERIA_TYPE_RECRUIT_GARRISON_FOLLOWER           = 176
+        int32 GarrFollowerID;
+
+        // CRITERIA_TYPE_COMPLETE_GARRISON_SHIPMENT          = 182
+        int32 CharShipmentContainerID;
+
+        // CRITERIA_TYPE_OWN_ITEM_MODIFIED_APPEARANCE        = 192
+        int32 ItemModifiedAppearanceID;
+
+        // CRITERIA_TYPE_ACTIVELY_REACH_LEVEL                = 196
+        int32 PlayerLevel;
+
+        // CRITERIA_TYPE_ORDER_HALL_TALENT_LEARNED           = 198
+        // CRITERIA_TYPE_202                                 = 202
+        int32 GarrTalentID;
+
+        // CRITERIA_TYPE_TRANSMOG_SET_UNLOCKED               = 205
         int32 TransmogSetGroupID;
 
-        // CRITERIA_TYPE_RELIC_TALENT_UNLOCKED = 211
+        // CRITERIA_TYPE_RELIC_TALENT_UNLOCKED               = 211
         int32 ArtifactPowerID;
 
-        // CRITERIA_TYPE_REACH_ACCOUNT_HONOR_LEVEL = 213
+        // CRITERIA_TYPE_EXPANSION_LEVEL                     = 212
+        int32 ExpansionLevel;
+
+        // CRITERIA_TYPE_REACH_ACCOUNT_HONOR_LEVEL           = 213
         int32 AccountHonorLevel;
 
-        // CRITERIA_TREE_HEART_OF_AZEROTH_LEVEL_REACHED = 215
+        // CRITERIA_TREE_HEART_OF_AZEROTH_LEVEL_REACHED      = 215
         int32 HeartOfAzerothLevel;
     } Asset;
     uint32 ModifierTreeId;
@@ -1270,7 +1323,7 @@ struct DungeonEncounterEntry
     int32 CompleteWorldStateID;
     int8 Bit;
     int32 CreatureDisplayID;
-    uint8 Flags;
+    int32 Flags;
     int32 SpellIconFileID;
     int32 Faction;
 };
@@ -1351,10 +1404,10 @@ struct ExpectedStatModEntry
 
 struct FactionEntry
 {
+    uint32 ID;
     Trinity::RaceMask<int64> ReputationRaceMask[4];
     LocalizedString Name;
     LocalizedString Description;
-    uint32 ID;
     int16 ReputationIndex;
     uint16 ParentFactionID;
     uint8 Expansion;
@@ -1492,9 +1545,9 @@ struct GameTipsEntry
 
 struct GarrAbilityEntry
 {
+    uint32 ID;
     LocalizedString Name;
     LocalizedString Description;
-    uint32 ID;
     uint8 GarrAbilityCategoryID;
     uint8 GarrFollowerTypeID;
     int32 IconFileDataID;
@@ -1542,10 +1595,10 @@ struct GarrBuildingPlotInstEntry
 
 struct GarrClassSpecEntry
 {
+    uint32 ID;
     LocalizedString ClassSpec;
     LocalizedString ClassSpecMale;
     LocalizedString ClassSpecFemale;
-    uint32 ID;
     uint16 UiTextureAtlasMemberID;
     uint16 GarrFollItemSetID;
     uint8 FollowerClassLimit;
@@ -1554,10 +1607,10 @@ struct GarrClassSpecEntry
 
 struct GarrFollowerEntry
 {
+    uint32 ID;
     LocalizedString HordeSourceText;
     LocalizedString AllianceSourceText;
     LocalizedString TitleName;
-    uint32 ID;
     uint8 GarrTypeID;
     uint8 GarrFollowerTypeID;
     int32 HordeCreatureID;
@@ -1956,7 +2009,6 @@ struct ItemEffectEntry
     uint16 SpellCategoryID;
     int32 SpellID;
     uint16 ChrSpecializationID;
-    uint32 ParentItemID;
 };
 
 #define MAX_ITEM_EXT_COST_ITEMS         5
@@ -2053,11 +2105,11 @@ struct ItemPriceBaseEntry
 
 struct ItemSearchNameEntry
 {
+    uint32 ID;
     Trinity::RaceMask<int64> AllowableRace;
     LocalizedString Display;
-    uint32 ID;
     uint8 OverallQualityID;
-    uint8 ExpansionID;
+    int32 ExpansionID;
     uint16 MinFactionID;
     uint8 MinReputation;
     int32 AllowableClass;
@@ -2099,7 +2151,9 @@ struct ItemSparseEntry
     LocalizedString Display2;
     LocalizedString Display1;
     LocalizedString Display;
+    int32 ExpansionID;
     float DmgVariance;
+    int32 InstanceBound;
     uint32 DurationInInventory;
     float QualityModifier;
     uint32 BagFamily;
@@ -2126,7 +2180,6 @@ struct ItemSparseEntry
     uint16 GemProperties;
     uint16 SocketMatchEnchantmentId;
     uint16 TotemCategoryID;
-    uint16 InstanceBound;
     uint16 ZoneBound[MAX_ITEM_PROTO_ZONES];
     uint16 ItemSet;
     uint16 LockID;
@@ -2138,7 +2191,6 @@ struct ItemSparseEntry
     uint16 RequiredSkill;
     uint16 ItemLevel;
     int16 AllowableClass;
-    uint8 ExpansionID;
     uint8 ArtifactID;
     uint8 SpellWeight;
     uint8 SpellWeightCategory;
@@ -2184,6 +2236,13 @@ struct ItemXBonusTreeEntry
     uint32 ItemID;
 };
 
+struct ItemXItemEffectEntry
+{
+    uint32 ID;
+    int32 ItemEffectID;
+    uint32 ItemID;
+};
+
 #define KEYCHAIN_SIZE   32
 
 struct KeychainEntry
@@ -2201,8 +2260,8 @@ struct LanguageWordsEntry
 
 struct LanguagesEntry
 {
-    LocalizedString Name;
     uint32 ID;
+    LocalizedString Name;
 };
 
 struct LFGDungeonsEntry
@@ -2304,7 +2363,6 @@ struct MapEntry
     uint32 ID;
     char const* Directory;
     LocalizedString MapName;
-    char const* InternalName;
     LocalizedString MapDescription0;                               // Horde
     LocalizedString MapDescription1;                               // Alliance
     LocalizedString PvpShortDescription;
@@ -2409,7 +2467,7 @@ struct ModifierTreeEntry
     int32 Type;
     int32 Asset;
     int32 SecondaryAsset;
-    int8 TertiaryAsset;
+    int32 TertiaryAsset;
 };
 
 struct MountEntry
@@ -2532,7 +2590,7 @@ struct OverrideSpellDataEntry
 struct ParagonReputationEntry
 {
     uint32 ID;
-    uint32 FactionID;
+    int32 FactionID;
     int32 LevelThreshold;
     int32 QuestID;
 };
@@ -2552,9 +2610,9 @@ struct PhaseXPhaseGroupEntry
 
 struct PlayerConditionEntry
 {
+    uint32 ID;
     Trinity::RaceMask<int64> RaceMask;
     LocalizedString FailureDescription;
-    uint32 ID;
     int32 ClassMask;
     uint32 SkillLogic;
     int32 LanguageID;
@@ -3196,6 +3254,7 @@ struct SpellEffectEntry
     float ResourceCoefficient;
     float GroupSizeBasePointsCoefficient;
     float EffectBasePoints;
+    int32 ScalingClass;
     int32 EffectMiscValue[2];
     uint32 EffectRadiusIndex[2];
     flag128 EffectSpellClassMask;
@@ -3245,9 +3304,9 @@ struct SpellInterruptsEntry
 
 struct SpellItemEnchantmentEntry
 {
+    uint32 ID;
     LocalizedString Name;
     LocalizedString HordeName;
-    uint32 ID;
     uint32 EffectArg[MAX_ITEM_ENCHANTMENT_EFFECTS];
     float EffectScalingPoints[MAX_ITEM_ENCHANTMENT_EFFECTS];
     uint32 IconFileDataID;
@@ -3409,7 +3468,6 @@ struct SpellScalingEntry
 {
     uint32 ID;
     int32 SpellID;
-    int32 Class;
     uint32 MinScalingLevel;
     uint32 MaxScalingLevel;
     int16 ScalesFromItemLevel;
@@ -3482,7 +3540,7 @@ struct SpellXSpellVisualEntry
     uint8 DifficultyID;
     uint32 SpellVisualID;
     float Probability;
-    uint8 Priority;
+    int32 Priority;
     int32 SpellIconFileID;
     int32 ActiveIconFileID;
     uint16 ViewerUnitConditionID;
@@ -3622,8 +3680,8 @@ struct TransmogSetEntry
 
 struct TransmogSetGroupEntry
 {
-    LocalizedString Name;
     uint32 ID;
+    LocalizedString Name;
 };
 
 struct TransmogSetItemEntry

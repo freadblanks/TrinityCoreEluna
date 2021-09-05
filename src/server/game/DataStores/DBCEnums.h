@@ -191,18 +191,21 @@ enum AzeriteTierUnlockSetFlags
     AZERITE_TIER_UNLOCK_SET_FLAG_DEFAULT = 0x1
 };
 
-#define BATTLE_PET_SPECIES_MAX_ID 3084
+#define BATTLE_PET_SPECIES_MAX_ID 3159
 
-enum BattlemasterListFlags
+enum class BattlemasterListFlags : uint32
 {
-    BATTLEMASTER_LIST_FLAG_DISABLED             = 0x01,
-    BATTLEMASTER_LIST_FLAG_SKIP_ROLE_CHECK      = 0x02,
-    BATTLEMASTER_LIST_FLAG_UNK04                = 0x04,
-    BATTLEMASTER_LIST_FLAG_CAN_INIT_WAR_GAME    = 0x08,
-    BATTLEMASTER_LIST_FLAG_CAN_SPECIFIC_QUEUE   = 0x10,
-    BATTLEMASTER_LIST_FLAG_BRAWL                = 0x20,
-    BATTLEMASTER_LIST_FLAG_FACTIONAL            = 0x40
+    InternalOnly                = 0x01,
+    RatedOnly                   = 0x02, // Only set for rated battlegrounds
+    ObsoleteDoNotList           = 0x04,
+    ShowInWarGames              = 0x08,
+    ShowInPvpBattlegroundList   = 0x10,
+    IsBrawl                     = 0x20,
+    IsFactional                 = 0x40,
+    IsEpic                      = 0x80
 };
+
+DEFINE_ENUM_FLAG(BattlemasterListFlags);
 
 enum class ChrRacesFlag : int32
 {
@@ -351,7 +354,7 @@ enum CriteriaTypes : uint8
     CRITERIA_TYPE_GAIN_REPUTATION                       = 46,
     CRITERIA_TYPE_GAIN_EXALTED_REPUTATION               = 47,
     CRITERIA_TYPE_VISIT_BARBER_SHOP                     = 48,
-    CRITERIA_TYPE_EQUIP_EPIC_ITEM                       = 49,
+    CRITERIA_TYPE_EQUIP_ITEM_IN_SLOT                    = 49,
     CRITERIA_TYPE_ROLL_NEED_ON_LOOT                     = 50, /// @todo itemlevel is mentioned in text but not present in dbc
     CRITERIA_TYPE_ROLL_GREED_ON_LOOT                    = 51,
     CRITERIA_TYPE_HK_CLASS                              = 52,
@@ -392,8 +395,8 @@ enum CriteriaTypes : uint8
     CRITERIA_TYPE_GAIN_REVERED_REPUTATION               = 87,
     CRITERIA_TYPE_GAIN_HONORED_REPUTATION               = 88,
     CRITERIA_TYPE_KNOWN_FACTIONS                        = 89,
-    CRITERIA_TYPE_LOOT_EPIC_ITEM                        = 90,
-    CRITERIA_TYPE_RECEIVE_EPIC_ITEM                     = 91,
+    CRITERIA_TYPE_LOOT_ANY_ITEM                         = 90,
+    CRITERIA_TYPE_OBTAIN_ANY_ITEM                       = 91,
     CRITERIA_TYPE_SEND_EVENT_SCENARIO                   = 92,
     CRITERIA_TYPE_ROLL_NEED                             = 93,
     CRITERIA_TYPE_ROLL_GREED                            = 94,
@@ -494,9 +497,10 @@ enum CriteriaTypes : uint8
     CRITERIA_TYPE_OWN_HEIRLOOMS                         = 189,
     CRITERIA_TYPE_ARTIFACT_POWER_EARNED                 = 190,
     CRITERIA_TYPE_ARTIFACT_TRAITS_UNLOCKED              = 191,
+    CRITERIA_TYPE_OWN_ITEM_MODIFIED_APPEARANCE          = 192,
     CRITERIA_TYPE_HONOR_LEVEL_REACHED                   = 194,
     CRITERIA_TYPE_PRESTIGE_REACHED                      = 195,
-    // 196 - CRITERIA_TYPE_REACH_LEVEL_2 or something
+    CRITERIA_TYPE_ACTIVELY_REACH_LEVEL                  = 196,
     // 197 - Order Hall Advancement related
     CRITERIA_TYPE_ORDER_HALL_TALENT_LEARNED             = 198,
     CRITERIA_TYPE_APPEARANCE_UNLOCKED_BY_SLOT           = 199,
@@ -509,6 +513,7 @@ enum CriteriaTypes : uint8
     CRITERIA_TYPE_GAIN_PARAGON_REPUTATION               = 206,
     CRITERIA_TYPE_EARN_HONOR_XP                         = 207,
     CRITERIA_TYPE_RELIC_TALENT_UNLOCKED                 = 211,
+    CRITERIA_TYPE_EXPANSION_LEVEL                       = 212,
     CRITERIA_TYPE_REACH_ACCOUNT_HONOR_LEVEL             = 213,
     CRITERIA_TYPE_HEART_OF_AZEROTH_ARTIFACT_POWER_EARNED= 214,
     CRITERIA_TYPE_HEART_OF_AZEROTH_LEVEL_REACHED        = 215,
@@ -528,7 +533,7 @@ enum CriteriaTypes : uint8
     CRITERIA_TYPE_CONVERT_ITEMS_TO_CURRENCY             = 229,
 };
 
-#define CRITERIA_TYPE_TOTAL 230
+#define CRITERIA_TYPE_TOTAL 232
 
 enum class CriteriaTreeFlags : uint16
 {
@@ -1301,6 +1306,11 @@ enum class ModifierTreeType : int32
     RapidRenownCatchupActive                                            = 320, /*NYI*/ // Rapid Renown Catchup Active
     PlayerMythicPlusRatingEqualOrGreaterThan                            = 321, /*NYI*/ // Player has Mythic+ Rating of at least "{#DungeonScore}"
     PlayerMythicPlusRunCountInCurrentExpansionEqualOrGreaterThan        = 322, /*NYI*/ // Player has completed at least "{#MythicKeystoneRuns}" Mythic+ runs in current expansion
+    PlayerHasCustomizationChoice                                        = 323, // (Mainline) Player has Customization Choice "{ChrCustomizationChoice}"
+    PlayerBestWeeklyWinPvpTier                                          = 324, // (Mainline) Player has best weekly win in PVP tier {PvpTier}
+    PlayerBestWeeklyWinPvpTierInBracketEqualOrGreaterThan               = 325, // (Mainline) Player has best weekly win at or above "{@PVP_TIER_ENUM}" for "{@PVP_BRACKET}"
+    PlayerHasVanillaCollectorsEdition                                   = 326, // Player has Vanilla Collector's Edition
+    PlayerHasItemWithKeystoneLevelModifierEqualOrGreaterThan            = 327,
 };
 
 enum class ModifierTreeOperator : int8
@@ -1457,7 +1467,7 @@ enum class SpellShapeshiftFormFlags : int32
 
 DEFINE_ENUM_FLAG(SpellShapeshiftFormFlags);
 
-#define TaxiMaskSize 337
+#define TaxiMaskSize 338
 typedef std::array<uint8, TaxiMaskSize> TaxiMask;
 
 enum TotemCategoryType

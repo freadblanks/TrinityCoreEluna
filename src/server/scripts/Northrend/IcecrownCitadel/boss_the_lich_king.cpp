@@ -1053,6 +1053,7 @@ class boss_the_lich_king : public CreatureScript
                                     triggers.sort(Trinity::ObjectDistanceOrderPred(terenas, true));
                                     Creature* spawner = triggers.front();
                                     spawner->setActive(true);
+                                    spawner->SetFarVisible(true);
                                     spawner->CastSpell(spawner, SPELL_SUMMON_SPIRIT_BOMB_1, true);  // summons bombs randomly
                                     spawner->CastSpell(spawner, SPELL_SUMMON_SPIRIT_BOMB_2, true);  // summons bombs on players
                                     spawner->m_Events.AddEvent(new TriggerWickedSpirit(spawner), spawner->m_Events.CalculateTime(3000));
@@ -1741,6 +1742,7 @@ class npc_terenas_menethil : public CreatureScript
                 {
                     case ACTION_FROSTMOURNE_INTRO:
                         me->setActive(true);
+                        me->SetFarVisible(false);
                         if (!IsHeroic())
                             me->SetHealth(me->GetMaxHealth() / 2);
                         DoCast(me, SPELL_LIGHTS_FAVOR);
@@ -2492,14 +2494,14 @@ class spell_the_lich_king_summon_into_air : public SpellScriptLoader
         {
             PrepareSpellScript(spell_the_lich_king_summon_into_air_SpellScript);
 
-            void ModDestHeight(SpellEffIndex effIndex)
+            void ModDestHeight(SpellEffIndex /*effIndex*/)
             {
                 static Position const offset = {0.0f, 0.0f, 15.0f, 0.0f};
                 WorldLocation* dest = const_cast<WorldLocation*>(GetExplTargetDest());
                 dest->RelocateOffset(offset);
                 GetHitDest()->RelocateOffset(offset);
                 // spirit bombs get higher
-                if (GetSpellInfo()->GetEffect(effIndex)->MiscValue == NPC_SPIRIT_BOMB)
+                if (GetEffectInfo().MiscValue == NPC_SPIRIT_BOMB)
                 {
                     static Position const offsetExtra = { 0.0f, 0.0f, 5.0f, 0.0f };
                     dest->RelocateOffset(offsetExtra);
@@ -2693,7 +2695,7 @@ class spell_the_lich_king_vile_spirits : public SpellScriptLoader
             void OnPeriodic(AuraEffect const* aurEff)
             {
                 if (_is25Man || ((aurEff->GetTickNumber() - 1) % 5))
-                    GetTarget()->CastSpell(nullptr, aurEff->GetSpellEffectInfo()->TriggerSpell, { aurEff, GetCasterGUID() });
+                    GetTarget()->CastSpell(nullptr, aurEff->GetSpellEffectInfo().TriggerSpell, { aurEff, GetCasterGUID() });
             }
 
             void Register() override

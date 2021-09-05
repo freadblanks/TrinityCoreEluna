@@ -38,21 +38,24 @@ void SpellCastLogData::Initialize(Unit const* unit)
 
 void SpellCastLogData::Initialize(Spell const* spell)
 {
-    Health = spell->GetCaster()->GetHealth();
-    AttackPower = spell->GetCaster()->GetTotalAttackPowerValue(spell->GetCaster()->getClass() == CLASS_HUNTER ? RANGED_ATTACK : BASE_ATTACK);
-    SpellPower = spell->GetCaster()->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_SPELL);
-    Armor = spell->GetCaster()->GetArmor();
-    Powers primaryPowerType = spell->GetCaster()->GetPowerType();
-    bool primaryPowerAdded = false;
-    for (SpellPowerCost const& cost : spell->GetPowerCost())
+    if (Unit const* unitCaster = spell->GetCaster()->ToUnit())
     {
-        PowerData.emplace_back(int32(cost.Power), spell->GetCaster()->GetPower(Powers(cost.Power)), int32(cost.Amount));
-        if (cost.Power == primaryPowerType)
-            primaryPowerAdded = true;
-    }
+        Health = unitCaster->GetHealth();
+        AttackPower = unitCaster->GetTotalAttackPowerValue(unitCaster->getClass() == CLASS_HUNTER ? RANGED_ATTACK : BASE_ATTACK);
+        SpellPower = unitCaster->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_SPELL);
+        Armor = unitCaster->GetArmor();
+        Powers primaryPowerType = unitCaster->GetPowerType();
+        bool primaryPowerAdded = false;
+        for (SpellPowerCost const& cost : spell->GetPowerCost())
+        {
+            PowerData.emplace_back(int32(cost.Power), unitCaster->GetPower(Powers(cost.Power)), int32(cost.Amount));
+            if (cost.Power == primaryPowerType)
+                primaryPowerAdded = true;
+        }
 
-    if (!primaryPowerAdded)
-        PowerData.insert(PowerData.begin(), SpellLogPowerData(int32(primaryPowerType), spell->GetCaster()->GetPower(primaryPowerType), 0));
+        if (!primaryPowerAdded)
+            PowerData.insert(PowerData.begin(), SpellLogPowerData(int32(primaryPowerType), unitCaster->GetPower(primaryPowerType), 0));
+    }
 }
 
 template<class T, class U>
@@ -74,9 +77,8 @@ bool ContentTuningParams::GenerateDataForUnits<Creature, Player>(Creature* attac
     ScalingHealthItemLevelCurveID = target->m_unitData->ScalingHealthItemLevelCurveID;
     TargetLevel = target->getLevel();
     Expansion = creatureTemplate->HealthScalingExpansion;
-    TargetMinScalingLevel = uint8(creatureScaling->MinLevel);
-    TargetMaxScalingLevel = uint8(creatureScaling->MaxLevel);
     TargetScalingLevelDelta = int8(attacker->m_unitData->ScalingLevelDelta);
+    TargetContentTuningID = creatureScaling->ContentTuningID;
     return true;
 }
 
@@ -93,9 +95,8 @@ bool ContentTuningParams::GenerateDataForUnits<Player, Creature>(Player* attacke
     ScalingHealthItemLevelCurveID = target->m_unitData->ScalingHealthItemLevelCurveID;
     TargetLevel = target->getLevel();
     Expansion = creatureTemplate->HealthScalingExpansion;
-    TargetMinScalingLevel = uint8(creatureScaling->MinLevel);
-    TargetMaxScalingLevel = uint8(creatureScaling->MaxLevel);
     TargetScalingLevelDelta = int8(target->m_unitData->ScalingLevelDelta);
+    TargetContentTuningID = creatureScaling->ContentTuningID;
     return true;
 }
 
@@ -111,9 +112,8 @@ bool ContentTuningParams::GenerateDataForUnits<Creature, Creature>(Creature* att
     PlayerItemLevel = 0;
     TargetLevel = target->getLevel();
     Expansion = creatureTemplate->HealthScalingExpansion;
-    TargetMinScalingLevel = uint8(creatureScaling->MinLevel);
-    TargetMaxScalingLevel = uint8(creatureScaling->MaxLevel);
     TargetScalingLevelDelta = int8(accessor->m_unitData->ScalingLevelDelta);
+    TargetContentTuningID = creatureScaling->ContentTuningID;
     return true;
 }
 
@@ -174,10 +174,10 @@ ByteBuffer& operator<<(ByteBuffer& data, ContentTuningParams const& contentTunin
     data << uint16(contentTuningParams.ScalingHealthItemLevelCurveID);
     data << uint8(contentTuningParams.TargetLevel);
     data << uint8(contentTuningParams.Expansion);
-    data << uint8(contentTuningParams.TargetMinScalingLevel);
-    data << uint8(contentTuningParams.TargetMaxScalingLevel);
     data << int8(contentTuningParams.TargetScalingLevelDelta);
     data << uint32(contentTuningParams.Flags);
+    data << int32(contentTuningParams.PlayerContentTuningID);
+    data << int32(contentTuningParams.TargetContentTuningID);
     data.WriteBits(contentTuningParams.Type, 4);
     data.FlushBits();
     return data;
