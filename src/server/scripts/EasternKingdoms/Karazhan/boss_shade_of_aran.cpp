@@ -479,7 +479,8 @@ public:
                         Unit* unit = ObjectAccessor::GetUnit(*me, FlameWreathTarget[i]);
                         if (unit && !unit->IsWithinDist2d(FWTargPosX[i], FWTargPosY[i], 3))
                         {
-                            unit->CastSpell(unit, 20476, me->GetGUID());
+                            unit->CastSpell(unit, 20476, CastSpellExtraArgs(TRIGGERED_FULL_MASK)
+                                .SetOriginalCaster(me->GetGUID()));
                             unit->CastSpell(unit, 11027, true);
                             FlameWreathTarget[i].Clear();
                         }
@@ -536,9 +537,9 @@ public:
 
                 SeenAtiesh = true;
                 Talk(SAY_ATIESH);
-                me->SetFacingTo(me->GetAngle(player));
+                me->SetFacingTo(me->GetAbsoluteAngle(player));
                 me->ClearUnitState(UNIT_STATE_MOVING);
-                me->GetMotionMaster()->MoveDistract(7 * IN_MILLISECONDS);
+                me->GetMotionMaster()->MoveDistract(7 * IN_MILLISECONDS, me->GetAbsoluteAngle(who));
                 break;
             }
         }

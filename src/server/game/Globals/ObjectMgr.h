@@ -32,6 +32,7 @@
 #include "Position.h"
 #include "QuestDef.h"
 #include "RaceMask.h"
+#include "SceneDefines.h"
 #include "SharedDefines.h"
 #include "Trainer.h"
 #include "VehicleDefines.h"
@@ -45,6 +46,7 @@ class Item;
 class Unit;
 class Vehicle;
 class Map;
+enum class GossipOptionIcon : uint8;
 struct AccessRequirement;
 struct DeclinedName;
 struct DungeonEncounterEntry;
@@ -599,19 +601,24 @@ typedef std::vector<SkillRaceClassInfoEntry const*> PlayerCreateInfoSkills;
 // existence checked by displayId != 0
 struct PlayerInfo
 {
-    uint32 mapId = 0;
-    uint32 areaId = 0;
-    float positionX = 0.0f;
-    float positionY = 0.0f;
-    float positionZ = 0.0f;
-    float orientation = 0.0f;
-    uint32 displayId_m = 0;
-    uint32 displayId_f = 0;
+    struct CreatePosition
+    {
+        WorldLocation Loc;
+        Optional<ObjectGuid::LowType> TransportGuid;
+    };
+
+    CreatePosition createPosition;
+    Optional<CreatePosition> createPositionNPE;
+
     PlayerCreateInfoItems item;
     PlayerCreateInfoSpells customSpells;
     PlayerCreateInfoSpells castSpells;
     PlayerCreateInfoActions action;
     PlayerCreateInfoSkills skills;
+
+    Optional<uint32> introMovieId;
+    Optional<uint32> introSceneId;
+    Optional<uint32> introSceneIdNPE;
 
     //[level-1] 0..MaxPlayerLevel-1
     std::unique_ptr<PlayerLevelInfo[]> levelInfo;
@@ -691,7 +698,7 @@ struct GossipMenuItems
 {
     uint32               MenuId;
     uint32               OptionIndex;
-    uint8                OptionIcon;
+    GossipOptionIcon     OptionIcon;
     std::string          OptionText;
     uint32               OptionBroadcastTextId;
     uint32               OptionType;
@@ -793,7 +800,7 @@ typedef std::unordered_map<uint32, std::string> RealmNameContainer;
 struct SceneTemplate
 {
     uint32 SceneId = 0;
-    uint32 PlaybackFlags = 0;
+    EnumFlag<SceneFlag> PlaybackFlags = SceneFlag::None;
     uint32 ScenePackageId = 0;
     bool Encrypted = false;
     uint32 ScriptId = 0;
@@ -1028,7 +1035,22 @@ class TC_GAME_API ObjectMgr
 
         typedef std::unordered_map<uint32, PointOfInterest> PointOfInterestContainer;
 
-        typedef std::vector<std::string> ScriptNameContainer;
+        class ScriptNameContainer
+        {
+            using NameMap = std::map<std::string, uint32>;
+
+            NameMap NameToIndex;
+            std::vector<NameMap::const_iterator> IndexToName;
+
+        public:
+            void reserve(size_t capacity);
+            void insert(std::string&& scriptName);
+            size_t size() const;
+            std::string const& operator[](size_t index) const;
+            uint32 operator[](std::string const& name) const;
+
+            std::unordered_set<std::string> GetAllScriptNames() const;
+        };
 
         typedef std::map<uint32, uint32> CharacterConversionMap;
 
@@ -1591,7 +1613,7 @@ class TC_GAME_API ObjectMgr
         bool IsVendorItemValid(uint32 vendor_entry, VendorItem const& vItem, Player* player = nullptr, std::set<uint32>* skip_vendors = nullptr, uint32 ORnpcflag = 0) const;
 
         void LoadScriptNames();
-        ScriptNameContainer const& GetAllScriptNames() const;
+        std::unordered_set<std::string> GetAllScriptNames() const;
         std::string const& GetScriptName(uint32 id) const;
         uint32 GetScriptId(std::string const& name);
 

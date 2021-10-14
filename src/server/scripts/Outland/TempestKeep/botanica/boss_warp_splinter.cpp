@@ -107,7 +107,9 @@ class npc_warp_splinter_treant : public CreatureScript
                             if (me->IsWithinMeleeRange(Warp))
                             {
                                 int32 CurrentHP_Treant = (int32)me->GetHealth();
-                                Warp->CastSpell(Warp, SPELL_HEAL_FATHER, CastSpellExtraArgs(me->GetGUID()).AddSpellBP0(CurrentHP_Treant));
+                                Warp->CastSpell(Warp, SPELL_HEAL_FATHER, CastSpellExtraArgs(TRIGGERED_FULL_MASK)
+                                    .SetOriginalCaster(me->GetGUID())
+                                    .AddSpellBP0(CurrentHP_Treant));
                                 me->KillSelf();
                                 return;
                             }
@@ -194,7 +196,7 @@ class boss_warp_splinter : public CreatureScript
 
                     float X = Treant_Spawn_Pos_X + TREANT_SPAWN_DIST * std::cos(angle);
                     float Y = Treant_Spawn_Pos_Y + TREANT_SPAWN_DIST * std::sin(angle);
-                    float O = - me->GetAngle(X, Y);
+                    float O = - me->GetAbsoluteAngle(X, Y);
 
                     if (Creature* pTreant = me->SummonCreature(CREATURE_TREANT, treant_pos[i][0], treant_pos[i][1], treant_pos[i][2], O, TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN, 25000))
                         ENSURE_AI(npc_warp_splinter_treant::npc_warp_splinter_treantAI, pTreant->AI())->WarpGuid = me->GetGUID();

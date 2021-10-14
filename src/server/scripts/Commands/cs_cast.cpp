@@ -175,7 +175,7 @@ public:
         TC_LOG_DEBUG("chat.log.whisper", "%s fait .cast dist %d", handler->GetSession()->GetPlayer()->GetName().c_str(), spellId);
 
         handler->GetSession()->GetPlayer()->GetClosePoint(x, y, z, dist);
-        handler->GetSession()->GetPlayer()->CastSpell({ x, y, z }, spellId, triggered);
+        handler->GetSession()->GetPlayer()->CastSpell(Position{ x, y, z }, spellId, triggered);
 
         return true;
     }
@@ -266,9 +266,7 @@ public:
         if (!posX || !posY || !posZ)
             return false;
 
-        float x = float(atof(posX));
-        float y = float(atof(posY));
-        float z = float(atof(posZ));
+        Position dest(atof(posX), atof(posY), atof(posZ));
 
         char* triggeredStr = strtok(nullptr, " ");
         if (triggeredStr)
@@ -279,7 +277,7 @@ public:
         }
 
         TriggerCastFlags triggered = (triggeredStr != nullptr) ? TRIGGERED_FULL_DEBUG_MASK : TRIGGERED_NONE;
-        caster->CastSpell({ x, y, z }, spellId, triggered);
+        caster->CastSpell(dest, spellId, triggered);
 
         return true;
     }

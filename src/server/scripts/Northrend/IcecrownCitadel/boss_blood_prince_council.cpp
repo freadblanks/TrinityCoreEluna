@@ -645,7 +645,7 @@ class boss_prince_keleseth_icc : public CreatureScript
                 summons.Summon(summon);
                 Position pos = me->GetPosition();
                 float maxRange = me->GetDistance2d(summon);
-                float angle = me->GetAngle(summon);
+                float angle = me->GetAbsoluteAngle(summon);
                 me->MovePositionToFirstCollision(pos, maxRange, angle);
                 summon->NearTeleportTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), pos.GetOrientation());
                 summon->ToTempSummon()->SetTempSummonType(TEMPSUMMON_CORPSE_DESPAWN);
@@ -805,7 +805,8 @@ class boss_prince_valanar_icc : public CreatureScript
                 {
                     case NPC_KINETIC_BOMB_TARGET:
                         summon->SetReactState(REACT_PASSIVE);
-                        summon->CastSpell(summon, SPELL_KINETIC_BOMB, me->GetGUID());
+                        summon->CastSpell(summon, SPELL_KINETIC_BOMB, CastSpellExtraArgs(TRIGGERED_FULL_MASK)
+                            .SetOriginalCaster(me->GetGUID()));
                         break;
                     case NPC_KINETIC_BOMB:
                     {

@@ -23,6 +23,7 @@
 #include "Creature.h"
 #include "CreatureAI.h"
 #include "CreatureAIImpl.h"
+#include "DB2Stores.h"
 #include "Errors.h"
 #include "GameObject.h"
 #include "GossipDef.h"
@@ -1168,9 +1169,7 @@ void ScriptMgr::Initialize()
     sScriptMgr->SwapScriptContext(true);
 
     // Print unused script names.
-    std::unordered_set<std::string> unusedScriptNames(
-        sObjectMgr->GetAllScriptNames().begin(),
-        sObjectMgr->GetAllScriptNames().end());
+    std::unordered_set<std::string> unusedScriptNames = sObjectMgr->GetAllScriptNames();
 
     // Remove the used scripts from the given container.
     sScriptRegistryCompositum->RemoveUsedScriptsFromContainer(unusedScriptNames);
@@ -2500,6 +2499,15 @@ void ScriptMgr::OnConversationCreate(Conversation* conversation, Unit* creator)
 
     GET_SCRIPT(ConversationScript, conversation->GetScriptId(), tmpscript);
     tmpscript->OnConversationCreate(conversation, creator);
+}
+
+void ScriptMgr::OnConversationLineStarted(Conversation* conversation, uint32 lineId, Player* sender)
+{
+    ASSERT(conversation);
+    ASSERT(sender);
+
+    GET_SCRIPT(ConversationScript, conversation->GetScriptId(), tmpscript);
+    tmpscript->OnConversationLineStarted(conversation, lineId, sender);
 }
 
 // Scene

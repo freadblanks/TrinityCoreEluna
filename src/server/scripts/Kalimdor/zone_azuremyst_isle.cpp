@@ -87,7 +87,7 @@ public:
 
             DoCastSelf(SPELL_IRRIDATION, true);
 
-            me->AddUnitFlag(UNIT_FLAG_PVP_ATTACKABLE);
+            me->AddUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
             me->AddUnitFlag(UNIT_FLAG_IN_COMBAT);
             me->SetHealth(me->CountPctFromMaxHealth(10));
             me->SetStandState(UNIT_STAND_STATE_SLEEP);
@@ -117,7 +117,7 @@ public:
                 _canAskForHelp = false;
                 _canUpdateEvents = true;
 
-                me->RemoveUnitFlag(UNIT_FLAG_PVP_ATTACKABLE);
+                me->RemoveUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
                 me->SetStandState(UNIT_STAND_STATE_STAND);
 
                 _playerGUID = caster->GetGUID();
@@ -153,7 +153,7 @@ public:
                         break;
                     case EVENT_RUN_AWAY:
                         me->GetMotionMaster()->Clear();
-                        me->GetMotionMaster()->MovePoint(0, me->GetPositionX() + (std::cos(me->GetAngle(CrashSite)) * 28.0f), me->GetPositionY() + (std::sin(me->GetAngle(CrashSite)) * 28.0f), me->GetPositionZ() + 1.0f);
+                        me->GetMotionMaster()->MovePoint(0, me->GetPositionX() + (std::cos(me->GetAbsoluteAngle(CrashSite)) * 28.0f), me->GetPositionY() + (std::sin(me->GetAbsoluteAngle(CrashSite)) * 28.0f), me->GetPositionZ() + 1.0f);
                         me->DespawnOrUnsummon(Seconds(4));
                         break;
                     default:

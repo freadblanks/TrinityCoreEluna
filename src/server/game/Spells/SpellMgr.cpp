@@ -1191,13 +1191,13 @@ void SpellMgr::LoadSpellTargetPositions()
         MapEntry const* mapEntry = sMapStore.LookupEntry(st.target_mapId);
         if (!mapEntry)
         {
-            TC_LOG_ERROR("sql.sql", "Spell (Id: %u, EffectIndex: %u) is using a non-existant MapID (ID: %u).", spellId, effIndex, st.target_mapId);
+            TC_LOG_ERROR("sql.sql", "Spell (Id: %u, EffectIndex: %u) is using a non-existant MapID (ID: %u).", spellId, uint32(effIndex), st.target_mapId);
             continue;
         }
 
         if (st.target_X == 0 && st.target_Y == 0 && st.target_Z == 0)
         {
-            TC_LOG_ERROR("sql.sql", "Spell (Id: %u, EffectIndex: %u): target coordinates not provided.", spellId, effIndex);
+            TC_LOG_ERROR("sql.sql", "Spell (Id: %u, EffectIndex: %u): target coordinates not provided.", spellId, uint32(effIndex));
             continue;
         }
 
@@ -1210,7 +1210,7 @@ void SpellMgr::LoadSpellTargetPositions()
 
         if (effIndex >= spellInfo->GetEffects().size())
         {
-            TC_LOG_ERROR("sql.sql", "Spell (Id: %u, EffectIndex: %u) listed in `spell_target_position` does not have an effect at index %u.", spellId, effIndex, effIndex);
+            TC_LOG_ERROR("sql.sql", "Spell (Id: %u, EffectIndex: %u) listed in `spell_target_position` does not have an effect at index %u.", spellId, uint32(effIndex), uint32(effIndex));
             continue;
         }
 
@@ -1228,7 +1228,7 @@ void SpellMgr::LoadSpellTargetPositions()
         }
         else
         {
-            TC_LOG_ERROR("sql.sql", "Spell (Id: %u, effIndex: %u) listed in `spell_target_position` does not have a target TARGET_DEST_DB (17).", spellId, effIndex);
+            TC_LOG_ERROR("sql.sql", "Spell (Id: %u, effIndex: %u) listed in `spell_target_position` does not have a target TARGET_DEST_DB (17).", spellId, uint32(effIndex));
             continue;
         }
 
@@ -1836,6 +1836,11 @@ void SpellMgr::LoadSpellProcs()
                 // Only drop charge on block
                 case SPELL_AURA_MOD_BLOCK_PERCENT:
                     procEntry.HitMask = PROC_HIT_BLOCK;
+                    break;
+                // proc auras with another aura reducing hit chance (eg 63767) only proc on missed attack
+                case SPELL_AURA_MOD_HIT_CHANCE:
+                    if (spellEffectInfo.CalcValue() <= -100)
+                        procEntry.HitMask = PROC_HIT_MISS;
                     break;
                 default:
                     continue;
@@ -2552,6 +2557,9 @@ void SpellMgr::LoadSpellInfoStore()
     for (SpellReagentsEntry const* reagents : sSpellReagentsStore)
         loadData[{ reagents->SpellID, DIFFICULTY_NONE }].Reagents = reagents;
 
+    for (SpellReagentsCurrencyEntry const* reagentsCurrency : sSpellReagentsCurrencyStore)
+        loadData[{ reagentsCurrency->SpellID, DIFFICULTY_NONE }].ReagentsCurrency.push_back(reagentsCurrency);
+
     for (SpellScalingEntry const* scaling : sSpellScalingStore)
         loadData[{ scaling->SpellID, DIFFICULTY_NONE }].Scaling = scaling;
 
@@ -2583,9 +2591,6 @@ void SpellMgr::LoadSpellInfoStore()
         if (!spellNameEntry)
             continue;
 
-        std::vector<SpellLabelEntry const*> labels = data.second.Labels; // copy, need to ensure source remains unmodified
-        SpellVisualVector visuals = data.second.Visuals; // copy, need to ensure source remains unmodified
-
         // fill blanks
         if (DifficultyEntry const* difficultyEntry = sDifficultyStore.LookupEntry(data.first.second))
         {
@@ -2599,8 +2604,14 @@ void SpellMgr::LoadSpellInfoStore()
                     if (!data.second.AuraRestrictions)
                         data.second.AuraRestrictions = fallbackData->AuraRestrictions;
 
+                    if (!data.second.CastingRequirements)
+                        data.second.CastingRequirements = fallbackData->CastingRequirements;
+
                     if (!data.second.Categories)
                         data.second.Categories = fallbackData->Categories;
+
+                    if (!data.second.ClassOptions)
+                        data.second.ClassOptions = fallbackData->ClassOptions;
 
                     if (!data.second.Cooldowns)
                         data.second.Cooldowns = fallbackData->Cooldowns;
@@ -2609,10 +2620,14 @@ void SpellMgr::LoadSpellInfoStore()
                         if (!data.second.Effects[i])
                             data.second.Effects[i] = fallbackData->Effects[i];
 
+                    if (!data.second.EquippedItems)
+                        data.second.EquippedItems = fallbackData->EquippedItems;
+
                     if (!data.second.Interrupts)
                         data.second.Interrupts = fallbackData->Interrupts;
 
-                    labels.insert(labels.end(), fallbackData->Labels.begin(), fallbackData->Labels.end());
+                    if (data.second.Labels.empty())
+                        data.second.Labels = fallbackData->Labels;
 
                     if (!data.second.Levels)
                         data.second.Levels = fallbackData->Levels;
@@ -2624,17 +2639,35 @@ void SpellMgr::LoadSpellInfoStore()
                         if (!data.second.Powers[i])
                             data.second.Powers[i] = fallbackData->Powers[i];
 
+                    if (!data.second.Reagents)
+                        data.second.Reagents = fallbackData->Reagents;
+
+                    if (data.second.ReagentsCurrency.empty())
+                        data.second.ReagentsCurrency = fallbackData->ReagentsCurrency;
+
+                    if (!data.second.Scaling)
+                        data.second.Scaling = fallbackData->Scaling;
+
+                    if (!data.second.Shapeshift)
+                        data.second.Shapeshift = fallbackData->Shapeshift;
+
                     if (!data.second.TargetRestrictions)
                         data.second.TargetRestrictions = fallbackData->TargetRestrictions;
 
-                    visuals.insert(visuals.end(), fallbackData->Visuals.begin(), fallbackData->Visuals.end());
+                    if (!data.second.Totems)
+                        data.second.Totems = fallbackData->Totems;
+
+                    // visuals fall back only to first difficulty that defines any visual
+                    // they do not stack all difficulties in fallback chain
+                    if (data.second.Visuals.empty())
+                        data.second.Visuals = fallbackData->Visuals;
                 }
 
                 difficultyEntry = sDifficultyStore.LookupEntry(difficultyEntry->FallbackDifficultyID);
             } while (difficultyEntry);
         }
 
-        mSpellInfoMap.emplace(spellNameEntry, data.first.second, data.second, labels, std::move(visuals));
+        mSpellInfoMap.emplace(spellNameEntry, data.first.second, data.second);
     }
 
     TC_LOG_INFO("server.loading", ">> Loaded SpellInfo store in %u ms", GetMSTimeDiffToNow(oldMSTime));
@@ -2944,6 +2977,10 @@ void SpellMgr::LoadSpellInfoCustomAttributes()
         SpellInfo* spellInfoMutable = const_cast<SpellInfo*>(&spellInfo);
         for (SpellEffectInfo const& spellEffectInfo : spellInfoMutable->GetEffects())
         {
+            // all bleed effects and spells ignore armor
+            if (spellInfo.GetEffectMechanicMask(spellEffectInfo.EffectIndex) & (1 << MECHANIC_BLEED))
+                spellInfoMutable->AttributesCu |= SPELL_ATTR0_CU_IGNORE_ARMOR;
+
             switch (spellEffectInfo.ApplyAuraName)
             {
                 case SPELL_AURA_MOD_POSSESS:
@@ -3225,6 +3262,14 @@ void SpellMgr::LoadSpellInfoCustomAttributes()
             if (spellInfo.HasAttribute(SPELL_ATTR2_CANT_CRIT))
                 spellInfoMutable->AttributesCu &= ~SPELL_ATTR0_CU_CAN_CRIT;
 
+    }
+
+    // add custom attribute to liquid auras
+    for (LiquidTypeEntry const* liquid : sLiquidTypeStore)
+    {
+        if (liquid->SpellID)
+            for (SpellInfo const& spellInfo : _GetSpellInfo(liquid->SpellID))
+                const_cast<SpellInfo&>(spellInfo).AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
     }
 
     TC_LOG_INFO("server.loading", ">> Loaded SpellInfo custom attributes in %u ms", GetMSTimeDiffToNow(oldMSTime));

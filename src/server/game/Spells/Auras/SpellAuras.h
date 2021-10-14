@@ -135,7 +135,7 @@ class TC_GAME_API Aura
         uint32 GetId() const{ return GetSpellInfo()->Id; }
         Difficulty GetCastDifficulty() const { return m_castDifficulty; }
 
-        ObjectGuid GetCastGUID() const { return m_castGuid; }
+        ObjectGuid GetCastId() const { return m_castId; }
         ObjectGuid GetCasterGUID() const { return m_casterGuid; }
         ObjectGuid GetCastItemGUID() const { return m_castItemGuid; }
         uint32 GetCastItemId() const { return m_castItemId; }
@@ -168,6 +168,7 @@ class TC_GAME_API Aura
         void SetMaxDuration(int32 duration) { m_maxDuration = duration; }
         int32 CalcMaxDuration() const { return CalcMaxDuration(GetCaster()); }
         int32 CalcMaxDuration(Unit* caster) const;
+        static int32 CalcMaxDuration(SpellInfo const* spellInfo, WorldObject* caster);
         int32 GetDuration() const { return m_duration; }
         void SetDuration(int32 duration, bool withMods = false);
         void RefreshDuration(bool withMods = false);
@@ -306,7 +307,7 @@ class TC_GAME_API Aura
     protected:
         SpellInfo const* const m_spellInfo;
         Difficulty const m_castDifficulty;
-        ObjectGuid const m_castGuid;
+        ObjectGuid const m_castId;
         ObjectGuid const m_casterGuid;
         ObjectGuid const m_castItemGuid;                    // it is NOT safe to keep a pointer to the item because it may get deleted
         uint32 m_castItemId;
