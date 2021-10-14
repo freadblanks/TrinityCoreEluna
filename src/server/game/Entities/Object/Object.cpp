@@ -51,6 +51,10 @@
 #include "World.h"
 #include "WorldSession.h"
 #include <G3D/Vector3.h>
+#ifdef ELUNA
+#include "LuaEngine.h"
+#include "ElunaEventMgr.h"
+#endif
 
 constexpr float VisibilityDistances[AsUnderlyingType(VisibilityDistanceType::Max)] =
 {
@@ -75,6 +79,11 @@ Object::Object() : m_values(this)
 
 WorldObject::~WorldObject()
 {
+#ifdef ELUNA
+    delete ElunaEvents;
+    ElunaEvents = NULL;
+#endif
+
     // this may happen because there are many !create/delete
     if (IsWorldObject() && m_currMap)
     {
@@ -851,12 +860,19 @@ void MovementInfo::OutDebug()
 }
 
 WorldObject::WorldObject(bool isWorldObject) : Object(), WorldLocation(), LastUsedScriptID(0),
-m_movementInfo(), m_name(), m_isActive(false), m_isFarVisible(false), m_isWorldObject(isWorldObject), m_zoneScript(nullptr),
+ElunaEvents(NULL), m_movementInfo(), m_name(), m_isActive(false), m_isFarVisible(false), m_isWorldObject(isWorldObject), m_zoneScript(nullptr),
 m_transport(nullptr), m_zoneId(0), m_areaId(0), m_staticFloorZ(VMAP_INVALID_HEIGHT), m_currMap(nullptr), m_InstanceId(0),
 _dbPhase(0), m_notifyflags(0)
 {
     m_serverSideVisibility.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_ALIVE | GHOST_VISIBILITY_GHOST);
     m_serverSideVisibilityDetect.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_ALIVE);
+}
+
+void WorldObject::Update(uint32 time_diff)
+{
+#ifdef ELUNA
+    ElunaEvents->Update(time_diff);
+#endif
 }
 
 void WorldObject::SetWorldObject(bool on)
@@ -918,6 +934,14 @@ void WorldObject::SetVisibilityDistanceOverride(VisibilityDistanceType type)
         return;
 
     m_visibilityDistanceOverride = VisibilityDistances[AsUnderlyingType(type)];
+}
+
+void WorldObject::SetVisibilityDistanceOverride(float distance)
+{
+    if (GetTypeId() == TYPEID_PLAYER)
+        return;
+
+    m_visibilityDistanceOverride = distance;
 }
 
 void WorldObject::SetFarVisible(bool on)
@@ -1714,6 +1738,12 @@ void WorldObject::ResetMap()
     ASSERT(!IsInWorld());
     if (IsWorldObject())
         m_currMap->RemoveWorldObject(this);
+
+#ifdef ELUNA
+    delete ElunaEvents;
+    ElunaEvents = NULL;
+#endif
+
     m_currMap = nullptr;
     //maybe not for corpse
     //m_mapId = 0;

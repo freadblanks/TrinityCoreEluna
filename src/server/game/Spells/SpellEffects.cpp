@@ -77,6 +77,9 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 
 NonDefaultConstructible<SpellEffectHandlerFn> SpellEffectHandlers[TOTAL_SPELL_EFFECTS] =
 {

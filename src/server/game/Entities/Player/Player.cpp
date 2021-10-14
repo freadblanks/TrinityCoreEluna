@@ -33,7 +33,9 @@
 #include "BattlegroundPackets.h"
 #include "BattlegroundScore.h"
 #include "BattlePetMgr.h"
+#include "BattlePayPackets.h"
 #include "CellImpl.h"
+#include "Config.h"
 #include "Channel.h"
 #include "ChannelMgr.h"
 #include "CharacterCache.h"
@@ -128,9 +130,13 @@
 #include "WorldSession.h"
 #include "WorldStatePackets.h"
 #include <G3D/g3dmath.h>
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include <sstream>
 
 #define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
+#define SHOP_UPDATE_INTERVAL (30*IN_MILLISECONDS)
 
 // corpse reclaim times
 #define DEATH_EXPIRE_STEP (5*MINUTE)
@@ -359,6 +365,8 @@ Player::Player(WorldSession* session) : Unit(true), m_sceneMgr(this)
 
     _restMgr = std::make_unique<RestMgr>(this);
 
+    m_shopTimer = 0;
+
     _usePvpItemLevels = false;
 }
 
@@ -573,7 +581,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     return true;
 }
 
-bool Player::StoreNewItemInBestSlots(uint32 titem_id, uint32 titem_amount)
+bool Player::StoreNewItemInBestSlots(uint32 titem_id, uint32 titem_amount, ItemContext /*context*/)
 {
     TC_LOG_DEBUG("entities.player.items", "Player::StoreNewItemInBestSlots: Player '%s' (%s) creates initial item (ItemID: %u, Count: %u)",
         GetName().c_str(), GetGUID().ToString().c_str(), titem_id, titem_amount);
@@ -693,8 +701,11 @@ int32 Player::getMaxTimer(MirrorTimerType timer) const
 {
     switch (timer)
     {
+        if (sConfigMgr->GetBoolDefault("fatigue.enabled", true)) // If "fatigue.enabled" is enabled
+        {
         case FATIGUE_TIMER:
             return MINUTE * IN_MILLISECONDS;
+        }
         case BREATH_TIMER:
         {
             if (!IsAlive() || HasAuraType(SPELL_AURA_WATER_BREATHING) || GetSession()->GetSecurity() >= AccountTypes(sWorld->getIntConfig(CONFIG_DISABLE_BREATHING)))
@@ -776,8 +787,13 @@ void Player::HandleDrowning(uint32 time_diff)
     }
 
     // In dark water
+    if (sConfigMgr->GetBoolDefault("fatigue.enabled", true)) // If "fatigue.enabled" is enabled
+    {
     if (m_MirrorTimerFlags & UNDERWATER_INDARKWATER)
     {
+        if (GetAreaId() == 10639)
+            return;
+
         // Fatigue timer not activated - activate it
         if (m_MirrorTimer[FATIGUE_TIMER] == DISABLED_MIRROR_TIMER)
         {
@@ -811,6 +827,8 @@ void Player::HandleDrowning(uint32 time_diff)
             StopMirrorTimer(FATIGUE_TIMER);
         else if (m_MirrorTimerFlagsLast & UNDERWATER_INDARKWATER)
             SendMirrorTimer(FATIGUE_TIMER, DarkWaterTime, m_MirrorTimer[FATIGUE_TIMER], 10);
+    }
+
     }
 
     if (m_MirrorTimerFlags & (UNDERWATER_INLAVA /*| UNDERWATER_INSLIME*/) && !(_lastLiquid && _lastLiquid->SpellID))
@@ -1215,6 +1233,8 @@ void Player::Update(uint32 p_time)
     if (pet && !pet->IsWithinDistInMap(this, GetMap()->GetVisibilityRange()) && !pet->isPossessed())
     //if (pet && !pet->IsWithinDistInMap(this, GetMap()->GetVisibilityDistance()) && (GetCharmGUID() && (pet->GetGUID() != GetCharmGUID())))
         RemovePet(pet, PET_SAVE_NOT_IN_SLOT, true);
+
+    UpdateShop(p_time);
 
     if (IsAlive())
     {
@@ -2350,8 +2370,8 @@ void Player::GiveLevel(uint8 level)
     InitTalentForLevel();
     InitTaxiNodesForLevel();
 
-    if (level < PLAYER_LEVEL_MIN_HONOR)
-        ResetPvpTalents();
+    /*if (level < PLAYER_LEVEL_MIN_HONOR)
+        ResetPvpTalents();*/
 
     UpdateAllStats();
 
@@ -4349,6 +4369,10 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
     // recast lost by death auras of any items held in the inventory
     CastAllObtainSpells();
 
+#ifdef ELUNA
+    sEluna->OnResurrect(this);
+#endif
+
     if (!applySickness)
         return;
 
@@ -5466,6 +5490,7 @@ bool Player::UpdateGatherSkill(uint32 SkillId, uint32 SkillValue, uint32 RedLeve
         case SKILL_DRAENOR_HERBALISM:
         case SKILL_LEGION_HERBALISM:
         case SKILL_KUL_TIRAN_HERBALISM:
+        case SKILL_SHADOWLANDS_HERBALISM:
         case SKILL_JEWELCRAFTING:
         case SKILL_INSCRIPTION:
             return UpdateSkillPro(SkillId, SkillGainChance(SkillValue, RedLevel+100, RedLevel+50, RedLevel+25)*Multiplicator, gathering_skill_gain);
@@ -5515,9 +5540,9 @@ bool Player::UpdateFishingSkill()
 {
     TC_LOG_DEBUG("entities.player.skills", "Player::UpdateFishingSkill: Player '%s' (%s)", GetName().c_str(), GetGUID().ToString().c_str());
 
-    uint32 SkillValue = GetPureSkillValue(SKILL_FISHING);
+    uint32 SkillValue = GetPureSkillValue(SKILL_FISHING_2);
 
-    if (SkillValue >= GetMaxSkillValue(SKILL_FISHING))
+    if (SkillValue >= GetMaxSkillValue(SKILL_FISHING_2))
         return false;
 
     uint8 stepsNeededToLevelUp = GetFishingStepsNeededToLevelUp(SkillValue);
@@ -5528,7 +5553,7 @@ bool Player::UpdateFishingSkill()
         m_fishingSteps = 0;
 
         uint32 gathering_skill_gain = sWorld->getIntConfig(CONFIG_SKILL_GAIN_GATHERING);
-        return UpdateSkillPro(SKILL_FISHING, 100*10, gathering_skill_gain);
+        return UpdateSkillPro(SKILL_FISHING_2, 100*10, gathering_skill_gain);
     }
 
     return false;
@@ -6246,6 +6271,14 @@ TeamId Player::TeamIdForRace(uint8 race)
 
     TC_LOG_ERROR("entities.player", "Race (%u) not found in DBC: wrong DBC files?", race);
     return TEAM_NEUTRAL;
+}
+
+void Player::SwitchToOppositeTeam(bool apply)
+{
+    m_team = GetNativeTeam();
+
+    if (apply)
+        m_team = (m_team == ALLIANCE) ? HORDE : ALLIANCE;
 }
 
 void Player::setFactionForRace(uint8 race)
@@ -10010,9 +10043,11 @@ uint32 Player::GetFreeInventorySlotCount(EnumFlag<ItemSearchLocation> location /
     }
 
     if (location.HasFlag(ItemSearchLocation::ReagentBank))
+    {
         for (uint8 i = REAGENT_SLOT_START; i < REAGENT_SLOT_END; ++i)
             if (!GetItemByPos(INVENTORY_SLOT_BAG_0, i))
                 ++freeSlotCount;
+    }
 
     return freeSlotCount;
 }
@@ -10115,6 +10150,11 @@ Item* Player::GetItemByPos(uint8 bag, uint8 slot) const
     if (Bag* pBag = GetBagByPos(bag))
         return pBag->GetItemByPos(slot);
     return nullptr;
+}
+
+Item* Player::GetEquippedItem(EquipmentSlots slot) const
+{
+    return GetItemByPos(INVENTORY_SLOT_BAG_0, slot);
 }
 
 //Does additional check for disarmed weapons
@@ -10247,6 +10287,11 @@ bool Player::IsBankPos(uint8 bag, uint8 slot)
     return false;
 }
 
+bool Player::IsReagentBankPos(uint8 bag, uint8 slot)
+{
+    return bag == INVENTORY_SLOT_BAG_0 && (slot >= REAGENT_SLOT_START && slot < REAGENT_SLOT_END);
+}
+
 bool Player::IsBagPos(uint16 pos)
 {
     uint8 bag = pos >> 8;
@@ -10293,6 +10338,10 @@ bool Player::IsValidPos(uint8 bag, uint8 slot, bool explicit_pos) const
 
         // bank bag slots
         if (slot >= BANK_SLOT_BAG_START && slot < BANK_SLOT_BAG_END)
+            return true;
+
+        // reagent bank bag slots
+        if (slot >= REAGENT_SLOT_START && slot < REAGENT_SLOT_END)
             return true;
 
         return false;
@@ -10504,7 +10553,7 @@ InventoryResult Player::CanStoreNewItem(uint8 bag, uint8 slot, ItemPosCountVec& 
     return CanStoreItem(bag, slot, dest, item, count, nullptr, false, no_space_count);
 }
 
-InventoryResult Player::CanStoreItem(uint8 bag, uint8 slot, ItemPosCountVec& dest, Item* pItem, bool swap /*= false*/) const
+InventoryResult Player::CanStoreItem(uint8 bag, uint8 slot, ItemPosCountVec& dest, Item* pItem, bool swap /*= false*/, bool removeFromBank /*= false*/) const
 {
     if (!pItem)
         return EQUIP_ERR_ITEM_NOT_FOUND;
@@ -10759,7 +10808,7 @@ InventoryResult Player::CanStoreItem_InInventorySlots(uint8 slot_begin, uint8 sl
     return EQUIP_ERR_OK;
 }
 
-InventoryResult Player::CanStoreItem(uint8 bag, uint8 slot, ItemPosCountVec &dest, uint32 entry, uint32 count, Item* pItem, bool swap, uint32* no_space_count) const
+InventoryResult Player::CanStoreItem(uint8 bag, uint8 slot, ItemPosCountVec &dest, uint32 entry, uint32 count, Item* pItem, bool swap, uint32* no_space_count, bool removeFromBank /*= false*/) const
 {
     TC_LOG_DEBUG("entities.player.items", "Player::CanStoreItem: Bag: %u, Slot: %u, Item: %u, Count: %u", bag, slot, entry, count);
 
@@ -10939,7 +10988,7 @@ InventoryResult Player::CanStoreItem(uint8 bag, uint8 slot, ItemPosCountVec &des
                     return EQUIP_ERR_ITEM_MAX_COUNT;
                 }
             }
-            else if (pProto->IsCraftingReagent() && HasPlayerFlagEx(PLAYER_FLAGS_EX_REAGENT_BANK_UNLOCKED))
+            else if (!removeFromBank && pProto->IsCraftingReagent() && HasPlayerFlagEx(PLAYER_FLAGS_EX_REAGENT_BANK_UNLOCKED))
             {
                 res = CanStoreItem_InInventorySlots(REAGENT_SLOT_START, REAGENT_SLOT_END, dest, pProto, count, false, pItem, bag, slot);
                 if (res != EQUIP_ERR_OK)
@@ -11026,12 +11075,15 @@ InventoryResult Player::CanStoreItem(uint8 bag, uint8 slot, ItemPosCountVec &des
             return EQUIP_ERR_ITEM_MAX_COUNT;
         }
 
-        res = CanStoreItem_InInventorySlots(REAGENT_SLOT_START, REAGENT_SLOT_END, dest, pProto, count, true, pItem, bag, slot);
-        if (res != EQUIP_ERR_OK)
+        if (!removeFromBank)
         {
-            if (no_space_count)
-                *no_space_count = count + no_similar_count;
-            return res;
+            res = CanStoreItem_InInventorySlots(REAGENT_SLOT_START, REAGENT_SLOT_END, dest, pProto, count, true, pItem, bag, slot);
+            if (res != EQUIP_ERR_OK)
+            {
+                if (no_space_count)
+                    *no_space_count = count + no_similar_count;
+                return res;
+            }
         }
 
         if (count == 0)
@@ -11144,7 +11196,7 @@ InventoryResult Player::CanStoreItem(uint8 bag, uint8 slot, ItemPosCountVec &des
             return EQUIP_ERR_ITEM_MAX_COUNT;
         }
     }
-    else if (pProto->IsCraftingReagent() && HasPlayerFlagEx(PLAYER_FLAGS_EX_REAGENT_BANK_UNLOCKED))
+    else if (!removeFromBank && pProto->IsCraftingReagent() && HasPlayerFlagEx(PLAYER_FLAGS_EX_REAGENT_BANK_UNLOCKED))
     {
         res = CanStoreItem_InInventorySlots(REAGENT_SLOT_START, REAGENT_SLOT_END, dest, pProto, count, false, pItem, bag, slot);
         if (res != EQUIP_ERR_OK)
@@ -11665,7 +11717,7 @@ InventoryResult Player::CanUnequipItem(uint16 pos, bool swap) const
     return EQUIP_ERR_OK;
 }
 
-InventoryResult Player::CanBankItem(uint8 bag, uint8 slot, ItemPosCountVec &dest, Item* pItem, bool swap, bool not_loading) const
+InventoryResult Player::CanBankItem(uint8 bag, uint8 slot, ItemPosCountVec &dest, Item* pItem, bool swap, bool not_loading /*= true*/, bool reagentBank /*= false*/) const
 {
     if (!pItem)
         return swap ? EQUIP_ERR_CANT_SWAP : EQUIP_ERR_ITEM_NOT_FOUND;
@@ -11723,6 +11775,9 @@ InventoryResult Player::CanBankItem(uint8 bag, uint8 slot, ItemPosCountVec &dest
     }
 
     // not specific slot or have space for partly store only in specific slot
+
+    uint8 slotItemStart = reagentBank ? REAGENT_SLOT_START : BANK_SLOT_ITEM_START;
+    uint8 slotItemEnd = reagentBank ? REAGENT_SLOT_END : BANK_SLOT_ITEM_END;
 
     // in specific bag
     if (bag != NULL_BAG)
@@ -11796,14 +11851,17 @@ InventoryResult Player::CanBankItem(uint8 bag, uint8 slot, ItemPosCountVec &dest
         // in special bags
         if (pProto->GetBagFamily())
         {
-            for (uint8 i = BANK_SLOT_BAG_START; i < BANK_SLOT_BAG_END; i++)
+            if (!reagentBank)
             {
-                res = CanStoreItem_InBag(i, dest, pProto, count, true, false, pItem, bag, slot);
-                if (res != EQUIP_ERR_OK)
-                    continue;
+                for (uint8 i = BANK_SLOT_BAG_START; i < BANK_SLOT_BAG_END; i++)
+                {
+                    res = CanStoreItem_InBag(i, dest, pProto, count, true, true, pItem, bag, slot);
+                    if (res != EQUIP_ERR_OK)
+                        continue;
 
-                if (count == 0)
-                    return EQUIP_ERR_OK;
+                    if (count == 0)
+                        return EQUIP_ERR_OK;
+                }
             }
         }
 
@@ -11819,7 +11877,7 @@ InventoryResult Player::CanBankItem(uint8 bag, uint8 slot, ItemPosCountVec &dest
     }
 
     // search free place in special bag
-    if (pProto->GetBagFamily())
+    if (pProto->GetBagFamily() && !reagentBank)
     {
         for (uint8 i = BANK_SLOT_BAG_START; i < BANK_SLOT_BAG_END; i++)
         {
@@ -11840,14 +11898,17 @@ InventoryResult Player::CanBankItem(uint8 bag, uint8 slot, ItemPosCountVec &dest
     if (count == 0)
         return EQUIP_ERR_OK;
 
-    for (uint8 i = BANK_SLOT_BAG_START; i < BANK_SLOT_BAG_END; i++)
+    if (!reagentBank)
     {
-        res = CanStoreItem_InBag(i, dest, pProto, count, false, true, pItem, bag, slot);
-        if (res != EQUIP_ERR_OK)
-            continue;
+        for (uint8 i = BANK_SLOT_BAG_START; i < BANK_SLOT_BAG_END; i++)
+        {
+            res = CanStoreItem_InBag(i, dest, pProto, count, false, true, pItem, bag, slot);
+            if (res != EQUIP_ERR_OK)
+                continue;
 
-        if (count == 0)
-            return EQUIP_ERR_OK;
+            if (count == 0)
+                return EQUIP_ERR_OK;
+        }
     }
     return EQUIP_ERR_BANK_FULL;
 }
@@ -11960,6 +12021,12 @@ InventoryResult Player::CanUseItem(ItemTemplate const* proto, bool skipRequiredL
     if (ArtifactEntry const* artifact = sArtifactStore.LookupEntry(proto->GetArtifactID()))
         if (artifact->ChrSpecializationID != GetPrimarySpecialization())
             return EQUIP_ERR_CANT_USE_ITEM;
+
+#ifdef ELUNA
+    InventoryResult eres = sEluna->OnCanUseItem(this, proto->GetId());
+    if (eres != EQUIP_ERR_OK)
+        return eres;
+#endif
 
     return EQUIP_ERR_OK;
 }
@@ -12341,6 +12408,10 @@ Item* Player::EquipItem(uint16 pos, Item* pItem, bool update)
 
         ApplyEquipCooldown(pItem2);
 
+#ifdef ELUNA
+        sEluna->OnEquip(this, pItem2, bag, slot);
+#endif
+
         return pItem2;
     }
 
@@ -12352,6 +12423,10 @@ Item* Player::EquipItem(uint16 pos, Item* pItem, bool update)
     UpdateCriteria(CRITERIA_TYPE_EQUIP_ITEM_IN_SLOT, slot, pItem->GetEntry());
 
     UpdateAverageItemLevelEquipped();
+
+#ifdef ELUNA
+    sEluna->OnEquip(this, pItem, bag, slot);
+#endif
 
     return pItem;
 }
@@ -12478,6 +12553,10 @@ void Player::QuickEquipItem(uint16 pos, Item* pItem)
 
         UpdateCriteria(CRITERIA_TYPE_EQUIP_ITEM, pItem->GetEntry());
         UpdateCriteria(CRITERIA_TYPE_EQUIP_ITEM_IN_SLOT, slot, pItem->GetEntry());
+
+#ifdef ELUNA
+        sEluna->OnEquip(this, pItem, (pos >> 8), slot);
+#endif
     }
 }
 
@@ -15213,6 +15292,11 @@ void Player::AddQuestAndCheckCompletion(Quest const* quest, Object* questGiver)
     {
         case TYPEID_UNIT:
             PlayerTalkClass->ClearMenus();
+
+#ifdef ELUNA
+            sEluna->OnQuestAccept(this, questGiver->ToCreature(), quest);
+#endif
+
             questGiver->ToCreature()->AI()->QuestAccept(this, quest);
             break;
         case TYPEID_ITEM:
@@ -15241,6 +15325,11 @@ void Player::AddQuestAndCheckCompletion(Quest const* quest, Object* questGiver)
         }
         case TYPEID_GAMEOBJECT:
             PlayerTalkClass->ClearMenus();
+
+#ifdef ELUNA
+            sEluna->OnQuestAccept(this, questGiver->ToGameObject(), quest);
+#endif
+
             questGiver->ToGameObject()->AI()->QuestAccept(this, quest);
             break;
         default:
@@ -16482,6 +16571,10 @@ QuestGiverStatus Player::GetQuestDialogStatus(Object* questgiver)
     {
         case TYPEID_GAMEOBJECT:
         {
+#ifdef ELUNA
+            sEluna->GetDialogStatus(this, questgiver->ToGameObject());
+#endif
+
             if (Optional<QuestGiverStatus> questStatus = questgiver->ToGameObject()->AI()->GetDialogStatus(this))
                 return *questStatus;
             qr = sObjectMgr->GetGOQuestRelationBounds(questgiver->GetEntry());
@@ -16490,6 +16583,10 @@ QuestGiverStatus Player::GetQuestDialogStatus(Object* questgiver)
         }
         case TYPEID_UNIT:
         {
+#ifdef ELUNA
+            sEluna->GetDialogStatus(this, questgiver->ToCreature());
+#endif
+
             if (Optional<QuestGiverStatus> questStatus = questgiver->ToCreature()->AI()->GetDialogStatus(this))
                 return *questStatus;
             qr = sObjectMgr->GetCreatureQuestRelationBounds(questgiver->GetEntry());
@@ -18372,8 +18469,8 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder* holder)
     InitTalentForLevel();
     LearnDefaultSkills();
     LearnCustomSpells();
-    if (getLevel() < PLAYER_LEVEL_MIN_HONOR)
-        ResetPvpTalents();
+    /*if (getLevel() < PLAYER_LEVEL_MIN_HONOR)
+        ResetPvpTalents();*/
 
     // must be before inventory (some items required reputation check)
     m_reputationMgr->LoadFromDB(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_REPUTATION));
@@ -26306,6 +26403,10 @@ void Player::StoreLootItem(uint8 lootSlot, Loot* loot, AELootResult* aeResult/* 
         // LootItem is being removed (looted) from the container, delete it from the DB.
         if (!loot->containerID.IsEmpty())
             sLootItemStorage->RemoveStoredLootItemForContainer(loot->containerID.GetCounter(), item->itemid, item->count);
+
+#ifdef ELUNA
+        sEluna->OnLootItem(this, newitem, item->count, this->GetLootGUID());
+#endif
     }
     else
         SendEquipError(msg, nullptr, nullptr, item->itemid);
@@ -26698,6 +26799,10 @@ TalentLearnResult Player::LearnTalent(uint32 talentId, int32* spellOnCooldown)
     LearnSpell(spellid, false);
 
     TC_LOG_DEBUG("misc", "Player::LearnTalent: TalentID: %u Spell: %u Group: %u\n", talentId, spellid, GetActiveTalentGroup());
+
+#ifdef ELUNA
+    sEluna->OnLearnTalents(this, talentId, spellid);
+#endif
 
     return TALENT_LEARN_OK;
 }
@@ -27736,6 +27841,29 @@ bool Player::AddItem(uint32 itemId, uint32 count)
     return true;
 }
 
+// For custom spawn item with bunus id
+bool Player::AddItemBonus(uint32 itemId, uint32 count, uint32 bonusId)
+{
+    std::vector<int32> bonusListIDs;
+    uint32 noSpaceForCount = 0;
+    ItemPosCountVec dest;
+    InventoryResult msg = CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, itemId, count, &noSpaceForCount);
+    if (msg != EQUIP_ERR_OK)
+        count -= noSpaceForCount;
+
+    bonusListIDs.push_back(bonusId);
+
+    if (count == 0 || dest.empty())
+    {
+        /// @todo Send to mailbox if no space
+        ChatHandler(GetSession()).PSendSysMessage("You don't have any space in your bags.");
+        return false;
+    }
+
+    Item* item = StoreNewItem(dest, itemId, true, GenerateItemRandomBonusListId(itemId), GuidSet(), ItemContext::NONE, bonusListIDs);
+    return true;
+}
+
 void Player::SendItemRefundResult(Item* item, ItemExtendedCostEntry const* iece, uint8 error) const
 {
     WorldPackets::Item::ItemPurchaseRefundResult itemPurchaseRefundResult;
@@ -28653,6 +28781,12 @@ uint32 Player::DoRandomRoll(uint32 minimum, uint32 maximum)
     return roll;
 }
 
+void Player::ShowNeutralPlayerFactionSelectUI()
+{
+    WorldPackets::Misc::FactionSelectUI packet;
+    GetSession()->SendPacket(packet.Write());
+}
+
 void Player::UpdateItemLevelAreaBasedScaling()
 {
     // @todo Activate pvp item levels during world pvp
@@ -28670,6 +28804,16 @@ void Player::UpdateItemLevelAreaBasedScaling()
     // @todo other types of power scaling such as timewalking
 }
 
+void Player::UnlockReagentBank()
+{
+    AddPlayerFlagEx(PLAYER_FLAGS_EX_REAGENT_BANK_UNLOCKED);
+}
+
+bool Player::HasUnlockedReagentBank() const
+{
+    return HasPlayerFlagEx(PLAYER_FLAGS_EX_REAGENT_BANK_UNLOCKED);
+}
+
 uint8 Player::GetItemLimitCategoryQuantity(ItemLimitCategoryEntry const* limitEntry) const
 {
     uint8 limit = limitEntry->Quantity;
@@ -28685,6 +28829,21 @@ uint8 Player::GetItemLimitCategoryQuantity(ItemLimitCategoryEntry const* limitEn
     }
 
     return limit;
+}
+
+bool Player::isSaved()
+{
+    QueryResult checkSaved = WorldDatabase.PQuery("SELECT guid FROM player_skybox WHERE guid = %u", GetSession()->GetPlayer()->GetGUID().GetCounter());
+    printf("%zu\n", GetSession()->GetPlayer()->GetGUID().GetCounter());
+
+    if (checkSaved)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 template <typename T>
@@ -28823,4 +28982,156 @@ bool Player::CanEnableWarModeInArea() const
         return false;
 
     return area->Flags[1] & AREA_FLAG_2_CAN_ENABLE_WAR_MODE;
+}
+
+void Player::SendBattlePayMessage(uint32 bpaymessageID, std::string name, uint32 value) const
+{
+    std::ostringstream msg;
+    if (bpaymessageID == 1)
+        msg << "Покупка '" << name << "' успешно завершена!";
+    if (bpaymessageID == 2)
+        msg << "Осталось валюты: " << GetBattlePayCredits() << ".";
+    if (bpaymessageID == 3)
+        msg << "Теперь у вас на счете '" << value << "' валюты.";
+
+    if (bpaymessageID == 10)
+        msg << "Вы не можете приобрести '" << name << "' . Свяжитесь с администрацией.";
+    if (bpaymessageID == 11)
+        msg << "Ваша сумка переполнена, чтобы добавить туда : " << name << " .";
+    if (bpaymessageID == 12)
+        msg << "Вы уже приобрели : " << name << " .";
+
+    if (bpaymessageID == 20)
+        msg << "Количество донатной валюты было обновлено, для '" << name << "' ! Доступно валюты:" << value << " .";
+    if (bpaymessageID == 21)
+        msg << "Необходимо ввести количество !";
+
+    ChatHandler(GetSession()).SendSysMessage(msg.str().c_str());
+}
+
+uint32 Player::GetBattlePayCredits() const
+{
+    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BATTLE_PAY_ACCOUNT_CREDITS);
+
+    stmt->setUInt32(0, GetSession()->GetBattlenetAccountId());
+
+    PreparedQueryResult result_don = LoginDatabase.Query(stmt);
+
+    if (!result_don)
+        return 0;
+
+    Field* fields = result_don->Fetch();
+    uint32 credits = fields[0].GetUInt32();
+
+    return credits;
+}
+
+bool Player::HasBattlePayCredits(uint32 count) const
+{
+    if (GetBattlePayCredits() >= count)
+        return true;
+
+    ChatHandler chH = ChatHandler(GetSession());
+    chH.PSendSysMessage(20000, count);
+    return false;
+}
+
+bool Player::UpdateBattlePayCredits(uint64 price) const
+{
+    uint64 calcCredit = GetBattlePayCredits() - price;
+    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_BATTLE_PAY_ACCOUNT_CREDITS);
+    stmt->setUInt64(0, calcCredit);
+    stmt->setUInt32(1, GetSession()->GetBattlenetAccountId());
+    LoginDatabase.Execute(stmt);
+
+    return true;
+}
+
+bool Player::ModifyBattlePayCredits(uint64 credits) const
+{
+    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_BATTLE_PAY_ACCOUNT_CREDITS);
+    stmt->setUInt64(0, credits);
+    stmt->setUInt32(1, GetSession()->GetBattlenetAccountId());
+    LoginDatabase.Execute(stmt);
+    SendBattlePayMessage(3, "", credits);
+    return true;
+}
+
+void Player::SendBattlePayBattlePetDelivered(ObjectGuid petguid, uint32 creatureID) const
+{
+    WorldPackets::BattlePay::BattlePayBattlePetDelivered response;
+    response.DisplayID = creatureID;
+    response.BattlePetGuid = petguid;
+    m_session->SendPacket(response.Write());
+    TC_LOG_ERROR("", "Send BattlePayBattlePetDelivered guid : %u && creatureID : %u", petguid.GetCounter(), creatureID);
+}
+
+void Player::UpdateShop(uint32 diff)
+{
+    if (m_shopTimer > diff)
+    {
+        m_shopTimer -= diff;
+        return;
+    }
+
+    m_shopTimer = SHOP_UPDATE_INTERVAL;
+
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_SHOP);
+    stmt->setUInt64(0, GetGUID().GetCounter());
+    PreparedQueryResult result = CharacterDatabase.Query(stmt);
+
+    if (!result)
+        return;
+
+    CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+
+    do
+    {
+        Field* fields = result->Fetch();
+
+        uint32 id = fields[0].GetUInt32();
+        uint8  type = fields[1].GetUInt8();
+        uint32 itemId = fields[2].GetUInt32();
+        int32  itemCount = fields[3].GetInt32();
+
+        bool delivered = false;
+
+        switch (type)
+        {
+        case 0: // ITEM
+        {
+            if (itemCount < 0)
+            {
+                DestroyItemCount(itemId, -itemCount, true, false);
+                delivered = true;
+            }
+            else
+            {
+                delivered = AddItem(itemId, itemCount);
+
+                if (delivered)
+                {
+                    SendDisplayToast(itemId, ToastType::ITEM, false, itemCount, DisplayToastMethod::DISPLAY_TOAST_DEFAULT, 0);
+                }
+            }
+
+            break;
+        }
+        case 1: // APPEARANCE
+        {
+            GetSession()->GetCollectionMgr()->AddItemAppearance(itemId, uint32(itemCount));
+            delivered = true;
+            break;
+        }
+        }
+
+        if (delivered)
+        {
+            CharacterDatabasePreparedStatement* deliveredStmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_SHOP_DELIVERED);
+            deliveredStmt->setUInt32(0, id);
+            trans->Append(deliveredStmt);
+        }
+    } while (result->NextRow());
+
+    CharacterDatabase.CommitTransaction(trans);
 }
