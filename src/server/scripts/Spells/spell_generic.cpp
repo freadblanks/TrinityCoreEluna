@@ -42,7 +42,6 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include "Vehicle.h"
-#include "DatabaseEnv.h"
 
 class spell_gen_absorb0_hitlimit1 : public AuraScript
 {
@@ -1738,7 +1737,8 @@ class spell_gen_lifebloom : public SpellScriptLoader
                     return;
 
                 // final heal
-                GetTarget()->CastSpell(GetTarget(), _spellId, { aurEff, GetCasterGUID() });
+                GetTarget()->CastSpell(GetTarget(), _spellId, CastSpellExtraArgs(aurEff)
+                    .SetOriginalCaster(GetCasterGUID()));
             }
 
             void Register() override
@@ -2803,17 +2803,15 @@ class spell_gen_seaforium_blast : public SpellScript
 
     bool Load() override
     {
-        // OriginalCaster is always available in Spell::prepare
-        return GetOriginalCaster()->GetTypeId() == TYPEID_PLAYER;
+        return GetGObjCaster()->GetOwnerGUID().IsPlayer();
     }
 
     void AchievementCredit(SpellEffIndex /*effIndex*/)
     {
-        // but in effect handling OriginalCaster can become nullptr
-        if (Unit* originalCaster = GetOriginalCaster())
+        if (Unit* owner = GetGObjCaster()->GetOwner())
             if (GameObject* go = GetHitGObj())
                 if (go->GetGOInfo()->type == GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING)
-                    originalCaster->CastSpell(originalCaster, SPELL_PLANT_CHARGES_CREDIT_ACHIEVEMENT, true);
+                    owner->CastSpell(nullptr, SPELL_PLANT_CHARGES_CREDIT_ACHIEVEMENT, true);
     }
 
     void Register() override
@@ -3164,7 +3162,8 @@ class spell_gen_turkey_marker : public AuraScript
 
         // on stack 15 cast the achievement crediting spell
         if (GetStackAmount() >= 15)
-            target->CastSpell(target, SPELL_TURKEY_VENGEANCE, { aurEff, GetCasterGUID() });
+            target->CastSpell(target, SPELL_TURKEY_VENGEANCE, CastSpellExtraArgs(aurEff)
+                .SetOriginalCaster(GetCasterGUID()));
     }
 
     void OnPeriodic(AuraEffect const* /*aurEff*/)
@@ -4024,254 +4023,93 @@ class spell_gen_impatient_mind : public AuraScript
     }
 };
 
-// 83958 - Mobile Bank
-class spell_gen_mobile_bank : public SpellScript
+enum DefenderOfAzerothData
 {
-    PrepareSpellScript(spell_gen_mobile_bank);
+    SPELL_DEATH_GATE_TELEPORT_STORMWIND = 316999,
+    SPELL_DEATH_GATE_TELEPORT_ORGRIMMAR = 317000,
 
-    enum
-    {
-        GOB_MOBILE_BANK = 206602
-    };
+    QUEST_DEFENDER_OF_AZEROTH_ALLIANCE  = 58902,
+    QUEST_DEFENDER_OF_AZEROTH_HORDE     = 58903,
 
-    void SpawnChest(SpellEffIndex /*effIndex*/)
-    {
-        if (GetCaster()->IsPlayer() && GetCaster()->ToPlayer()->GetGuildId())
-            GetCaster()->SummonGameObject(GOB_MOBILE_BANK, GetCaster()->GetPositionWithDistInFront(2.f), QuaternionData::fromEulerAnglesZYX(GetCaster()->GetOrientation() - float(M_PI), 0.f, 0.f), 5 * MINUTE * IN_MILLISECONDS);
-    }
-
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_gen_mobile_bank::SpawnChest, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
-    }
+    NPC_NAZGRIM                         = 161706,
+    NPC_TROLLBANE                       = 161707,
+    NPC_WHITEMANE                       = 161708,
+    NPC_MOGRAINE                        = 161709,
 };
 
-// Arcane Pulse (Nightborne racial) - 260364
-class spell_arcane_pulse : public SpellScript
+struct BindLocation
 {
-    PrepareSpellScript(spell_arcane_pulse);
-
-    void HandleDamage(SpellEffIndex /*effIndex*/)
-    {
-        float damage = GetCaster()->GetTotalAttackPowerValue(BASE_ATTACK) * 2.f;
-
-        if (!damage)
-            damage = float(GetCaster()->GetTotalSpellPowerValue(SPELL_SCHOOL_MASK_ALL, false)) * 0.75f;
-
-        SetHitDamage(damage);
-    }
-
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_arcane_pulse::HandleDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
-    }
+    BindLocation(uint32 mapId, float x, float y, float z, float o, uint32 areaId)
+        : Loc(mapId, x, y, z, o), AreaId(areaId) { }
+    WorldLocation Loc;
+    uint32 AreaId;
 };
 
-enum SpatialRiftSpells
-{
-    SPELL_SPATIAL_RIFT_AT = 256948,
-    SPELL_SPATIAL_RIFT_TELEPORT = 257034,
-    SPELL_SPATIAL_RIFT_DESPAWN_AT = 257040
-};
+BindLocation const StormwindInnLoc(0, -8868.1f, 675.82f, 97.9f, 5.164778709411621093f, 5148);
+BindLocation const OrgrimmarInnLoc(1, 1573.18f, -4441.62f, 16.06f, 1.818284034729003906f, 8618);
 
-// Spatial Rift teleport (Void Elf racial) - 257040
-class spell_spatial_rift_despawn : public SpellScript
+class spell_defender_of_azeroth_death_gate_selector : public SpellScript
 {
-    PrepareSpellScript(spell_spatial_rift_despawn);
+    PrepareSpellScript(spell_defender_of_azeroth_death_gate_selector);
 
-    void OnDespawnAreaTrigger(SpellEffIndex /*effIndex*/)
+    bool Validate(SpellInfo const* /*spell*/) override
     {
-        if (AreaTrigger* at = GetCaster()->GetAreaTrigger(SPELL_SPATIAL_RIFT_AT))
+        return ValidateSpellInfo(
         {
-            GetCaster()->CastSpell(at->GetPosition(), SPELL_SPATIAL_RIFT_TELEPORT, true);
-            at->SetDuration(0);
-        }
+            SPELL_DEATH_GATE_TELEPORT_STORMWIND,
+            SPELL_DEATH_GATE_TELEPORT_ORGRIMMAR
+        });
     }
 
-    void Register() override
+    void HandleDummy(SpellEffIndex /*effIndex*/)
     {
-        OnEffectHitTarget += SpellEffectFn(spell_spatial_rift_despawn::OnDespawnAreaTrigger, EFFECT_0, SPELL_EFFECT_DESPAWN_AREATRIGGER);
-    }
-};
-
-// Light's Judgement - 256893  (Lightforged Draenei Racial)
-class spell_light_judgement : public SpellScript
-{
-    PrepareSpellScript(spell_light_judgement);
-
-    void HandleDamage(SpellEffIndex /*effIndex*/)
-    {
-        if (Unit* caster = GetCaster())
-            SetHitDamage(6.25f * caster->m_unitData->AttackPower);
-    }
-
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_light_judgement::HandleDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
-    }
-};
-
-// Light's Reckoning - 255652 (Lightforged Draenei Racial)
-class playerscript_light_reckoning : public PlayerScript
-{
-public:
-    playerscript_light_reckoning() : PlayerScript("playerscript_light_reckoning") { }
-
-    enum
-    {
-        SPELL_LIGHT_RECKONING = 255652
-    };
-
-    void OnDeath(Player* player) override
-    {
-        if (player->HasAura(SPELL_LIGHT_RECKONING))
-            if (SpellInfo const* info = sSpellMgr->GetSpellInfo(SPELL_LIGHT_RECKONING, Difficulty::DIFFICULTY_NONE))
-                if (SpellEffectInfo const* effectInfo = info->GetEffect(EFFECT_0))
-                    player->CastSpell(player, effectInfo->TriggerSpell, true);
-    }
-};
-
-//312372
-class spell_back_camp : public SpellScript
-{
-    PrepareSpellScript(spell_back_camp);
-
-    void HandleTeleport()
-    {
-        Unit* caster = GetCaster();
-        Player* player = caster->ToPlayer();
-        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_CAMP);
-        stmt->setUInt64(0, player->GetGUID().GetCounter());
-        PreparedQueryResult result = CharacterDatabase.Query(stmt);
-
-        Field* fields = result->Fetch();
-        float camp_x = fields[0].GetFloat();
-        float camp_y = fields[1].GetFloat();
-        float camp_z = fields[2].GetFloat();
-        float camp_o = fields[3].GetFloat();
-        int camp_mapid = fields[4].GetUInt16();
-
-        player->TeleportTo(camp_mapid, camp_x, camp_y, camp_z, camp_o);
-        player->RemoveMovementImpairingAuras(true);
-
-        Player* gamer = GetCaster()->ToPlayer();
-        int mapid = caster->GetMapId();
-
-        // Tente: 292769
-        // Sac: 276247
-        // campfire: 301125
-
-        while (caster->GetPositionX() == camp_x) {
-            uint32 spawntm = 300;
-            uint32 objectId = atoul("292769");
-            GameObject* tempGob = gamer->SummonGameObject(objectId, *gamer, QuaternionData::fromEulerAnglesZYX(gamer->GetOrientation(), 0.0f, 0.0f), spawntm);
-            gamer->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
-
-            objectId = atoul("276247");
-            tempGob = gamer->SummonGameObject(objectId, Position(camp_x + 2.0f, camp_y + 2.0f, camp_z, camp_o), QuaternionData::fromEulerAnglesZYX(gamer->GetOrientation(), 0.0f, 0.0f), spawntm);
-            gamer->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
-
-            objectId = atoul("301125");
-            tempGob = gamer->SummonGameObject(objectId, Position(camp_x + -2.0f, camp_y + -2.0f, camp_z, camp_o), QuaternionData::fromEulerAnglesZYX(gamer->GetOrientation(), 0.0f, 0.0f), spawntm);
-            gamer->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
-        }
-    }
-
-    void Register() override
-    {
-        OnCast += SpellCastFn(spell_back_camp::HandleTeleport);
-    }
-
-};
-
-//312370
-class spell_make_camp : public SpellScript
-{
-    PrepareSpellScript(spell_make_camp);
-
-    void Oncast()
-    {
-        Unit* caster = GetCaster();
-        float x = caster->GetPositionX();
-        float y = caster->GetPositionY();
-        float z = caster->GetPositionZ();
-        float o = caster->GetOrientation();
-        int m = caster->GetMapId();
-        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_CHARACTER_CAMP);
-        stmt->setFloat(0, x);
-        stmt->setFloat(1, y);
-        stmt->setFloat(2, z);
-        stmt->setFloat(3, o);
-        stmt->setUInt16(4, uint16(m));
-        stmt->setUInt64(5, caster->GetGUID().GetCounter());
-        CharacterDatabase.Execute(stmt);
-        // Tente: 292769
-        // Sac: 276247
-        // campfire: 301125
-
-        Player* gamer = GetCaster()->ToPlayer();
-        uint32 spawntm = 300;
-        uint32 objectId = atoul("292769");
-        GameObject* tempGob = gamer->SummonGameObject(objectId, *gamer, QuaternionData::fromEulerAnglesZYX(gamer->GetOrientation(), 0.0f, 0.0f), spawntm);
-        gamer->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
-
-        objectId = atoul("276247");
-        tempGob = gamer->SummonGameObject(objectId, Position(x + 2.0f, y + 2.0f, z, o), QuaternionData::fromEulerAnglesZYX(gamer->GetOrientation(), 0.0f, 0.0f), spawntm);
-        gamer->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
-
-        objectId = atoul("301125");
-        tempGob = gamer->SummonGameObject(objectId, Position(x + -2.0f, y + -2.0f, z, o), QuaternionData::fromEulerAnglesZYX(gamer->GetOrientation(), 0.0f, 0.0f), spawntm);
-        gamer->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
-    }
-
-    void Register() override
-    {
-        OnCast += SpellCastFn(spell_make_camp::Oncast);
-    }
-
-};
-
-//274738
-class spell_maghar_orc_racial_ancestors_call : public SpellScript
-{
-    PrepareSpellScript(spell_maghar_orc_racial_ancestors_call);
-
-    void Oncast()
-    {
-        Unit* caster = GetCaster();
-        if (!caster)
+        Player* player = GetHitUnit()->ToPlayer();
+        if (!player)
             return;
 
-        uint32 RandomStats = urand(0, 3);
+        if (player->GetQuestStatus(QUEST_DEFENDER_OF_AZEROTH_ALLIANCE) == QUEST_STATUS_NONE && player->GetQuestStatus(QUEST_DEFENDER_OF_AZEROTH_HORDE) == QUEST_STATUS_NONE)
+            return;
 
-        switch (RandomStats)
-        {
-        case 0:
-            //mastery
-            caster->CastSpell(nullptr, 274741, true);
-            break;
+        BindLocation bindLoc = player->GetTeam() == ALLIANCE ? StormwindInnLoc : OrgrimmarInnLoc;
+        player->SetHomebind(bindLoc.Loc, bindLoc.AreaId);
+        player->SendBindPointUpdate();
+        player->SendPlayerBound(player->GetGUID(), bindLoc.AreaId);
 
-        case 1:
-
-            //versatility
-            caster->CastSpell(nullptr, 274742, true);
-            break;
-
-        case 2:
-            //haste
-            caster->CastSpell(nullptr, 274740, true);
-            break;
-
-        case 3:
-            //crit
-            caster->CastSpell(nullptr, 274739, true);
-            break;
-        }
+        player->CastSpell(player, player->GetTeam() == ALLIANCE ? SPELL_DEATH_GATE_TELEPORT_STORMWIND : SPELL_DEATH_GATE_TELEPORT_ORGRIMMAR);
     }
 
     void Register() override
     {
-        OnCast += SpellCastFn(spell_maghar_orc_racial_ancestors_call::Oncast);
+        OnEffectHitTarget += SpellEffectFn(spell_defender_of_azeroth_death_gate_selector::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+    }
+};
+
+class spell_defender_of_azeroth_speak_with_mograine : public SpellScript
+{
+    PrepareSpellScript(spell_defender_of_azeroth_speak_with_mograine);
+
+    void HandleDummy(SpellEffIndex /*effIndex*/)
+    {
+        if (!GetCaster())
+            return;
+
+        Player* player = GetCaster()->ToPlayer();
+        if (!player)
+            return;
+
+        if (Creature* nazgrim = GetHitUnit()->FindNearestCreature(NPC_NAZGRIM, 10.0f))
+            nazgrim->HandleEmoteCommand(EMOTE_ONESHOT_POINT, player);
+        if (Creature* trollbane = GetHitUnit()->FindNearestCreature(NPC_TROLLBANE, 10.0f))
+            trollbane->HandleEmoteCommand(EMOTE_ONESHOT_POINT, player);
+        if (Creature* whitemane = GetHitUnit()->FindNearestCreature(NPC_WHITEMANE, 10.0f))
+            whitemane->HandleEmoteCommand(EMOTE_ONESHOT_POINT, player);
+
+        // @TODO: spawntracking - show death gate for casting player
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_defender_of_azeroth_speak_with_mograine::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
     }
 };
 
@@ -4394,13 +4232,6 @@ void AddSC_generic_spell_scripts()
     RegisterSpellScript(spell_gen_azgalor_rain_of_fire_hellfire_citadel);
     RegisterAuraScript(spell_gen_face_rage);
     RegisterAuraScript(spell_gen_impatient_mind);
-
-    RegisterSpellScript(spell_gen_mobile_bank);
-    RegisterSpellScript(spell_arcane_pulse);
-    RegisterSpellScript(spell_spatial_rift_despawn);
-    RegisterSpellScript(spell_light_judgement);
-    new playerscript_light_reckoning();
-    RegisterSpellScript(spell_make_camp);
-    RegisterSpellScript(spell_back_camp);
-    RegisterSpellScript(spell_maghar_orc_racial_ancestors_call);
+    RegisterSpellScript(spell_defender_of_azeroth_death_gate_selector);
+    RegisterSpellScript(spell_defender_of_azeroth_speak_with_mograine);
 }

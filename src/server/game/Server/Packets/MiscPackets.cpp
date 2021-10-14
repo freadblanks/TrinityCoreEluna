@@ -126,11 +126,6 @@ void WorldPackets::Misc::ViolenceLevel::Read()
     _worldPacket >> ViolenceLvl;
 }
 
-void WorldPackets::Misc::PlayerSelectFaction::Read()
-{
-    _worldPacket >> SelectedFaction;
-}
-
 WorldPacket const* WorldPackets::Misc::TimeSyncRequest::Write()
 {
     _worldPacket << SequenceIndex;
@@ -719,11 +714,6 @@ void WorldPackets::Misc::CloseInteraction::Read()
     _worldPacket >> SourceGuid;
 }
 
-void WorldPackets::Misc::FactionSelect::Read()
-{
-    _worldPacket >> FactionChoice;
-}
-
 WorldPacket const* WorldPackets::Misc::StartTimer::Write()
 {
     _worldPacket << TimeLeft;
@@ -733,7 +723,8 @@ WorldPacket const* WorldPackets::Misc::StartTimer::Write()
     return &_worldPacket;
 }
 
-void WorldPackets::Misc::SetWarMode::Read()
+void WorldPackets::Misc::ConversationLineStarted::Read()
 {
-    Enabled = _worldPacket.ReadBit();
+    _worldPacket >> ConversationGUID;
+    _worldPacket >> LineID;
 }

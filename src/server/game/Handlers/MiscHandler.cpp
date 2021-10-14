@@ -25,6 +25,7 @@
 #include "CinematicMgr.h"
 #include "ClientConfigPackets.h"
 #include "Common.h"
+#include "Conversation.h"
 #include "Corpse.h"
 #include "DatabaseEnv.h"
 #include "DB2Stores.h"
@@ -48,9 +49,6 @@
 #include "RestMgr.h"
 #include "ScriptMgr.h"
 #include "Spell.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 #include "SpellPackets.h"
 #include "WhoListStorage.h"
 #include "WhoPackets.h"
@@ -80,10 +78,6 @@ void WorldSession::HandleRepopRequest(WorldPackets::Misc::RepopRequest& /*packet
             GetPlayer()->GetName().c_str(), GetPlayer()->GetGUID().ToString().c_str());
         GetPlayer()->KillPlayer();
     }
-
-#ifdef ELUNA
-    sEluna->OnRepop(GetPlayer());
-#endif
 
     //this is spirit release confirm?
     GetPlayer()->RemovePet(nullptr, PET_SAVE_NOT_IN_SLOT, true);
@@ -319,9 +313,6 @@ void WorldSession::HandleLogoutCancelOpcode(WorldPackets::Character::LogoutCance
 
 void WorldSession::HandleTogglePvP(WorldPackets::Misc::TogglePvP& /*packet*/)
 {
-    //Handled by WarMode now
-    return;
-
     if (GetPlayer()->HasPlayerFlag(PLAYER_FLAGS_IN_PVP))
     {
         GetPlayer()->RemovePlayerFlag(PLAYER_FLAGS_IN_PVP);
@@ -340,9 +331,6 @@ void WorldSession::HandleTogglePvP(WorldPackets::Misc::TogglePvP& /*packet*/)
 
 void WorldSession::HandleSetPvP(WorldPackets::Misc::SetPvP& packet)
 {
-    //Handled by WarMode now
-    return;
-
     if (!packet.EnablePVP)
     {
         GetPlayer()->RemovePlayerFlag(PLAYER_FLAGS_IN_PVP);
@@ -1175,40 +1163,8 @@ void WorldSession::HandleCloseInteraction(WorldPackets::Misc::CloseInteraction& 
         _player->PlayerTalkClass->GetInteractionData().Reset();
 }
 
-void WorldSession::HandleSelectFactionOpcode(WorldPackets::Misc::FactionSelect& selectFaction)
+void WorldSession::HandleConversationLineStarted(WorldPackets::Misc::ConversationLineStarted& conversationLineStarted)
 {
-	if (_player->getRace() != RACE_PANDAREN_NEUTRAL)
-		return;
-
-	if (selectFaction.FactionChoice == JOIN_ALLIANCE)
-	{
-		_player->SetRace(RACE_PANDAREN_ALLIANCE);
-		_player->setFactionForRace(RACE_PANDAREN_ALLIANCE);
-		_player->SaveToDB();
-		_player->LearnSpell(668, false);            // Language Common
-		_player->LearnSpell(108130, false);         // Language Pandaren Alliance
-		_player->CastSpell(_player, 113244, true);  // Faction Choice Trigger Spell: Alliance
-	}
-	else if (selectFaction.FactionChoice == JOIN_HORDE)
-	{
-		_player->SetRace(RACE_PANDAREN_HORDE);
-		_player->setFactionForRace(RACE_PANDAREN_HORDE);
-		_player->SaveToDB();
-		_player->LearnSpell(669, false);            // Language Orcish
-		_player->LearnSpell(108131, false);         // Language Pandaren Horde
-		_player->CastSpell(_player, 113245, true);  // Faction Choice Trigger Spell: Horde
-	}
-}
-
-void WorldSession::HandleSetWarModeOpcode(WorldPackets::Misc::SetWarMode& warMode)
-{
-    uint32 const warModeSpellId = 269083; // Enlisted
-
-    if (_player->GetZoneId() != 1519 && _player->GetZoneId() != 1637)
-        return;
-
-    if (warMode.Enabled)
-        _player->RemoveAurasDueToSpell(warModeSpellId);
-    else
-        _player->RemoveAurasDueToSpell(warModeSpellId);
+    if (Conversation* convo = ObjectAccessor::GetConversation(*_player, conversationLineStarted.ConversationGUID))
+        sScriptMgr->OnConversationLineStarted(convo, conversationLineStarted.LineID, _player);
 }

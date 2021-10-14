@@ -166,23 +166,6 @@ namespace WorldPackets
             int8 ViolenceLvl = -1; ///< 0 - no combat effects, 1 - display some combat effects, 2 - blood, 3 - bloody, 4 - bloodier, 5 - bloodiest
         };
 
-        class PlayerSelectFaction final : public ClientPacket
-        {
-        public:
-            PlayerSelectFaction(WorldPacket&& packet) : ClientPacket(CMSG_NEUTRAL_PLAYER_SELECT_FACTION, std::move(packet)) { }
-
-            void Read() override;
-
-            // DestrinyFrame.xml : lua function NeutralPlayerSelectFaction
-            enum Values
-            {
-                Horde = 0,
-                Alliance = 1
-            };
-
-            uint32 SelectedFaction = -1; ///< 0 - horde, 1 - alliance
-        };
-
         class TimeSyncRequest final : public ServerPacket
         {
         public:
@@ -870,11 +853,10 @@ namespace WorldPackets
             bool Enable = false;
         };
 
-        class TC_GAME_API OverrideLight final : public ServerPacket
+        class OverrideLight final : public ServerPacket
         {
         public:
             OverrideLight() : ServerPacket(SMSG_OVERRIDE_LIGHT, 4 + 4 + 4) { }
-            OverrideLight(int32 areaLightID, int32 milli, int32 overLightID) : ServerPacket(SMSG_OVERRIDE_LIGHT, 4 + 4 + 4), AreaLightID(areaLightID), TransitionMilliseconds(milli), OverrideLightID(overLightID) { }
 
             WorldPacket const* Write() override;
 
@@ -929,24 +911,6 @@ namespace WorldPackets
             ObjectGuid SourceGuid;
         };
 
-        class FactionSelectUI final : public ServerPacket
-        {
-        public:
-            FactionSelectUI() : ServerPacket(SMSG_SHOW_NEUTRAL_PLAYER_FACTION_SELECT_UI, 0) { }
-
-            WorldPacket const* Write() override { return &_worldPacket; }
-        };
-
-        class FactionSelect final : public ClientPacket
-        {
-        public:
-            FactionSelect(WorldPacket&& packet) : ClientPacket(CMSG_NEUTRAL_PLAYER_SELECT_FACTION, std::move(packet)) { }
-
-            void Read() override;
-
-            uint32 FactionChoice = 0;
-        };
-
         class StartTimer final : public ServerPacket
         {
         public:
@@ -959,14 +923,15 @@ namespace WorldPackets
             Duration<Seconds> TotalTime;
         };
 
-        class SetWarMode final : public ClientPacket
+        class ConversationLineStarted final : public ClientPacket
         {
         public:
-            SetWarMode(WorldPacket&& packet) : ClientPacket(CMSG_SET_WAR_MODE, std::move(packet)) { }
+            ConversationLineStarted(WorldPacket&& packet) : ClientPacket(CMSG_CONVERSATION_LINE_STARTED, std::move(packet)) { }
 
             void Read() override;
 
-            bool Enabled;
+            ObjectGuid ConversationGUID;
+            uint32 LineID = 0;
         };
     }
 }

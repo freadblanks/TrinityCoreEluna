@@ -38,7 +38,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-class BattlepayManager;
 class BattlePetMgr;
 class BlackMarketEntry;
 class CollectionMgr;
@@ -64,12 +63,6 @@ enum class AuctionResult : int8;
 enum InventoryResult : uint8;
 enum class StableResult : uint8;
 
-namespace Battlepay
-{
-    struct Purchase;
-    enum Error : uint32;
-}
-
 namespace lfg
 {
 struct LfgJoinResultData;
@@ -91,13 +84,6 @@ namespace UF
 {
     struct ChrCustomizationChoice;
 }
-
-enum AuthFlags
-{
-    AT_AUTH_FLAG_NONE = 0x0,
-    AT_AUTH_FLAG_50_LVL_UP = 0x1,
-    AT_AUTH_FLAG_RESTORE_DELETED_CHARACTER = 0x2,
-};
 
 namespace WorldPackets
 {
@@ -166,11 +152,8 @@ namespace WorldPackets
     namespace Bank
     {
         class AutoBankItem;
-        class AutoBankReagent;
         class AutoStoreBankItem;
-        class AutoStoreBankReagent;
         class BuyBankSlot;
-        class DepositReagentBank;
     }
 
     namespace Battlefield
@@ -196,32 +179,12 @@ namespace WorldPackets
         class ReportPvPPlayerAFK;
         class RequestPVPRewards;
         class RequestRatedPvpInfo;
-        class RequestConquestFormulaConstants;
-        class BattlemasterJoinBrawl;
-        class AcceptWargameInvite;
-        class BattlemasterJoinArenaSkirmish;
     }
 
     namespace Battlenet
     {
         class ChangeRealmTicket;
         class Request;
-    }
-
-    namespace BattlePay
-    {
-        class DistributionAssignToTarget;
-        class StartPurchase;
-        class PurchaseProduct;
-        class ConfirmPurchaseResponse;
-        class GetProductList;
-        class GetPurchaseListQuery;
-        class UpdateVasPurchaseStates;
-        class BattlePayAckFailedResponse;
-        class BattlePayQueryClassTrialResult;
-        class BattlePayTrialBoostCharacter;
-        class BattlePayPurchaseDetailsResponse;
-        class BattlePayPurchaseUnkResponse;
     }
 
     namespace BattlePet
@@ -231,6 +194,7 @@ namespace WorldPackets
         class BattlePetModifyName;
         class BattlePetDeletePet;
         class BattlePetSetFlags;
+        class BattlePetClearFanfare;
         class BattlePetSummon;
         class CageBattlePet;
     }
@@ -526,7 +490,6 @@ namespace WorldPackets
     {
         class SetSelection;
         class ViolenceLevel;
-        class PlayerSelectFaction;
         class TimeSyncResponse;
         class TutorialSetFlag;
         class SetDungeonDifficulty;
@@ -554,8 +517,7 @@ namespace WorldPackets
         class SetTaxiBenchmarkMode;
         class MountSetFavorite;
         class CloseInteraction;
-        class FactionSelect;
-        class SetWarMode;
+        class ConversationLineStarted;
     }
 
     namespace Movement
@@ -1474,18 +1436,6 @@ class TC_GAME_API WorldSession
         void HandleAutoStoreBankItemOpcode(WorldPackets::Bank::AutoStoreBankItem& packet);
         void HandleBuyBankSlotOpcode(WorldPackets::Bank::BuyBankSlot& packet);
 
-        void HandleAutoBankReagentOpcode(WorldPackets::Bank::AutoBankReagent& packet);
-        void HandleAutoStoreBankReagentOpcode(WorldPackets::Bank::AutoStoreBankReagent& packet);
-        void HandleBuyReagentBankOpcode(WorldPackets::NPC::Hello& packet);
-        void HandleDepositReagentBankOpcode(WorldPackets::Bank::DepositReagentBank& packet);
-
-        // Battle Pay
-        AuthFlags GetAF() const { return atAuthFlag; }
-        bool HasAuthFlag(AuthFlags f) const { return atAuthFlag & f; }
-        void AddAuthFlag(AuthFlags f);
-        void RemoveAuthFlag(AuthFlags f);
-        void SaveAuthFlag();
-
         // Black Market
         void HandleBlackMarketOpen(WorldPackets::BlackMarket::BlackMarketOpen& blackMarketOpen);
         void HandleBlackMarketRequestItems(WorldPackets::BlackMarket::BlackMarketRequestItems& blackMarketRequestItems);
@@ -1629,12 +1579,6 @@ class TC_GAME_API WorldSession
         void HandleHearthAndResurrect(WorldPackets::Battleground::HearthAndResurrect& hearthAndResurrect);
         void HandleRequestBattlefieldStatusOpcode(WorldPackets::Battleground::RequestBattlefieldStatus& requestBattlefieldStatus);
 
-        void HandleRequestConquestFormulaConstants(WorldPackets::Battleground::RequestConquestFormulaConstants& requestConquestFormulaConstants);
-        void HandleBattlemasterJoinBrawl(WorldPackets::Battleground::BattlemasterJoinBrawl& packet);
-        void JoinBracket(uint8 slot, uint8 rolesMask = ROLES_DEFAULT);
-        void HandleAcceptWargameInvite(WorldPackets::Battleground::AcceptWargameInvite& packet);
-        void HandleBattlemasterJoinArenaSkirmish(WorldPackets::Battleground::BattlemasterJoinArenaSkirmish& BattlemasterJoinArenaSkirmish);
-
         // Battlefield
         void SendBfInvitePlayerToWar(uint64 queueId, uint32 zoneId, uint32 acceptTime);
         void SendBfInvitePlayerToQueue(uint64 queueId, int8 battleState);
@@ -1773,8 +1717,7 @@ class TC_GAME_API WorldSession
         void HandleObjectUpdateRescuedOpcode(WorldPackets::Misc::ObjectUpdateRescued& objectUpdateRescued);
         void HandleRequestCategoryCooldowns(WorldPackets::Spells::RequestCategoryCooldowns& requestCategoryCooldowns);
         void HandleCloseInteraction(WorldPackets::Misc::CloseInteraction& closeInteraction);
-        void HandleSelectFactionOpcode(WorldPackets::Misc::FactionSelect& selectFaction);
-        void HandleSetWarModeOpcode(WorldPackets::Misc::SetWarMode& packet);
+        void HandleConversationLineStarted(WorldPackets::Misc::ConversationLineStarted& conversationLineStarted);
 
         // Adventure Journal
         void HandleAdventureJournalOpenQuest(WorldPackets::AdventureJournal::AdventureJournalOpenQuest& openQuest);
@@ -1803,20 +1746,6 @@ class TC_GAME_API WorldSession
         void HandleSaveCUFProfiles(WorldPackets::Misc::SaveCUFProfiles& packet);
         void SendLoadCUFProfiles();
 
-        // Battle Pay
-        void HandleBattlePayDistributionAssign(WorldPackets::BattlePay::DistributionAssignToTarget& packet);
-        void HandleBattlePayStartPurchase(WorldPackets::BattlePay::StartPurchase& packet);
-        void HandleBattlePayConfirmPurchase(WorldPackets::BattlePay::ConfirmPurchaseResponse& packet);
-        void HandleBattlePayAckFailedResponse(WorldPackets::BattlePay::BattlePayAckFailedResponse& packet);
-        void HandleGetPurchaseListQuery(WorldPackets::BattlePay::GetPurchaseListQuery& packet);
-        void HandleUpdateVasPurchaseStates(WorldPackets::BattlePay::UpdateVasPurchaseStates& packet);
-        void HandleGetProductList(WorldPackets::BattlePay::GetProductList& packet);
-        void SendDisplayPromo(int32 promotionID = 0);
-        void SendPurchaseUpdate(WorldSession* session, Battlepay::Purchase const& purchase, uint32 result);
-        void SendStartPurchaseResponse(WorldSession* session, Battlepay::Purchase const& purchase, Battlepay::Error const& result);
-        void SendMakePurchase(ObjectGuid targetCharacter, uint32 clientToken, uint32 productID, WorldSession* session);
-        void SendSyncWowEntitlements();
-
         // Garrison
         void HandleGetGarrisonInfo(WorldPackets::Garrison::GetGarrisonInfo& getGarrisonInfo);
         void HandleGarrisonPurchaseBuilding(WorldPackets::Garrison::GarrisonPurchaseBuilding& garrisonPurchaseBuilding);
@@ -1830,6 +1759,7 @@ class TC_GAME_API WorldSession
         void HandleBattlePetModifyName(WorldPackets::BattlePet::BattlePetModifyName& battlePetModifyName);
         void HandleBattlePetDeletePet(WorldPackets::BattlePet::BattlePetDeletePet& battlePetDeletePet);
         void HandleBattlePetSetFlags(WorldPackets::BattlePet::BattlePetSetFlags& battlePetSetFlags);
+        void HandleBattlePetClearFanfare(WorldPackets::BattlePet::BattlePetClearFanfare& battlePetClearFanfare);
         void HandleBattlePetSummon(WorldPackets::BattlePet::BattlePetSummon& battlePetSummon);
         void HandleCageBattlePet(WorldPackets::BattlePet::CageBattlePet& cageBattlePet);
 
@@ -1880,13 +1810,9 @@ class TC_GAME_API WorldSession
 
         uint64 GetConnectToInstanceKey() const { return _instanceConnectKey.Raw; }
 
-        void LoadRecoveries();
-
     public:
         QueryCallbackProcessor& GetQueryProcessor() { return _queryProcessor; }
         TransactionCallback& AddTransactionCallback(TransactionCallback&& callback);
-
-        BattlepayManager* GetBattlePayMgr() const { return _battlePayMgr.get(); }
 
     private:
         void ProcessQueryCallbacks();
@@ -1970,8 +1896,6 @@ class TC_GAME_API WorldSession
         // Warden
         Warden* _warden;                                    // Remains NULL if Warden system is not enabled by config
 
-        std::shared_ptr<BattlepayManager> _battlePayMgr;
-
         time_t _logoutTime;
         bool m_inQueue;                                     // session wait in auth.queue
         ObjectGuid m_playerLoading;                         // code processed in LoginPlayer
@@ -1998,8 +1922,6 @@ class TC_GAME_API WorldSession
         std::unique_ptr<BattlePetMgr> _battlePetMgr;
 
         std::unique_ptr<CollectionMgr> _collectionMgr;
-
-        AuthFlags atAuthFlag = AT_AUTH_FLAG_NONE;
 
         ConnectToKey _instanceConnectKey;
 

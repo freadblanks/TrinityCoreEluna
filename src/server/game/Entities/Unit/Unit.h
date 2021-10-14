@@ -19,8 +19,6 @@
 #define __UNIT_H
 
 #include "Object.h"
-#include "FollowerReference.h"
-#include "FollowerRefManager.h"
 #include "CombatManager.h"
 #include "OptionalFwd.h"
 #include "SpellAuraDefines.h"
@@ -32,7 +30,8 @@
 #include <array>
 #include <map>
 
-#define WORLD_TRIGGER   12999
+#define VISUAL_WAYPOINT 1 // Creature Entry ID used for waypoints show, visible only for GMs
+#define WORLD_TRIGGER 12999
 #define ARTIFACTS_ALL_WEAPONS_GENERAL_WEAPON_EQUIPPED_PASSIVE 197886
 #define SPELL_DH_DOUBLE_JUMP 196055
 #define DISPLAYID_HIDDEN_MOUNT 73200
@@ -65,6 +64,7 @@ enum InventorySlot
     NULL_SLOT                  = 255
 };
 
+struct AbstractFollower;
 struct FactionTemplateEntry;
 struct LiquidData;
 struct LiquidTypeEntry;
@@ -97,6 +97,7 @@ class VehicleJoinEvent;
 
 enum class PetActionFeedback : uint8;
 enum ZLiquidStatus : uint32;
+enum MovementGeneratorType : uint8;
 
 namespace Movement
 {
@@ -729,37 +730,6 @@ enum ReactiveType
 
 #define MAX_GAMEOBJECT_SLOT 4
 
-enum class ToastType : uint32
-{
-    ITEM = 0,
-    CURRENCY = 1,
-    MONEY = 2,
-    HONOR = 3,
-};
-
-enum class DisplayToastMethod : uint8
-{
-    // entry_* - used for all ToastType
-    DISPLAY_TOAST_NONE = 0,
-    DISPLAY_TOAST_DEFAULT = 1,  // LootToast-Default
-    DISPLAY_TOAST_PET_BATTLE_LOOT = 2,  // triggers PET_BATTLE_LOOT_RECEIVED
-    DISPLAY_TOAST_ENTRY_LOOT_PERSONAL_1 = 3,  // in LUA events isPersonal = true
-    DISPLAY_TOAST_GARRISON_BONUS_ROLL = 4,
-    DISPLAY_TOAST_ITEM_UPGRADE_1 = 5,  // old draenor quest upgrade
-    DISPLAY_TOAST_ITEM_UPGRADE_2 = 6,  // old draenor quest upgrade
-    DISPLAY_TOAST_ENTRY_LOOT_PERSONAL_2 = 7,  // in LUA events isPersonal = true
-    DISPLAY_TOAST_GARRISON_BONUS_ROLL_2 = 8,
-    DISPLAY_TOAST_ENTRY_PVP_FACTION = 9,  // PvP background (Alliance/Horde) in toast frame
-    DISPLAY_TOAST_ENTRY_LOOT_PERSONAL_3 = 10, // in LUA events isPersonal = true
-    DISPLAY_TOAST_UNK_LESS_AWESOME = 11, // in LUA events lessAwesome = true, LootToast-LessAwesome, not glowing and less bright color
-    DISPLAY_TOAST_ITEM_WARFORGE = 12, // LootToast-MoreAwesome
-    DISPLAY_TOAST_ITEM_LEGENDARY = 13, // triggers SHOW_LOOT_TOAST_LEGENDARY_LOOTED
-    DISPLAY_TOAST_UNK = 14,
-    DISPLAY_TOAST_UNK_1 = 15,
-    TOAST_METHOD_WORLD_QUEST_REWARD = 16,
-    DISPLAY_TOAST_ENTRY_RATED_PVP_REWARD = 17, // more awesome PvP background (Alliance/Horde) in toast frame
-};
-
 // delay time next attack to prevent client attack animation problems
 #define ATTACK_DISPLAY_DELAY 200
 #define MAX_PLAYER_STEALTH_DETECT_RANGE 30.0f               // max distance for detection targets by player
@@ -824,11 +794,11 @@ class TC_GAME_API Unit : public WorldObject
         float GetBoundingRadius() const { return m_unitData->BoundingRadius; }
         void SetBoundingRadius(float boundingRadius) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::BoundingRadius), boundingRadius); }
         bool IsWithinCombatRange(Unit const* obj, float dist2compare) const;
-        bool IsWithinMeleeRange(Unit const* obj) const;
+        bool IsWithinMeleeRange(Unit const* obj) const { return IsWithinMeleeRangeAt(GetPosition(), obj); }
+        bool IsWithinMeleeRangeAt(Position const& pos, Unit const* obj) const;
         float GetMeleeRange(Unit const* target) const;
         virtual SpellSchoolMask GetMeleeDamageSchoolMask(WeaponAttackType attackType = BASE_ATTACK) const = 0;
         bool IsWithinBoundaryRadius(const Unit* obj) const;
-        void GetRandomContactPoint(Unit const* target, float& x, float& y, float& z, float distance2dMin, float distance2dMax) const;
         uint32 m_extraAttacks;
         bool m_canDualWield;
 
@@ -888,8 +858,8 @@ class TC_GAME_API Unit : public WorldObject
         uint32 GetArmor() const { return GetResistance(SPELL_SCHOOL_NORMAL); }
         void SetArmor(int32 val, int32 bonusVal)
         {
-            SetResistance(SPELL_SCHOOL_NORMAL, val + bonusVal);
-            //SetBonusResistanceMod(SPELL_SCHOOL_NORMAL, bonusVal);
+            SetResistance(SPELL_SCHOOL_NORMAL, val);
+            SetBonusResistanceMod(SPELL_SCHOOL_NORMAL, bonusVal);
         }
 
         int32 GetResistance(SpellSchools school) const { return m_unitData->Resistances[school]; }
@@ -1015,6 +985,8 @@ class TC_GAME_API Unit : public WorldObject
         bool IsMounted() const { return HasUnitFlag(UNIT_FLAG_MOUNT); }
         uint32 GetMountDisplayId() const { return m_unitData->MountDisplayID; }
         void SetMountDisplayId(uint32 mountDisplayId) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::MountDisplayID), mountDisplayId); }
+        uint32 GetCosmeticMountDisplayId() const { return m_unitData->CosmeticMountDisplayID; }
+        void SetCosmeticMountDisplayId(uint32 mountDisplayId) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::CosmeticMountDisplayID), mountDisplayId); }
         void Mount(uint32 mount, uint32 vehicleId = 0, uint32 creatureEntry = 0);
         void Dismount();
         MountCapabilityEntry const* GetMountCapability(uint32 mountType) const;
@@ -1046,7 +1018,7 @@ class TC_GAME_API Unit : public WorldObject
                                      DamageInfo* damageInfo, HealInfo* healInfo);
         void TriggerAurasProcOnEvent(ProcEventInfo& eventInfo, AuraApplicationProcContainer& procAuras);
 
-        void HandleEmoteCommand(uint32 anim_id, Trinity::IteratorPair<int32 const*> spellVisualKitIds = {});
+        void HandleEmoteCommand(uint32 anim_id, Player* target = nullptr, Trinity::IteratorPair<int32 const*> spellVisualKitIds = {});
         void AttackerStateUpdate (Unit* victim, WeaponAttackType attType = BASE_ATTACK, bool extra = false);
         void FakeAttackerStateUpdate(Unit* victim, WeaponAttackType attType = BASE_ATTACK);
 
@@ -1093,20 +1065,21 @@ class TC_GAME_API Unit : public WorldObject
         void AddNpcFlag2(NPCFlags2 flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NpcFlags, 1), flags); }
         void RemoveNpcFlag2(NPCFlags2 flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NpcFlags, 1), flags); }
         void SetNpcFlags2(NPCFlags2 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NpcFlags, 1), flags); }
-        bool IsVendor()       const { return HasNpcFlag(UNIT_NPC_FLAG_VENDOR); }
-        bool IsTrainer()      const { return HasNpcFlag(UNIT_NPC_FLAG_TRAINER); }
-        bool IsQuestGiver()   const { return HasNpcFlag(UNIT_NPC_FLAG_QUESTGIVER); }
-        bool IsGossip()       const { return HasNpcFlag(UNIT_NPC_FLAG_GOSSIP); }
-        bool IsTaxi()         const { return HasNpcFlag(UNIT_NPC_FLAG_FLIGHTMASTER); }
-        bool IsGuildMaster()  const { return HasNpcFlag(UNIT_NPC_FLAG_PETITIONER); }
-        bool IsBattleMaster() const { return HasNpcFlag(UNIT_NPC_FLAG_BATTLEMASTER); }
-        bool IsBanker()       const { return HasNpcFlag(UNIT_NPC_FLAG_BANKER); }
-        bool IsInnkeeper()    const { return HasNpcFlag(UNIT_NPC_FLAG_INNKEEPER); }
-        bool IsSpiritHealer() const { return HasNpcFlag(UNIT_NPC_FLAG_SPIRITHEALER); }
-        bool IsSpiritGuide()  const { return HasNpcFlag(UNIT_NPC_FLAG_SPIRITGUIDE); }
-        bool IsTabardDesigner()const{ return HasNpcFlag(UNIT_NPC_FLAG_TABARDDESIGNER); }
-        bool IsAuctioner()    const { return HasNpcFlag(UNIT_NPC_FLAG_AUCTIONEER); }
-        bool IsArmorer()      const { return HasNpcFlag(UNIT_NPC_FLAG_REPAIR); }
+        bool IsVendor()         const { return HasNpcFlag(UNIT_NPC_FLAG_VENDOR); }
+        bool IsTrainer()        const { return HasNpcFlag(UNIT_NPC_FLAG_TRAINER); }
+        bool IsQuestGiver()     const { return HasNpcFlag(UNIT_NPC_FLAG_QUESTGIVER); }
+        bool IsGossip()         const { return HasNpcFlag(UNIT_NPC_FLAG_GOSSIP); }
+        bool IsTaxi()           const { return HasNpcFlag(UNIT_NPC_FLAG_FLIGHTMASTER); }
+        bool IsGuildMaster()    const { return HasNpcFlag(UNIT_NPC_FLAG_PETITIONER); }
+        bool IsBattleMaster()   const { return HasNpcFlag(UNIT_NPC_FLAG_BATTLEMASTER); }
+        bool IsBanker()         const { return HasNpcFlag(UNIT_NPC_FLAG_BANKER); }
+        bool IsInnkeeper()      const { return HasNpcFlag(UNIT_NPC_FLAG_INNKEEPER); }
+        bool IsSpiritHealer()   const { return HasNpcFlag(UNIT_NPC_FLAG_SPIRITHEALER); }
+        bool IsSpiritGuide()    const { return HasNpcFlag(UNIT_NPC_FLAG_SPIRITGUIDE); }
+        bool IsTabardDesigner() const { return HasNpcFlag(UNIT_NPC_FLAG_TABARDDESIGNER); }
+        bool IsAuctioner()      const { return HasNpcFlag(UNIT_NPC_FLAG_AUCTIONEER); }
+        bool IsArmorer()        const { return HasNpcFlag(UNIT_NPC_FLAG_REPAIR); }
+        bool IsWildBattlePet()  const { return HasNpcFlag(UNIT_NPC_FLAG_WILD_BATTLE_PET); }
         bool IsServiceProvider() const;
         bool IsSpiritService() const { return HasNpcFlag(NPCFlags(UNIT_NPC_FLAG_SPIRITHEALER | UNIT_NPC_FLAG_SPIRITGUIDE)); }
         bool IsCritter() const { return GetCreatureType() == CREATURE_TYPE_CRITTER; }
@@ -1196,7 +1169,6 @@ class TC_GAME_API Unit : public WorldObject
         void SendAttackStateUpdate(uint32 HitInfo, Unit* target, uint8 SwingType, SpellSchoolMask damageSchoolMask, uint32 Damage, uint32 AbsorbDamage, uint32 Resist, VictimState TargetState, uint32 BlockedAmount);
         void SendSpellNonMeleeDamageLog(SpellNonMeleeDamage const* log);
         void SendPeriodicAuraLog(SpellPeriodicAuraLogInfo* pInfo);
-        void SendSpellMiss(Unit* target, uint32 spellID, SpellMissInfo missInfo);
         void SendSpellDamageResist(Unit* target, uint32 spellId);
         void SendSpellDamageImmune(Unit* target, uint32 spellId, bool isPeriodic);
 
@@ -1325,6 +1297,9 @@ class TC_GAME_API Unit : public WorldObject
         Pet* CreateTamedPetFrom(uint32 creatureEntry, uint32 spell_id = 0);
         bool InitTamedPet(Pet* pet, uint8 level, uint32 spell_id);
 
+        void SetWildBattlePetLevel(uint32 wildBattlePetLevel) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::WildBattlePetLevel), wildBattlePetLevel); }
+        uint32 GetWildBattlePetLevel() const { return m_unitData->WildBattlePetLevel; }
+
         // aura apply/remove helpers - you should better not use these
         Aura* _TryStackingOrRefreshingExistingAura(AuraCreateInfo& createInfo);
         void _AddAura(UnitAura* aura, Unit* caster);
@@ -1423,10 +1398,10 @@ class TC_GAME_API Unit : public WorldObject
         bool HasAura(uint32 spellId, ObjectGuid casterGUID = ObjectGuid::Empty, ObjectGuid itemCasterGUID = ObjectGuid::Empty, uint32 reqEffMask = 0) const;
         bool HasAura(std::function<bool(Aura const*)> const& predicate) const;
         bool HasAuraType(AuraType auraType) const;
-        bool HasAuraTypeWithCaster(AuraType auratype, ObjectGuid caster) const;
-        bool HasAuraTypeWithMiscvalue(AuraType auratype, int32 miscvalue) const;
-        bool HasAuraTypeWithAffectMask(AuraType auratype, SpellInfo const* affectedSpell) const;
-        bool HasAuraTypeWithValue(AuraType auratype, int32 value) const;
+        bool HasAuraTypeWithCaster(AuraType auraType, ObjectGuid caster) const;
+        bool HasAuraTypeWithMiscvalue(AuraType auraType, int32 miscValue) const;
+        bool HasAuraTypeWithAffectMask(AuraType auraType, SpellInfo const* affectedSpell) const;
+        bool HasAuraTypeWithValue(AuraType auraType, int32 value) const;
         template <typename InterruptFlags>
         bool HasNegativeAuraWithInterruptFlag(InterruptFlags flag, ObjectGuid guid = ObjectGuid::Empty) const;
         bool HasAuraWithMechanic(uint32 mechanicMask) const;
@@ -1436,31 +1411,30 @@ class TC_GAME_API Unit : public WorldObject
         uint32 GetDiseasesByCaster(ObjectGuid casterGUID, bool remove = false);
         uint32 GetDoTsByCaster(ObjectGuid casterGUID) const;
 
-        int32 GetTotalAuraModifier(AuraType auratype) const;
-        float GetTotalAuraMultiplier(AuraType auratype) const;
-        int32 GetMaxPositiveAuraModifier(AuraType auratype) const;
-        int32 GetMaxNegativeAuraModifier(AuraType auratype) const;
+        int32 GetTotalAuraModifier(AuraType auraType) const;
+        float GetTotalAuraMultiplier(AuraType auraType) const;
+        int32 GetMaxPositiveAuraModifier(AuraType auraType) const;
+        int32 GetMaxNegativeAuraModifier(AuraType auraType) const;
 
-        int32 GetTotalAuraModifier(AuraType auratype, std::function<bool(AuraEffect const*)> const& predicate) const;
-        float GetTotalAuraMultiplier(AuraType auratype, std::function<bool(AuraEffect const*)> const& predicate) const;
-        int32 GetMaxPositiveAuraModifier(AuraType auratype, std::function<bool(AuraEffect const*)> const& predicate) const;
-        int32 GetMaxNegativeAuraModifier(AuraType auratype, std::function<bool(AuraEffect const*)> const& predicate) const;
+        int32 GetTotalAuraModifier(AuraType auraType, std::function<bool(AuraEffect const*)> const& predicate) const;
+        float GetTotalAuraMultiplier(AuraType auraType, std::function<bool(AuraEffect const*)> const& predicate) const;
+        int32 GetMaxPositiveAuraModifier(AuraType auraType, std::function<bool(AuraEffect const*)> const& predicate) const;
+        int32 GetMaxNegativeAuraModifier(AuraType auraType, std::function<bool(AuraEffect const*)> const& predicate) const;
 
-        int32 GetTotalAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask) const;
-        float GetTotalAuraMultiplierByMiscMask(AuraType auratype, uint32 misc_mask) const;
-        int32 GetMaxPositiveAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask, AuraEffect const* except = nullptr) const;
-        int32 GetMaxNegativeAuraModifierByMiscMask(AuraType auratype, uint32 misc_mask) const;
+        int32 GetTotalAuraModifierByMiscMask(AuraType auraType, uint32 misc_mask) const;
+        float GetTotalAuraMultiplierByMiscMask(AuraType auraType, uint32 misc_mask) const;
+        int32 GetMaxPositiveAuraModifierByMiscMask(AuraType auraType, uint32 misc_mask, AuraEffect const* except = nullptr) const;
+        int32 GetMaxNegativeAuraModifierByMiscMask(AuraType auraType, uint32 misc_mask) const;
 
-        int32 GetTotalAuraModifierByMiscValue(AuraType auratype, int32 misc_value) const;
-        float GetTotalAuraMultiplierByMiscValue(AuraType auratype, int32 misc_value) const;
-        int32 GetMaxPositiveAuraModifierByMiscValue(AuraType auratype, int32 misc_value) const;
-        int32 GetMaxNegativeAuraModifierByMiscValue(AuraType auratype, int32 misc_value) const;
+        int32 GetTotalAuraModifierByMiscValue(AuraType auraType, int32 misc_value) const;
+        float GetTotalAuraMultiplierByMiscValue(AuraType auraType, int32 misc_value) const;
+        int32 GetMaxPositiveAuraModifierByMiscValue(AuraType auraType, int32 misc_value) const;
+        int32 GetMaxNegativeAuraModifierByMiscValue(AuraType auraType, int32 misc_value) const;
 
-        int32 GetTotalAuraModifierByAffectMask(AuraType auratype, SpellInfo const* affectedSpell) const;
-        float GetTotalAuraMultiplierByAffectMask(AuraType auratype, SpellInfo const* affectedSpell) const;
-        int32 GetMaxPositiveAuraModifierByAffectMask(AuraType auratype, SpellInfo const* affectedSpell) const;
-        int32 GetMaxNegativeAuraModifierByAffectMask(AuraType auratype, SpellInfo const* affectedSpell) const;
-        int32 GetTotalSpellPowerValue(SpellSchoolMask mask, bool heal) const;
+        int32 GetTotalAuraModifierByAffectMask(AuraType auraType, SpellInfo const* affectedSpell) const;
+        float GetTotalAuraMultiplierByAffectMask(AuraType auraType, SpellInfo const* affectedSpell) const;
+        int32 GetMaxPositiveAuraModifierByAffectMask(AuraType auraType, SpellInfo const* affectedSpell) const;
+        int32 GetMaxNegativeAuraModifierByAffectMask(AuraType auraType, SpellInfo const* affectedSpell) const;
 
         void InitStatBuffMods();
         void UpdateStatBuffMod(Stats stat);
@@ -1524,8 +1498,6 @@ class TC_GAME_API Unit : public WorldObject
 
         virtual bool IsFocusing(Spell const* /*focusSpell*/ = nullptr, bool /*withDelay*/ = false) { return false; }
         virtual bool IsMovementPreventedByCasting() const;
-
-        void SendDisplayToast(uint32 entry, ToastType displayToastMethod, bool isBonusRoll, uint32 count, DisplayToastMethod type, uint32 questID = 0, Item* item = nullptr);
 
         SpellHistory* GetSpellHistory() { return _spellHistory; }
         SpellHistory const* GetSpellHistory() const { return _spellHistory; }
@@ -1635,8 +1607,7 @@ class TC_GAME_API Unit : public WorldObject
         }
         void UpdateInterruptMask();
 
-        //uint32 GetDisplayId() const { return m_unitData->DisplayID; }
-        virtual uint32 GetDisplayId() const { return m_unitData->DisplayID; }
+        uint32 GetDisplayId() const { return m_unitData->DisplayID; }
         virtual void SetDisplayId(uint32 modelId, float displayScale = 1.f);
         uint32 GetNativeDisplayId() const { return m_unitData->NativeDisplayID; }
         float GetNativeDisplayScale() const { return m_unitData->NativeXDisplayScale; }
@@ -1709,7 +1680,7 @@ class TC_GAME_API Unit : public WorldObject
         bool IsImmunedToDamage(SpellInfo const* spellInfo) const;
         virtual bool IsImmunedToSpellEffect(SpellInfo const* spellInfo, SpellEffectInfo const& spellEffectInfo, WorldObject const* caster) const;
 
-        static bool IsDamageReducedByArmor(SpellSchoolMask damageSchoolMask, SpellInfo const* spellInfo = nullptr, SpellEffectInfo const* spellEffectInfo = nullptr);
+        static bool IsDamageReducedByArmor(SpellSchoolMask damageSchoolMask, SpellInfo const* spellInfo = nullptr);
         static uint32 CalcArmorReducedDamage(Unit const* attacker, Unit* victim, uint32 damage, SpellInfo const* spellInfo, WeaponAttackType attackType = MAX_ATTACK, uint8 attackerLevel = 0);
         static uint32 CalcSpellResistedDamage(Unit const* attacker, Unit* victim, uint32 damage, SpellSchoolMask schoolMask, SpellInfo const* spellInfo);
         static void CalcAbsorbResist(DamageInfo& damageInfo);
@@ -1721,11 +1692,13 @@ class TC_GAME_API Unit : public WorldObject
         void SetSpeed(UnitMoveType mtype, float newValue);
         void SetSpeedRate(UnitMoveType mtype, float rate);
 
-        void addFollower(FollowerReference* pRef) { m_FollowingRefManager.insertFirst(pRef); }
-        void removeFollower(FollowerReference* /*pRef*/) { /* nothing to do yet */ }
+        void FollowerAdded(AbstractFollower* f) { m_followingMe.insert(f); }
+        void FollowerRemoved(AbstractFollower* f) { m_followingMe.erase(f); }
+        void RemoveAllFollowers();
 
         MotionMaster* GetMotionMaster() { return i_motionMaster; }
         MotionMaster const* GetMotionMaster() const { return i_motionMaster; }
+        virtual MovementGeneratorType GetDefaultMovementType() const;
 
         bool IsStopped() const { return !(HasUnitState(UNIT_STATE_MOVING)); }
         void StopMoving();
@@ -1990,7 +1963,7 @@ class TC_GAME_API Unit : public WorldObject
         friend class ThreatManager;
         ThreatManager m_threatManager;
 
-        FollowerRefManager m_FollowingRefManager;
+        std::unordered_set<AbstractFollower*> m_followingMe;
 
         bool m_cleanupDone; // lock made to not add stuff after cleanup before delete
         bool m_duringRemoveFromWorld; // lock made to not add stuff after begining removing from world
