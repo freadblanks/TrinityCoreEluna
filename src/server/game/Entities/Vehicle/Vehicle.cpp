@@ -317,7 +317,7 @@ SeatMap::const_iterator Vehicle::GetNextEmptySeat(int8 seatId, bool next) const
     if (seat == Seats.end())
         return seat;
 
-    while (!seat->second.IsEmpty() || (!seat->second.SeatInfo->CanEnterOrExit() && !seat->second.SeatInfo->IsUsableByOverride()))
+    while (!seat->second.IsEmpty() || HasPendingEventForSeat(seat->first) || (!seat->second.SeatInfo->CanEnterOrExit() && !seat->second.SeatInfo->IsUsableByOverride()))
     {
         if (next)
         {
@@ -420,7 +420,7 @@ bool Vehicle::AddPassenger(Unit* unit, int8 seatId)
     if (seatId < 0) // no specific seat requirement
     {
         for (seat = Seats.begin(); seat != Seats.end(); ++seat)
-            if (seat->second.IsEmpty() && (seat->second.SeatInfo->CanEnterOrExit() || seat->second.SeatInfo->IsUsableByOverride()))
+            if (seat->second.IsEmpty() && !HasPendingEventForSeat(seat->first) && (seat->second.SeatInfo->CanEnterOrExit() || seat->second.SeatInfo->IsUsableByOverride()))
                 break;
 
         if (seat == Seats.end()) // no available seat
@@ -506,7 +506,7 @@ Vehicle* Vehicle::RemovePassenger(Unit* unit)
     if (unit->IsFlying())
         _me->CastSpell(unit, VEHICLE_SPELL_PARACHUTE, true);
 
-    if (_me->GetTypeId() == TYPEID_UNIT && _me->ToCreature()->IsAIEnabled)
+    if (_me->GetTypeId() == TYPEID_UNIT && _me->ToCreature()->IsAIEnabled())
         _me->ToCreature()->AI()->PassengerBoarded(unit, seat->first, false);
 
     if (GetBase()->GetTypeId() == TYPEID_UNIT)
@@ -657,7 +657,7 @@ uint8 Vehicle::GetAvailableSeatCount() const
     uint8 ret = 0;
     SeatMap::const_iterator itr;
     for (itr = Seats.begin(); itr != Seats.end(); ++itr)
-        if (itr->second.IsEmpty() && (itr->second.SeatInfo->CanEnterOrExit() || itr->second.SeatInfo->IsUsableByOverride()))
+        if (itr->second.IsEmpty() && !HasPendingEventForSeat(itr->first) && (itr->second.SeatInfo->CanEnterOrExit() || itr->second.SeatInfo->IsUsableByOverride()))
             ++ret;
 
     return ret;
@@ -778,6 +778,11 @@ bool VehicleJoinEvent::Execute(uint64, uint32)
         return true;
     }
 
+    //It's possible that multiple vehicle join
+    //events are executed in the same update
+    if (Passenger->GetVehicle())
+        Passenger->ExitVehicle();
+
     Passenger->SetVehicle(Target);
     Seat->second.Passenger.Guid = Passenger->GetGUID();
     Seat->second.Passenger.IsUnselectable = Passenger->HasUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
@@ -851,8 +856,8 @@ bool VehicleJoinEvent::Execute(uint64, uint32)
 
     if (Creature* creature = Target->GetBase()->ToCreature())
     {
-        if (creature->IsAIEnabled)
-            creature->AI()->PassengerBoarded(Passenger, Seat->first, true);
+        if (CreatureAI* ai = creature->AI())
+            ai->PassengerBoarded(Passenger, Seat->first, true);
 
         sScriptMgr->OnAddPassenger(Target, Passenger, Seat->first);
 
@@ -897,6 +902,16 @@ void VehicleJoinEvent::Abort(uint64)
 
     if (Passenger->IsInWorld() && Passenger->HasUnitTypeMask(UNIT_MASK_ACCESSORY))
         Passenger->ToCreature()->DespawnOrUnsummon();
+}
+
+bool Vehicle::HasPendingEventForSeat(int8 seatId) const
+{
+    for (PendingJoinEventContainer::const_iterator itr = _pendingJoinEvents.begin(); itr != _pendingJoinEvents.end(); ++itr)
+    {
+        if ((*itr)->Seat->first == seatId)
+            return true;
+    }
+    return false;
 }
 
 Milliseconds Vehicle::GetDespawnDelay()

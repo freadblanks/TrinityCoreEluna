@@ -313,10 +313,11 @@ void SmartAIMgr::LoadSmartAIFromDB()
         temp.target.raw.param1 = fields[22].GetUInt32();
         temp.target.raw.param2 = fields[23].GetUInt32();
         temp.target.raw.param3 = fields[24].GetUInt32();
-        temp.target.x = fields[25].GetFloat();
-        temp.target.y = fields[26].GetFloat();
-        temp.target.z = fields[27].GetFloat();
-        temp.target.o = fields[28].GetFloat();
+        temp.target.raw.param4 = fields[25].GetUInt32();
+        temp.target.x = fields[26].GetFloat();
+        temp.target.y = fields[27].GetFloat();
+        temp.target.z = fields[28].GetFloat();
+        temp.target.o = fields[29].GetFloat();
 
         //check target
         if (!IsTargetValid(temp))
@@ -332,7 +333,7 @@ void SmartAIMgr::LoadSmartAIFromDB()
         case SMART_EVENT_UPDATE:
         case SMART_EVENT_UPDATE_OOC:
         case SMART_EVENT_UPDATE_IC:
-        case SMART_EVENT_HEALT_PCT:
+        case SMART_EVENT_HEALTH_PCT:
         case SMART_EVENT_TARGET_HEALTH_PCT:
         case SMART_EVENT_MANA_PCT:
         case SMART_EVENT_TARGET_MANA_PCT:
@@ -568,9 +569,8 @@ bool SmartAIMgr::IsTargetValid(SmartScriptHolder const& e)
         case SMART_TARGET_INVOKER_PARTY:
             if (e.GetScriptType() != SMART_SCRIPT_TYPE_TIMED_ACTIONLIST && e.GetEventType() != SMART_EVENT_LINK && !EventHasInvoker(e.event.type))
             {
-                TC_LOG_ERROR("sql.sql", "SmartAIMgr: Entry " SI64FMTD " SourceType %u Event %u Action %u has invoker target, but action does not provide any invoker!", e.entryOrGuid, e.GetScriptType(), e.GetEventType(), e.GetActionType());
-                // allow this to load for now
-                // return false;
+                TC_LOG_ERROR("sql.sql", "SmartAIMgr: Entry " SI64FMTD " SourceType %u Event %u Action %u has invoker target, but event does not provide any invoker!", e.entryOrGuid, e.GetScriptType(), e.GetEventType(), e.GetActionType());
+                return false;
             }
             break;
         case SMART_TARGET_PLAYER_RANGE:
@@ -785,7 +785,7 @@ bool SmartAIMgr::IsEventValid(SmartScriptHolder& e)
             case SMART_EVENT_UPDATE:
             case SMART_EVENT_UPDATE_IC:
             case SMART_EVENT_UPDATE_OOC:
-            case SMART_EVENT_HEALT_PCT:
+            case SMART_EVENT_HEALTH_PCT:
             case SMART_EVENT_MANA_PCT:
             case SMART_EVENT_TARGET_HEALTH_PCT:
             case SMART_EVENT_TARGET_MANA_PCT:
@@ -891,6 +891,9 @@ bool SmartAIMgr::IsEventValid(SmartScriptHolder& e)
             case SMART_EVENT_ACCEPTED_QUEST:
             case SMART_EVENT_REWARD_QUEST:
                 if (e.event.quest.quest && !IsQuestValid(e, e.event.quest.quest))
+                    return false;
+
+                if (!IsMinMaxValid(e, e.event.quest.cooldownMin, e.event.quest.cooldownMax))
                     return false;
                 break;
             case SMART_EVENT_RECEIVE_EMOTE:
@@ -1282,8 +1285,15 @@ bool SmartAIMgr::IsEventValid(SmartScriptHolder& e)
                 return false;
             break;
         }
-        case SMART_ACTION_ADD_AURA:
         case SMART_ACTION_INVOKER_CAST:
+            if (e.GetScriptType() != SMART_SCRIPT_TYPE_TIMED_ACTIONLIST && e.GetEventType() != SMART_EVENT_LINK && !EventHasInvoker(e.event.type))
+            {
+                TC_LOG_ERROR("sql.sql", "SmartAIMgr: Entry " SI64FMTD " SourceType %u Event %u Action %u has invoker cast action, but event does not provide any invoker!", e.entryOrGuid, e.GetScriptType(), e.GetEventType(), e.GetActionType());
+                return false;
+            }
+            /* fallthrough */
+        case SMART_ACTION_SELF_CAST:
+        case SMART_ACTION_ADD_AURA:
             if (!IsSpellValid(e, e.action.cast.spell))
                 return false;
             break;
@@ -1650,6 +1660,16 @@ bool SmartAIMgr::IsEventValid(SmartScriptHolder& e)
             if (!e.action.enableTempGO.duration)
             {
                 TC_LOG_ERROR("sql.sql", "Entry " SI64FMTD " SourceType %u Event %u Action %u does not specify duration", e.entryOrGuid, e.GetScriptType(), e.event_id, e.GetActionType());
+                return false;
+            }
+
+            break;
+        }
+        case SMART_ACTION_PLAY_CINEMATIC:
+        {
+            if (!sCinematicSequencesStore.LookupEntry(e.action.cinematic.entry))
+            {
+                TC_LOG_ERROR("sql.sql", "SmartAIMgr: SMART_ACTION_PLAY_CINEMATIC Entry " SI64FMTD " SourceType %u Event %u Action %u uses invalid entry %u, skipped.", e.entryOrGuid, e.GetScriptType(), e.event_id, e.GetActionType(), e.action.cinematic.entry);
                 return false;
             }
 

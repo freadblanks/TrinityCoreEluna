@@ -21,6 +21,7 @@
 #include "AreaTriggerPackets.h"
 #include "CellImpl.h"
 #include "Chat.h"
+#include "CreatureAISelector.h"
 #include "DB2Stores.h"
 #include "GridNotifiersImpl.h"
 #include "Language.h"
@@ -38,7 +39,7 @@
 #include "Unit.h"
 #include "UpdateData.h"
 
-AreaTrigger::AreaTrigger() : WorldObject(false), MapObject(), _aurEff(nullptr), _maxSearchRadius(0.0f),
+AreaTrigger::AreaTrigger() : WorldObject(false), MapObject(), _spawnId(0), _aurEff(nullptr), _maxSearchRadius(0.0f),
     _duration(0), _totalDuration(0), _timeSinceCreated(0), _previousCheckOrientation(std::numeric_limits<float>::infinity()),
     _isRemoved(false), _reachedDestination(true), _lastSplineIndex(0), _movementTime(0),
     _areaTriggerCreateProperties(nullptr), _areaTriggerTemplate(nullptr)
@@ -147,6 +148,11 @@ bool AreaTrigger::Create(uint32 areaTriggerCreatePropertiesId, Unit* caster, Uni
     if (GetCreateProperties()->ExtraScale.Data.Structured.OverrideActive)
         SetUpdateFieldValue(areaTriggerData.ModifyValue(&UF::AreaTriggerData::ExtraScaleCurve).ModifyValue(&UF::ScaleCurve::OverrideActive), GetCreateProperties()->ExtraScale.Data.Structured.OverrideActive);
 
+    SetUpdateFieldValue(areaTriggerData.ModifyValue(&UF::AreaTriggerData::VisualAnim).ModifyValue(&UF::VisualAnim::AnimationDataID), GetCreateProperties()->AnimId);
+    SetUpdateFieldValue(areaTriggerData.ModifyValue(&UF::AreaTriggerData::VisualAnim).ModifyValue(&UF::VisualAnim::AnimKitID), GetCreateProperties()->AnimKitId);
+    if (GetTemplate() && GetTemplate()->HasFlag(AREATRIGGER_FLAG_UNK3))
+        SetUpdateFieldValue(areaTriggerData.ModifyValue(&UF::AreaTriggerData::VisualAnim).ModifyValue(&UF::VisualAnim::Field_C), true);
+
     PhasingHandler::InheritPhaseShift(this, caster);
 
     if (target && GetTemplate() && GetTemplate()->HasFlag(AREATRIGGER_FLAG_HAS_ATTACHED))
@@ -219,8 +225,15 @@ AreaTrigger* AreaTrigger::CreateAreaTrigger(uint32 areaTriggerCreatePropertiesId
     return at;
 }
 
+ObjectGuid AreaTrigger::CreateNewMovementForceId(Map* map, uint32 areaTriggerId)
+{
+    return ObjectGuid::Create<HighGuid::AreaTrigger>(map->GetId(), areaTriggerId, map->GenerateLowGuid<HighGuid::AreaTrigger>());
+}
+
 bool AreaTrigger::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool /*addToMap*/, bool /*allowDuplicate*/)
 {
+    _spawnId = spawnId;
+
     AreaTriggerSpawn const* position = sAreaTriggerDataStore->GetAreaTriggerSpawn(spawnId);
     if (!position)
         return false;
@@ -506,7 +519,13 @@ AreaTriggerTemplate const* AreaTrigger::GetTemplate() const
 
 uint32 AreaTrigger::GetScriptId() const
 {
-    return GetTemplate() ? GetTemplate()->ScriptId : 0;
+    if (_spawnId)
+        return ASSERT_NOTNULL(sAreaTriggerDataStore->GetAreaTriggerSpawn(_spawnId))->ScriptId;
+
+    if (GetCreateProperties())
+        return GetCreateProperties()->ScriptId;
+
+    return 0;
 }
 
 Unit* AreaTrigger::GetCaster() const
@@ -948,11 +967,7 @@ void AreaTrigger::DebugVisualizePosition()
 void AreaTrigger::AI_Initialize()
 {
     AI_Destroy();
-    AreaTriggerAI* ai = sScriptMgr->GetAreaTriggerAI(this);
-    if (!ai)
-        ai = new NullAreaTriggerAI(this);
-
-    _ai.reset(ai);
+    _ai.reset(FactorySelector::SelectAreaTriggerAI(this));
     _ai->OnInitialize();
 }
 
@@ -960,6 +975,7 @@ void AreaTrigger::AI_Destroy()
 {
     _ai.reset();
 }
+
 
 void AreaTrigger::BuildValuesCreate(ByteBuffer* data, Player const* target) const
 {

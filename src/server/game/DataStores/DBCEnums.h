@@ -191,7 +191,7 @@ enum AzeriteTierUnlockSetFlags
     AZERITE_TIER_UNLOCK_SET_FLAG_DEFAULT = 0x1
 };
 
-#define BATTLE_PET_SPECIES_MAX_ID 3159
+#define BATTLE_PET_SPECIES_MAX_ID 3189
 
 enum class BattlePetSpeciesFlags : uint16
 {
@@ -655,8 +655,6 @@ enum Difficulty : uint8
     DIFFICULTY_VISIONS_OF_NZOTH     = 152,
     DIFFICULTY_TEEMING_ISLAND       = 153
 };
-
-#define MAX_DIFFICULTY 154
 
 enum DifficultyFlags
 {
@@ -1367,12 +1365,21 @@ enum MountFlags
     MOUNT_FLAG_HIDE_IF_UNKNOWN          = 0x40
 };
 
-enum PhaseEntryFlags : uint16
+enum class PhaseEntryFlags : uint16
 {
-    PHASE_FLAG_NORMAL   = 0x08,
-    PHASE_FLAG_COSMETIC = 0x10,
-    PHASE_FLAG_PERSONAL = 0x20
+    ReadOnly                = 0x001,
+    InternalPhase           = 0x002,
+    Normal                  = 0x008,
+    Cosmetic                = 0x010,
+    Personal                = 0x020,
+    Expensive               = 0x040,
+    EventsAreObservable     = 0x080,
+    UsesPreloadConditions   = 0x100,
+    UnshareablePersonal     = 0x200,
+    ObjectsAreVisible       = 0x400,
 };
+
+DEFINE_ENUM_FLAG(PhaseEntryFlags);
 
 // PhaseUseFlags fields in different db2s
 enum PhaseUseFlagsValues : uint8
@@ -1495,7 +1502,22 @@ enum class SpellShapeshiftFormFlags : int32
 
 DEFINE_ENUM_FLAG(SpellShapeshiftFormFlags);
 
-#define TaxiMaskSize 338
+enum class SpellVisualEffectNameType : uint32
+{
+    Model                           = 0,
+    Item                            = 1,
+    Creature                        = 2,
+    UnitItemMainHand                = 3,
+    UnitItemOffHand                 = 4,
+    UnitItemRanged                  = 5,
+    UnitAmmoBasic                   = 6,
+    UnitAmmoPreferred               = 7,
+    UnitItemMainHandIgnoreDisarmed  = 8,
+    UnitItemOffHandIgnoreDisarmed   = 9,
+    UnitItemRangedIgnoreDisarmed    = 10
+};
+
+#define TaxiMaskSize 339
 typedef std::array<uint8, TaxiMaskSize> TaxiMask;
 
 enum TotemCategoryType
@@ -1538,33 +1560,44 @@ enum SummonPropType
     SUMMON_PROP_TYPE_LASHTAIL        = 13                   // Lashtail Hatchling, 1 spell in 4.2.2
 };
 
-// SummonProperties.dbc, col 5
-enum SummonPropFlags
+enum class SummonPropertiesFlags : uint32
 {
-    SUMMON_PROP_FLAG_NONE            = 0x00000000,          // 1342 spells in 3.0.3
-    SUMMON_PROP_FLAG_UNK1            = 0x00000001,          // 75 spells in 3.0.3, something unfriendly
-    SUMMON_PROP_FLAG_UNK2            = 0x00000002,          // 616 spells in 3.0.3, something friendly
-    SUMMON_PROP_FLAG_UNK3            = 0x00000004,          // 22 spells in 3.0.3, no idea...
-    SUMMON_PROP_FLAG_UNK4            = 0x00000008,          // 49 spells in 3.0.3, some mounts
-    SUMMON_PROP_FLAG_PERSONAL_SPAWN  = 0x00000010,          // Only Visible to Summoner
-    SUMMON_PROP_FLAG_UNK6            = 0x00000020,          // 0 spells in 3.3.5, unused
-    SUMMON_PROP_FLAG_UNK7            = 0x00000040,          // 12 spells in 3.0.3, no idea
-    SUMMON_PROP_FLAG_UNK8            = 0x00000080,          // 4 spells in 3.0.3, no idea
-    SUMMON_PROP_FLAG_UNK9            = 0x00000100,          // 51 spells in 3.0.3, no idea, many quest related
-    SUMMON_PROP_FLAG_UNK10           = 0x00000200,          // 51 spells in 3.0.3, something defensive
-    SUMMON_PROP_FLAG_UNK11           = 0x00000400,          // 3 spells, requires something near?
-    SUMMON_PROP_FLAG_UNK12           = 0x00000800,          // 30 spells in 3.0.3, no idea
-    SUMMON_PROP_FLAG_UNK13           = 0x00001000,          // Lightwell, Jeeves, Gnomish Alarm-o-bot, Build vehicles(wintergrasp)
-    SUMMON_PROP_FLAG_UNK14           = 0x00002000,          // Guides, player follows
-    SUMMON_PROP_FLAG_UNK15           = 0x00004000,          // Force of Nature, Shadowfiend, Feral Spirit, Summon Water Elemental
-    SUMMON_PROP_FLAG_UNK16           = 0x00008000,          // Light/Dark Bullet, Soul/Fiery Consumption, Twisted Visage, Twilight Whelp. Phase related?
-    SUMMON_PROP_FLAG_PERSONAL_GROUP_SPAWN = 0x00010000,     // Only Visible to Summoner's Group
-    SUMMON_PROP_FLAG_UNK18           = 0x00020000,
-    SUMMON_PROP_FLAG_UNK19           = 0x00040000,
-    SUMMON_PROP_FLAG_UNK20           = 0x00080000,
-    SUMMON_PROP_FLAG_UNK21           = 0x00100000,          // Totems
-    SUMMON_PROP_FLAG_COMPANION       = 0x00200000
+    None                              = 0x00000000,
+    AttackSummoner                    = 0x00000001, // NYI
+    HelpWhenSummonedInCombat          = 0x00000002, // NYI
+    UseLevelOffset                    = 0x00000004, // NYI
+    DespawnOnSummonerDeath            = 0x00000008, // NYI
+    OnlyVisibleToSummoner             = 0x00000010,
+    CannotDismissPet                  = 0x00000020, // NYI
+    UseDemonTimeout                   = 0x00000040, // NYI
+    UnlimitedSummons                  = 0x00000080, // NYI
+    UseCreatureLevel                  = 0x00000100, // NYI
+    JoinSummonerSpawnGroup            = 0x00000200, // NYI
+    DoNotToggle                       = 0x00000400, // NYI
+    DespawnWhenExpired                = 0x00000800, // NYI
+    UseSummonerFaction                = 0x00001000,
+    DoNotFollowMountedSummoner        = 0x00002000, // NYI
+    SavePetAutocast                   = 0x00004000, // NYI
+    IgnoreSummonerPhase               = 0x00008000, // Wild Only
+    OnlyVisibleToSummonerGroup        = 0x00010000,
+    DespawnOnSummonerLogout           = 0x00020000, // NYI
+    CastRideVehicleSpellOnSummoner    = 0x00040000, // NYI
+    GuardianActsLikePet               = 0x00080000, // NYI
+    DontSnapSessileToGround           = 0x00100000, // NYI
+    SummonFromBattlePetJournal        = 0x00200000, // NYI
+    UnitClutter                       = 0x00400000, // NYI
+    DefaultNameColor                  = 0x00800000, // NYI
+    UseOwnInvisibilityDetection       = 0x01000000, // NYI. Ignore Owner's Invisibility Detection
+    DespawnWhenReplaced               = 0x02000000, // NYI. Totem Slots Only
+    DespawnWhenTeleportingOutOfRange  = 0x04000000, // NYI
+    SummonedAtGroupFormationPosition  = 0x08000000, // NYI
+    DontDespawnOnSummonerDeath        = 0x10000000, // NYI
+    UseTitleAsCreatureName            = 0x20000000, // NYI
+    AttackableBySummoner              = 0x40000000, // NYI
+    DontDismissWhenEncounterIsAborted = 0x80000000  // NYI
 };
+
+DEFINE_ENUM_FLAG(SummonPropertiesFlags);
 
 #define MAX_TALENT_TIERS 7
 #define MAX_TALENT_COLUMNS 3

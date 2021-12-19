@@ -391,6 +391,7 @@ class TC_GAME_API Spell
         void EffectCreatePrivateSceneObject();
         void EffectPlayScene();
         void EffectGiveHonor();
+        void EffectJumpCharge();
         void EffectLearnTransmogSet();
         void EffectRespecAzeriteEmpoweredItem();
         void EffectLearnAzeriteEssencePower();
@@ -431,7 +432,7 @@ class TC_GAME_API Spell
 
         GameObject* SearchSpellFocus();
 
-        void prepare(SpellCastTargets const& targets, AuraEffect const* triggeredByAura = nullptr);
+        SpellCastResult prepare(SpellCastTargets const& targets, AuraEffect const* triggeredByAura = nullptr);
         void cancel();
         void update(uint32 difftime);
         void cast(bool skipCheck = false);
@@ -593,6 +594,8 @@ class TC_GAME_API Spell
         uint64 GetDelayMoment() const { return m_delayMoment; }
         uint64 CalculateDelayMomentForDst(float launchDelay) const;
         void RecalculateDelayMomentForDst();
+        uint8 GetRuneState() const { return m_runesState; }
+        void SetRuneState(uint8 value) { m_runesState = value; }
 
         bool IsNeedSendToClient() const;
 
@@ -621,6 +624,8 @@ class TC_GAME_API Spell
         int64 GetGameObjectTargetCountForEffect(SpellEffIndex effect) const;
         int64 GetItemTargetCountForEffect(SpellEffIndex effect) const;
 
+        std::string GetDebugInfo() const;
+
     protected:
         bool HasGlobalCooldown() const;
         void TriggerGlobalCooldown();
@@ -638,7 +643,7 @@ class TC_GAME_API Spell
                                                             // e.g. damage around area spell trigered by victim aura and damage enemies of aura caster
         Unit* m_originalCaster;                             // cached pointer for m_originalCaster, updated at Spell::UpdatePointers()
 
-        //Spell data
+        // Spell data
         SpellSchoolMask m_spellSchoolMask;                  // Spell school (can be overwrite for some spells (wand shoot for example)
         WeaponAttackType m_attackType;                      // For weapon based attack
 
@@ -700,7 +705,7 @@ class TC_GAME_API Spell
         uint32 m_procAttacker;                // Attacker trigger flags
         uint32 m_procVictim;                  // Victim   trigger flags
         uint32 m_hitMask;
-        void   prepareDataForTriggerSystem();
+        void prepareDataForTriggerSystem();
 
         // *****************************************
         // Spell target subsystem
@@ -827,6 +832,7 @@ class TC_GAME_API Spell
 
         // effect helpers
         void SummonGuardian(SpellEffectInfo const* effect, uint32 entry, SummonPropertiesEntry const* properties, uint32 numSummons, ObjectGuid privateObjectOwner);
+        void CalculateJumpSpeeds(SpellEffectInfo const* effInfo, float dist, float& speedXY, float& speedZ);
 
         void UpdateSpellCastDataTargets(WorldPackets::Spells::SpellCastData& data);
         void UpdateSpellCastDataAmmo(WorldPackets::Spells::SpellAmmo& data);

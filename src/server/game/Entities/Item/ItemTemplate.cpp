@@ -51,6 +51,14 @@ char const* ItemTemplate::GetName(LocaleConstant locale) const
     return ExtendedData->Display[locale];
 }
 
+bool ItemTemplate::HasSignature() const
+{
+    return GetMaxStackSize() == 1 &&
+        GetClass() != ITEM_CLASS_CONSUMABLE &&
+        GetClass() != ITEM_CLASS_QUEST &&
+        (GetFlags() & ITEM_FLAG_NO_CREATOR) == 0 &&
+        GetId() != 6948; /*Hearthstone*/
+}
 
 bool ItemTemplate::CanChangeEquipStateInCombat() const
 {
@@ -256,9 +264,9 @@ bool ItemTemplate::IsUsableByLootSpecialization(Player const* player, bool alway
         return false;
 
     std::size_t levelIndex = 0;
-    if (player->getLevel() >= 110)
+    if (player->GetLevel() >= 110)
         levelIndex = 2;
-    else if (player->getLevel() > 40)
+    else if (player->GetLevel() > 40)
         levelIndex = 1;
 
     return Specializations[levelIndex].test(CalculateItemSpecBit(chrSpecialization));

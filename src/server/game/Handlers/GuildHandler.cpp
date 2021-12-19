@@ -33,7 +33,7 @@ void WorldSession::HandleGuildQueryOpcode(WorldPackets::Guild::QueryGuildInfo& q
         GetPlayerInfo().c_str(), query.GuildGuid.ToString().c_str(), query.PlayerGuid.ToString().c_str());
 
     if (Guild* guild = sGuildMgr->GetGuildByGuid(query.GuildGuid))
-        //if (guild->IsMember(query.PlayerGuid))
+        if (guild->IsMember(query.PlayerGuid))
         {
             guild->SendQueryResponse(this, query.PlayerGuid);
             return;
@@ -277,7 +277,7 @@ void WorldSession::HandleGuildBankWithdrawMoney(WorldPackets::Guild::GuildBankWi
             guild->HandleMemberWithdrawMoney(this, packet.Money);
 }
 
-void WorldSession::HandleDepositGuildBankItem(WorldPackets::Guild::DepositGuildBankItem& depositGuildBankItem)
+void WorldSession::HandleAutoGuildBankItem(WorldPackets::Guild::AutoGuildBankItem& depositGuildBankItem)
 {
     if (!GetPlayer()->GetGameObjectIfCanInteractWith(depositGuildBankItem.Banker, GAMEOBJECT_TYPE_GUILD_BANK))
         return;

@@ -35,9 +35,6 @@
 #include "WorldSession.h"
 #include "Opcodes.h"
 #include "MiscPackets.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 
 MapManager::MapManager()
     : _nextInstanceId(0), _scheduledScripts(0)
@@ -53,15 +50,6 @@ void MapManager::Initialize()
     Map::InitStateMachine();
 
     int num_threads(sWorld->getIntConfig(CONFIG_NUMTHREADS));
-#if ELUNA
-    if (num_threads > 1)
-    {
-        // Force 1 thread for Eluna as lua is single threaded. By default thread count is 1
-        // This should allow us not to use mutex locks
-        TC_LOG_ERROR("maps", "Map update threads set to %i, when Eluna only allows 1, changing to 1", num_threads);
-        num_threads = 1;
-    }
-#endif
     // Start mtmaps if needed.
     if (num_threads > 0)
         m_updater.activate(num_threads);
@@ -186,6 +174,10 @@ Map::EnterState MapManager::PlayerCannotEnter(uint32 mapid, Player* player, bool
     if (player->IsGameMaster())
         return Map::CAN_ENTER;
 
+    //Other requirements
+    if (!player->Satisfy(sObjectMgr->GetAccessRequirement(mapid, targetDifficulty), mapid, true))
+        return Map::CANNOT_ENTER_UNSPECIFIED_REASON;
+
     char const* mapName = entry->MapName[sWorld->GetDefaultDbcLocale()];
 
     Group* group = player->GetGroup();
@@ -239,11 +231,7 @@ Map::EnterState MapManager::PlayerCannotEnter(uint32 mapid, Player* player, bool
             return Map::CANNOT_ENTER_TOO_MANY_INSTANCES;
     }
 
-    //Other requirements
-    if (player->Satisfy(sObjectMgr->GetAccessRequirement(mapid, targetDifficulty), mapid, true))
-        return Map::CAN_ENTER;
-    else
-        return Map::CANNOT_ENTER_UNSPECIFIED_REASON;
+    return Map::CAN_ENTER;
 }
 
 void MapManager::Update(uint32 diff)
@@ -401,8 +389,4 @@ void MapManager::FreeInstanceId(uint32 instanceId)
     // If freed instance id is lower than the next id available for new instances, use the freed one instead
     _nextInstanceId = std::min(instanceId, _nextInstanceId);
     _freeInstanceIds[instanceId] = true;
-	
-#ifdef ELUNA
-    sEluna->FreeInstanceId(instanceId);
-#endif
 }

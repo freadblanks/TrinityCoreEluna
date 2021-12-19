@@ -135,7 +135,7 @@ namespace WorldPackets
             bool KioskModeEnabled                    = false;
             bool CompetitiveModeEnabled              = false;
             bool TokenBalanceEnabled                 = false;
-            bool WarModeFeatureEnabled               = true;
+            bool WarModeFeatureEnabled               = false;
             bool ClubsEnabled                        = false;
             bool ClubsBattleNetClubTypeAllowed       = false;
             bool ClubsCharacterClubTypeAllowed       = false;
@@ -146,20 +146,14 @@ namespace WorldPackets
             bool IsMuted                             = false;
             bool ClubFinderEnabled                   = false;
             bool Unknown901CheckoutRelated           = false;
+            bool TextToSpeechFeatureEnabled          = false;
+            bool ChatDisabledByDefault               = false;
+            bool ChatDisabledByPlayer                = false;
+            bool LFGListCustomRequiresAuthenticator  = false;
 
             SocialQueueConfig QuickJoinConfig;
             SquelchInfo Squelch;
             RafSystemFeatureInfo RAFSystem;
-        };
-
-        class FeatureSystemStatus2 final : ServerPacket
-        {
-        public:
-            FeatureSystemStatus2() : ServerPacket(SMSG_FEATURE_SYSTEM_STATUS2, 1) { }
-
-            WorldPacket const* Write() override;
-
-            bool TextToSpeechFeatureEnabled = false;
         };
 
         class FeatureSystemStatusGlueScreen final : public ServerPacket

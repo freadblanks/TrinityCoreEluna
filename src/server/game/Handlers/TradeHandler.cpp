@@ -610,9 +610,11 @@ void WorldSession::HandleInitiateTradeOpcode(WorldPackets::Trade::InitiateTrade&
         return;
     }
 
-    if (GetPlayer()->getLevel() < sWorld->getIntConfig(CONFIG_TRADE_LEVEL_REQ))
+    if (GetPlayer()->GetLevel() < sWorld->getIntConfig(CONFIG_TRADE_LEVEL_REQ))
     {
         SendNotification(GetTrinityString(LANG_TRADE_REQ), sWorld->getIntConfig(CONFIG_TRADE_LEVEL_REQ));
+        info.Status = TRADE_STATUS_FAILED;
+        SendTradeStatus(info);
         return;
     }
 
@@ -659,7 +661,7 @@ void WorldSession::HandleInitiateTradeOpcode(WorldPackets::Trade::InitiateTrade&
         return;
     }
 
-    if (pOther->GetSocial()->HasIgnore(GetPlayer()->GetGUID()))
+    if (pOther->GetSocial()->HasIgnore(GetPlayer()->GetGUID(), GetPlayer()->GetSession()->GetAccountGUID()))
     {
         info.Status = TRADE_STATUS_PLAYER_IGNORED;
         SendTradeStatus(info);
@@ -684,9 +686,11 @@ void WorldSession::HandleInitiateTradeOpcode(WorldPackets::Trade::InitiateTrade&
         return;
     }
 
-    if (pOther->getLevel() < sWorld->getIntConfig(CONFIG_TRADE_LEVEL_REQ))
+    if (pOther->GetLevel() < sWorld->getIntConfig(CONFIG_TRADE_LEVEL_REQ))
     {
         SendNotification(GetTrinityString(LANG_TRADE_OTHER_REQ), sWorld->getIntConfig(CONFIG_TRADE_LEVEL_REQ));
+        info.Status = TRADE_STATUS_FAILED;
+        SendTradeStatus(info);
         return;
     }
 

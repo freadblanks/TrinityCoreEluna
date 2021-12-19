@@ -613,6 +613,7 @@ WorldPacket const* WorldPackets::Spells::ModifyCooldown::Write()
     _worldPacket << int32(SpellID);
     _worldPacket << int32(DeltaTime);
     _worldPacket.WriteBit(IsPet);
+    _worldPacket.WriteBit(WithoutCategoryCooldown);
     _worldPacket.FlushBits();
 
     return &_worldPacket;
@@ -954,6 +955,7 @@ WorldPacket const* WorldPackets::Spells::NotifyMissileTrajectoryCollision::Write
 void WorldPackets::Spells::UpdateMissileTrajectory::Read()
 {
     _worldPacket >> Guid;
+    _worldPacket >> CastID;
     _worldPacket >> MoveMsgID;
     _worldPacket >> SpellID;
     _worldPacket >> Pitch;

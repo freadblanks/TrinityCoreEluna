@@ -61,17 +61,6 @@ void VisibleNotifier::SendToSelf()
         }
     }
 
-    if (Map* map = i_player.GetMap())
-    {
-        for (const ObjectGuid& obj : map->GetInfiniteGameObjects()) {
-            if (vis_guids.find(obj) != vis_guids.end())
-                vis_guids.erase(obj);
-
-            if (GameObject* gob = i_player.GetMap()->GetGameObject(obj))
-                i_player.UpdateVisibilityOf(gob, i_data, i_visibleNow);
-        }
-    }
-
     for (auto it = vis_guids.begin(); it != vis_guids.end(); ++it)
     {
         i_player.m_clientGUIDs.erase(*it);
@@ -143,10 +132,10 @@ inline void CreatureUnitRelocationWorker(Creature* c, Unit* u)
 
     if (!c->HasUnitState(UNIT_STATE_SIGHTLESS))
     {
-        if (c->IsAIEnabled && c->CanSeeOrDetect(u, false, true))
+        if (c->IsAIEnabled() && c->CanSeeOrDetect(u, false, true))
             c->AI()->MoveInLineOfSight_Safe(u);
         else
-            if (u->GetTypeId() == TYPEID_PLAYER && u->HasStealthAura() && c->IsAIEnabled && c->CanSeeOrDetect(u, false, true, true))
+            if (u->GetTypeId() == TYPEID_PLAYER && u->HasStealthAura() && c->IsAIEnabled() && c->CanSeeOrDetect(u, false, true, true))
                 c->AI()->TriggerAlert(u);
     }
 }

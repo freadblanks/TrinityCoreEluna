@@ -170,7 +170,6 @@ public:
 
 enum TaskmasterFizzule
 {
-    FACTION_FRIENDLY_F  = 35,
     SPELL_FLARE         = 10113,
     SPELL_FOLLY         = 10137,
 };
@@ -214,13 +213,13 @@ public:
         void DoFriend()
         {
             me->RemoveAllAuras();
-            me->GetThreatManager().ClearAllThreat();
             me->CombatStop(true);
-
             me->StopMoving();
+            
+            EngagementOver();
+            
             me->GetMotionMaster()->MoveIdle();
-
-            me->SetFaction(FACTION_FRIENDLY_F);
+            me->SetFaction(FACTION_FRIENDLY);
             me->HandleEmoteCommand(EMOTE_ONESHOT_SALUTE);
         }
 
@@ -260,7 +259,7 @@ public:
             {
                 if (FlareCount >= 2)
                 {
-                    if (me->GetFaction() == FACTION_FRIENDLY_F)
+                    if (me->GetFaction() == FACTION_FRIENDLY)
                         return;
 
                     DoFriend();
@@ -514,7 +513,6 @@ enum Wizzlecrank
     SAY_END             = 6,
 
     QUEST_ESCAPE        = 863,
-    FACTION_RATCHET     = 637,
     NPC_PILOT_WIZZ      = 3451,
     NPC_MERCENARY       = 3282,
 };
@@ -621,7 +619,7 @@ public:
                     if (Player* player = GetPlayerForEscort())
                     {
                         player->GroupEventHappens(QUEST_ESCAPE, me);
-                        me->DespawnOrUnsummon(3min);
+                        me->DespawnOrUnsummon(5min);
                         me->SummonCreature(NPC_PILOT_WIZZ, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSUMMON_TIMED_DESPAWN, 180000);
                     }
                     break;

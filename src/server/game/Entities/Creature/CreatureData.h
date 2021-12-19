@@ -18,6 +18,7 @@
 #ifndef CreatureData_h__
 #define CreatureData_h__
 
+#include "Common.h"
 #include "DBCEnums.h"
 #include "Optional.h"
 #include "SharedDefines.h"
@@ -255,6 +256,7 @@ enum CreatureDifficultyFlags7
     CREATURE_DIFFICULTYFLAGS_7_UNK1         = 0x00000008
 };
 
+// EnumUtils: DESCRIBE THIS
 enum CreatureFlagsExtra : uint32
 {
     CREATURE_FLAG_EXTRA_INSTANCE_BIND        = 0x00000001,       // creature kill bind instance with killer and killer's group
@@ -293,9 +295,9 @@ enum CreatureFlagsExtra : uint32
     // Masks
     CREATURE_FLAG_EXTRA_UNUSED               = (CREATURE_FLAG_EXTRA_UNUSED_13 | CREATURE_FLAG_EXTRA_UNUSED_16 | CREATURE_FLAG_EXTRA_UNUSED_22 |
                                                 CREATURE_FLAG_EXTRA_UNUSED_23 | CREATURE_FLAG_EXTRA_UNUSED_24 | CREATURE_FLAG_EXTRA_UNUSED_25 |
-                                                CREATURE_FLAG_EXTRA_UNUSED_26 | CREATURE_FLAG_EXTRA_UNUSED_27 | CREATURE_FLAG_EXTRA_UNUSED_31),
+                                                CREATURE_FLAG_EXTRA_UNUSED_26 | CREATURE_FLAG_EXTRA_UNUSED_27 | CREATURE_FLAG_EXTRA_UNUSED_31), // SKIP
 
-    CREATURE_FLAG_EXTRA_DB_ALLOWED           = (0xFFFFFFFF & ~(CREATURE_FLAG_EXTRA_UNUSED | CREATURE_FLAG_EXTRA_DUNGEON_BOSS))
+    CREATURE_FLAG_EXTRA_DB_ALLOWED           = (0xFFFFFFFF & ~(CREATURE_FLAG_EXTRA_UNUSED | CREATURE_FLAG_EXTRA_DUNGEON_BOSS)) // SKIP
 };
 
 enum class CreatureGroundMovementType : uint8
@@ -316,19 +318,43 @@ enum class CreatureFlightMovementType : uint8
     Max
 };
 
+enum class CreatureChaseMovementType : uint8
+{
+    Run,
+    CanWalk,
+    AlwaysWalk,
+
+    Max
+};
+
+enum class CreatureRandomMovementType : uint8
+{
+    Walk,
+    CanRun,
+    AlwaysRun,
+
+    Max
+};
+
 struct TC_GAME_API CreatureMovementData
 {
-    CreatureMovementData() : Ground(CreatureGroundMovementType::Run), Flight(CreatureFlightMovementType::None), Swim(true), Rooted(false) { }
+    CreatureMovementData() : Ground(CreatureGroundMovementType::Run), Flight(CreatureFlightMovementType::None), Swim(true), Rooted(false), Chase(CreatureChaseMovementType::Run),
+        Random(CreatureRandomMovementType::Walk) { }
 
     CreatureGroundMovementType Ground;
     CreatureFlightMovementType Flight;
     bool Swim;
     bool Rooted;
+    CreatureChaseMovementType Chase;
+    CreatureRandomMovementType Random;
 
     bool IsGroundAllowed() const { return Ground != CreatureGroundMovementType::None; }
     bool IsSwimAllowed() const { return Swim; }
     bool IsFlightAllowed() const { return Flight != CreatureFlightMovementType::None; }
     bool IsRooted() const { return Rooted; }
+
+    CreatureChaseMovementType GetChase() const { return Chase; }
+    CreatureRandomMovementType GetRandom() const { return Random; }
 
     std::string ToString() const;
 };
@@ -567,7 +593,6 @@ struct CreatureData : public SpawnData
     uint32 unit_flags2 = 0;                                 // enum UnitFlags2 mask values
     uint32 unit_flags3 = 0;                                 // enum UnitFlags3 mask values
     uint32 dynamicflags = 0;
-    float size = 0.0f;
 };
 
 struct CreatureModelInfo
@@ -608,13 +633,12 @@ struct CreatureAddon
 // Vendors
 struct VendorItem
 {
-    VendorItem() : item(0), maxcount(0), incrtime(0), ExtendedCost(0), OverrideGoldCost(-1), Type(0), PlayerConditionId(0), IgnoreFiltering(false) { }
+    VendorItem() : item(0), maxcount(0), incrtime(0), ExtendedCost(0), Type(0), PlayerConditionId(0), IgnoreFiltering(false) { }
 
     uint32 item;
     uint32 maxcount;                                        // 0 for infinity item amount
     uint32 incrtime;                                        // time for restore items amount if maxcount != 0
     uint32 ExtendedCost;
-    int64 OverrideGoldCost;
     uint8  Type;
     std::vector<int32> BonusListIDs;
     uint32 PlayerConditionId;
@@ -622,7 +646,6 @@ struct VendorItem
 
     //helpers
     bool IsGoldRequired(ItemTemplate const* pProto) const;
-    int64 GetBuyPrice(ItemTemplate const* pProto) const;
 };
 
 struct VendorItemData

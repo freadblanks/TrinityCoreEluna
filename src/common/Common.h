@@ -23,15 +23,6 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <boost/any.hpp>
-#include <mutex>
-#include <unordered_map>
-#include <map>
-#include <regex>
-#include <list>
-#include "Errors.h"
-#include "LockedQueue.h"
-#include "StringFormat.h"
 
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
 #  if TRINITY_COMPILER == TRINITY_COMPILER_INTEL
@@ -107,9 +98,32 @@ enum LocaleConstant : uint8
 const uint8 OLD_TOTAL_LOCALES = 9; /// @todo convert in simple system
 #define DEFAULT_LOCALE LOCALE_enUS
 
+enum class CascLocaleBit : uint8
+{
+    None        = 0,
+    enUS        = 1,
+    koKR        = 2,
+    Reserved    = 3,
+    frFR        = 4,
+    deDE        = 5,
+    zhCN        = 6,
+    esES        = 7,
+    zhTW        = 8,
+    enGB        = 9,
+    enCN        = 10,
+    enTW        = 11,
+    esMX        = 12,
+    ruRU        = 13,
+    ptBR        = 14,
+    itIT        = 15,
+    ptPT        = 16
+};
+
 TC_COMMON_API extern char const* localeNames[TOTAL_LOCALES];
 
 TC_COMMON_API LocaleConstant GetLocaleByName(std::string const& name);
+
+TC_COMMON_API extern CascLocaleBit WowLocaleToCascLocaleBit[TOTAL_LOCALES];
 
 constexpr inline bool IsValidLocale(LocaleConstant locale)
 {
@@ -148,57 +162,5 @@ struct LocalizedString
 #endif
 
 #define MAX_QUERY_LEN 32*1024
-
-namespace ThisCore
-{
-    class TC_GAME_API AnyData
-    {
-    public:
-        template<typename T>
-        void Set(std::string const& key, T value)
-        {
-            dataMap[key] = value;
-        }
-
-        template<typename T>
-        T GetValue(std::string const& key, T defaultValue = T()) const
-        {
-            auto itr = dataMap.find(key);
-            if (itr != dataMap.end())
-                return boost::any_cast<T>(itr->second);
-            return defaultValue;
-        }
-
-        bool Exist(std::string const& key) const
-        {
-            return dataMap.find(key) != dataMap.end();
-        }
-
-        void Remove(std::string const& key)
-        {
-            dataMap.erase(key);
-        }
-
-        uint32 Increment(std::string const& key, uint32 increment = 1)
-        {
-            uint32 currentValue = GetValue<uint32>(key, uint32(0));
-            Set(key, currentValue += increment);
-            return currentValue;
-        }
-
-        bool IncrementOrProcCounter(std::string const& key, uint32 maxVal, uint32 increment = 1)
-        {
-            uint32 newValue = Increment(key, increment);
-            if (newValue < maxVal)
-                return false;
-
-            Remove(key);
-            return true;
-        }
-
-    private:
-        std::unordered_map<std::string, boost::any> dataMap;
-    };
-}
 
 #endif

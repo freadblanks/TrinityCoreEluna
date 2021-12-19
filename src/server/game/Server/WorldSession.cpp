@@ -23,18 +23,20 @@
 #include "QueryHolder.h"
 #include "AccountMgr.h"
 #include "AuthenticationPackets.h"
-#include "BattlePayMgr.h"
 #include "BattlePetMgr.h"
 #include "BattlegroundMgr.h"
 #include "BattlenetPackets.h"
 #include "CharacterPackets.h"
 #include "ChatPackets.h"
+#include "ClientConfigPackets.h"
 #include "DatabaseEnv.h"
 #include "GameTime.h"
 #include "Group.h"
 #include "Guild.h"
 #include "GuildMgr.h"
+#include "Hyperlinks.h"
 #include "IpAddress.h"
+#include "Log.h"
 #include "Map.h"
 #include "Metric.h"
 #include "MiscPackets.h"
@@ -51,9 +53,6 @@
 #include "WardenWin.h"
 #include "World.h"
 #include "WorldSocket.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 
 namespace {
 
@@ -129,7 +128,6 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
     m_sessionDbcLocale(sWorld->GetAvailableDbcLocale(locale)),
     m_sessionDbLocaleIndex(locale),
     m_latency(0),
-    m_clientTimeDelay(0),
     _tutorialsChanged(TUTORIALS_FLAG_NONE),
     _filterAddonMessages(false),
     recruiterId(recruiter),
@@ -138,7 +136,13 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
     expireTime(60000), // 1 min after socket loss, session is deleted
     forceExit(false),
     m_currentBankerGUID(),
-    _battlePetMgr(std::make_unique<BattlePetMgr>(this)),
+    _timeSyncClockDeltaQueue(6),
+    _timeSyncClockDelta(0),
+    _pendingTimeSyncRequests(),
+    _timeSyncNextCounter(0),
+    _timeSyncTimer(0),
+    _calendarEventCreationCooldown(0),
+    _battlePetMgr(std::make_unique<BattlePets::BattlePetMgr>(this)),
     _collectionMgr(std::make_unique<CollectionMgr>(this))
 {
     memset(_tutorials, 0, sizeof(_tutorials));
@@ -149,8 +153,6 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
         ResetTimeOutTime(false);
         LoginDatabase.PExecute("UPDATE account SET online = 1 WHERE id = %u;", GetAccountId());     // One-time query
     }
-
-    _battlePayMgr = std::make_shared<BattlepayManager>(this);
 
     m_Socket[CONNECTION_TYPE_REALM] = sock;
     _instanceConnectKey.Raw = UI64LIT(0);
@@ -298,11 +300,6 @@ void WorldSession::SendPacket(WorldPacket const* packet, bool forced /*= false*/
 
     sScriptMgr->OnPacketSend(this, *packet);
 
-#ifdef ELUNA
-    if (!sEluna->OnPacketSend(this, *packet))
-        return;
-#endif
-
     TC_LOG_TRACE("network.opcode", "S->C: %s %s", GetPlayerInfo().c_str(), GetOpcodeNameForLogging(static_cast<OpcodeServer>(packet->GetOpcode())).c_str());
     m_Socket[conIdx]->SendPacket(*packet);
 }
@@ -373,12 +370,6 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                     else if (_player->IsInWorld() && AntiDOS.EvaluateOpcode(*packet, currentTime))
                     {
                         sScriptMgr->OnPacketReceive(this, *packet);
-						
-#ifdef ELUNA
-                        if (!sEluna->OnPacketReceive(this, *packet))
-                            break;
-#endif
-						
                         opHandle->Call(this, *packet);
                     }
                     // lag can cause STATUS_LOGGEDIN opcodes to arrive after the player started a transfer
@@ -391,12 +382,6 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                     {
                         // not expected _player or must checked in packet hanlder
                         sScriptMgr->OnPacketReceive(this, *packet);
-						
-#ifdef ELUNA
-                        if (!sEluna->OnPacketReceive(this, *packet))
-                            break;
-#endif
-						
                         opHandle->Call(this, *packet);
                     }
                     break;
@@ -408,12 +393,6 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                     else if (AntiDOS.EvaluateOpcode(*packet, currentTime))
                     {
                         sScriptMgr->OnPacketReceive(this, *packet);
-						
-#ifdef ELUNA
-                        if (!sEluna->OnPacketReceive(this, *packet))
-                            break;
-#endif
-						
                         opHandle->Call(this, *packet);
                     }
                     break;
@@ -478,6 +457,18 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
 
     if (m_Socket[CONNECTION_TYPE_REALM] && m_Socket[CONNECTION_TYPE_REALM]->IsOpen() && _warden)
         _warden->Update();
+
+    if (!updater.ProcessUnsafe()) // <=> updater is of type MapSessionFilter
+    {
+        // Send time sync packet every 10s.
+        if (_timeSyncTimer > 0)
+        {
+            if (diff >= _timeSyncTimer)
+                SendTimeSync();
+            else
+                _timeSyncTimer -= diff;
+        }
+    }
 
     ProcessQueryCallbacks();
 
@@ -561,7 +552,7 @@ void WorldSession::LogoutPlayer(bool save)
 
         ///- Teleport to home if the player is in an invalid instance
         if (!_player->m_InstanceValid && !_player->IsGameMaster())
-            _player->TeleportTo(_player->m_homebindMapId, _player->m_homebindX, _player->m_homebindY, _player->m_homebindZ, _player->GetOrientation());
+            _player->TeleportTo(_player->m_homebind);
 
         sOutdoorPvPMgr->HandlePlayerLeaveZone(_player, _player->GetZoneId());
 
@@ -588,6 +579,10 @@ void WorldSession::LogoutPlayer(bool save)
         ///- Remove pet
         _player->RemovePet(nullptr, PET_SAVE_AS_CURRENT, true);
 
+        ///- Release battle pet journal lock
+        if (_battlePetMgr->HasJournalLock())
+            _battlePetMgr->ToggleJournalLock(false);
+
         ///- Clear whisper whitelist
         _player->ClearWhisperWhiteList();
 
@@ -612,16 +607,13 @@ void WorldSession::LogoutPlayer(bool save)
         ///- If the player is in a group (or invited), remove him. If the group if then only 1 person, disband the group.
         _player->UninviteFromGroup();
 
-        // remove player from the group if he is:
-        // a) in group; b) not in raid group; c) logging out normally (not being kicked or disconnected)
-        if (_player->GetGroup() && !_player->GetGroup()->isRaidGroup() && m_Socket[CONNECTION_TYPE_REALM])
-            _player->RemoveFromGroup();
-
         //! Send update to group and reset stored max enchanting level
-        if (_player->GetGroup())
+        if (Group* group = _player->GetGroup())
         {
-            _player->GetGroup()->SendUpdate();
-            _player->GetGroup()->ResetMaxEnchantingLevel();
+            group->SendUpdate();
+            group->ResetMaxEnchantingLevel();
+            if (group->GetLeaderGUID() == _player->GetGUID())
+                group->StartLeaderOfflineTimer();
         }
 
         //! Broadcast a logout message to the player's friends
@@ -639,7 +631,7 @@ void WorldSession::LogoutPlayer(bool save)
         // calls to GetMap in this case may cause crashes
         _player->CleanupsBeforeDelete();
         TC_LOG_INFO("entities.player.character", "Account: %u (IP: %s) Logout Character:[%s] (%s) Level: %d, XP: %u/%u (%u left)",
-            GetAccountId(), GetRemoteAddress().c_str(), _player->GetName().c_str(), _player->GetGUID().ToString().c_str(), _player->getLevel(),
+            GetAccountId(), GetRemoteAddress().c_str(), _player->GetName().c_str(), _player->GetGUID().ToString().c_str(), _player->GetLevel(),
             _player->GetXP(), _player->GetXPForNextLevel(), std::max(0, (int32)_player->GetXPForNextLevel() - (int32)_player->GetXP()));
 
         if (Map* _map = _player->FindMap())
@@ -681,6 +673,20 @@ void WorldSession::KickPlayer()
             forceExit = true;
         }
     }
+}
+
+bool WorldSession::ValidateHyperlinksAndMaybeKick(std::string const& str)
+{
+    if (Trinity::Hyperlinks::CheckAllLinks(str))
+        return true;
+
+    TC_LOG_ERROR("network", "Player %s (%s) sent a message with an invalid link:\n%s", GetPlayer()->GetName().c_str(),
+        GetPlayer()->GetGUID().ToString().c_str(), str.c_str());
+
+    if (sWorld->getIntConfig(CONFIG_CHAT_STRICT_LINK_CHECKING_KICK))
+        KickPlayer();
+
+    return false;
 }
 
 void WorldSession::SendNotification(char const* format, ...)
@@ -798,7 +804,7 @@ void WorldSession::LoadAccountData(PreparedQueryResult result, uint32 mask)
 
         if ((mask & (1 << type)) == 0)
         {
-            TC_LOG_ERROR("misc", "Table `%s` have non appropriate for table  account data type (%u), ignore.",
+            TC_LOG_ERROR("misc", "Table `%s` have non appropriate for table account data type (%u), ignore.",
                 mask == GLOBAL_CACHE_MASK ? "account_data" : "character_account_data", type);
             continue;
         }
@@ -836,6 +842,18 @@ void WorldSession::SetAccountData(AccountDataType type, time_t time, std::string
 
     _accountData[type].Time = time;
     _accountData[type].Data = data;
+}
+
+void WorldSession::SendAccountDataTimes(ObjectGuid playerGuid, uint32 mask)
+{
+    WorldPackets::ClientConfig::AccountDataTimes accountDataTimes;
+    accountDataTimes.PlayerGuid = playerGuid;
+    accountDataTimes.ServerTime = GameTime::GetGameTimeSystemPoint();
+    for (uint32 i = 0; i < NUM_ACCOUNT_DATA_TYPES; ++i)
+        if (mask & (1 << i))
+            accountDataTimes.AccountTimes[i] = GetAccountData(AccountDataType(i))->Time;
+
+    SendPacket(accountDataTimes.Write());
 }
 
 void WorldSession::LoadTutorialsData(PreparedQueryResult result)
@@ -922,37 +940,17 @@ void WorldSession::ProcessQueryCallbacks()
     _queryProcessor.ProcessReadyCallbacks();
     _transactionCallbacks.ProcessReadyCallbacks();
 
-    if (_realmAccountLoginCallback.valid() && _realmAccountLoginCallback.wait_for(std::chrono::seconds(0)) == std::future_status::ready &&
-        _accountLoginCallback.valid() && _accountLoginCallback.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+    if (_realmAccountLoginCallback.valid() && _realmAccountLoginCallback.wait_for(0s) == std::future_status::ready &&
+        _accountLoginCallback.valid() && _accountLoginCallback.wait_for(0s) == std::future_status::ready)
         InitializeSessionCallback(static_cast<LoginDatabaseQueryHolder*>(_realmAccountLoginCallback.get()),
             static_cast<CharacterDatabaseQueryHolder*>(_accountLoginCallback.get()));
 
     //! HandlePlayerLoginOpcode
-    if (_charLoginCallback.valid() && _charLoginCallback.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+    if (_charLoginCallback.valid() && _charLoginCallback.wait_for(0s) == std::future_status::ready)
         HandlePlayerLogin(reinterpret_cast<LoginQueryHolder*>(_charLoginCallback.get()));
 
     if (_charEnumCallback.valid() && _charEnumCallback.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
         HandleCharEnum(static_cast<CharacterDatabaseQueryHolder*>(_charEnumCallback.get()));
-}
-
-void WorldSession::RemoveAuthFlag(AuthFlags f)
-{
-    atAuthFlag = AuthFlags(atAuthFlag & ~f);
-    SaveAuthFlag();
-}
-
-void WorldSession::AddAuthFlag(AuthFlags f)
-{
-    atAuthFlag = AuthFlags(atAuthFlag | f);
-    SaveAuthFlag();
-}
-
-void WorldSession::SaveAuthFlag()
-{
-    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_AT_AUTH_FLAG);
-    stmt->setUInt16(0, atAuthFlag);
-    stmt->setUInt32(1, GetAccountId());
-    LoginDatabase.Execute(stmt);
 }
 
 TransactionCallback& WorldSession::AddTransactionCallback(TransactionCallback&& callback)
@@ -1064,6 +1062,7 @@ public:
 
         stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BATTLE_PETS);
         stmt->setUInt32(0, battlenetAccountId);
+        stmt->setInt32(1, realm.Id.Realm);
         ok = SetPreparedQuery(BATTLE_PETS, stmt) && ok;
 
         stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BATTLE_PET_SLOTS);
@@ -1138,6 +1137,7 @@ void WorldSession::InitializeSessionCallback(LoginDatabaseQueryHolder* realmHold
     SendFeatureSystemStatusGlueScreen();
     SendClientCacheVersion(sWorld->getIntConfig(CONFIG_CLIENTCACHE_VERSION));
     SendAvailableHotfixes();
+    SendAccountDataTimes(ObjectGuid::Empty, GLOBAL_CACHE_MASK);
     SendTutorialsData();
 
     if (PreparedQueryResult characterCountsResult = holder->GetPreparedResult(AccountInfoQueryHolder::GLOBAL_REALM_CHARACTER_COUNTS))
@@ -1324,7 +1324,6 @@ uint32 WorldSession::DosProtection::GetMaxPacketCounterAllowed(uint16 opcode) co
         case CMSG_CHAT_MESSAGE_YELL:                    //   0               3.5
         case CMSG_INSPECT:                              //   0               3.5
         case CMSG_AREA_SPIRIT_HEALER_QUERY:             // not profiled
-        case CMSG_GET_MIRROR_IMAGE_DATA:                // not profiled
         case CMSG_STAND_STATE_CHANGE:                   // not profiled
         case CMSG_RANDOM_ROLL:                          // not profiled
         case CMSG_TIME_SYNC_RESPONSE:                   // not profiled
@@ -1390,7 +1389,6 @@ uint32 WorldSession::DosProtection::GetMaxPacketCounterAllowed(uint16 opcode) co
         case CMSG_SET_PARTY_LEADER:                     //   1               2         1 async db query
         case CMSG_CONVERT_RAID:                         //   1               5         1 async db query
         case CMSG_SET_ASSISTANT_LEADER:                 //   1               2         1 async db query
-        case CMSG_CALENDAR_ADD_EVENT:                   //  21              10         2 async db query
         case CMSG_MOVE_CHANGE_VEHICLE_SEATS:            // not profiled
         case CMSG_PETITION_BUY:                         // not profiled                1 sync 1 async db queries
         case CMSG_REQUEST_VEHICLE_PREV_SEAT:            // not profiled
@@ -1412,6 +1410,7 @@ uint32 WorldSession::DosProtection::GetMaxPacketCounterAllowed(uint16 opcode) co
         case CMSG_ENUM_CHARACTERS_DELETED_BY_CLIENT:    //  22               3         2 async db queries
         case CMSG_SUBMIT_USER_FEEDBACK:                 // not profiled                1 async db query
         case CMSG_SUPPORT_TICKET_SUBMIT_COMPLAINT:      // not profiled                1 async db query
+        case CMSG_CALENDAR_ADD_EVENT:                   //  21              10         2 async db query
         case CMSG_CALENDAR_UPDATE_EVENT:                // not profiled
         case CMSG_CALENDAR_REMOVE_EVENT:                // not profiled
         case CMSG_CALENDAR_COPY_EVENT:                  // not profiled
@@ -1473,99 +1472,33 @@ WorldSession::DosProtection::DosProtection(WorldSession* s) : Session(s), _polic
 {
 }
 
-struct ItemRecovery
+void WorldSession::ResetTimeSync()
 {
-    uint32 itemId;
-    uint32 context;
-};
+    _timeSyncNextCounter = 0;
+    _pendingTimeSyncRequests.clear();
+}
 
-void WorldSession::LoadRecoveries()
+void WorldSession::SendTimeSync()
 {
-    if (AccountMgr::GetCharactersCount(GetAccountId()) >= sWorld->getIntConfig(CONFIG_CHARACTERS_PER_REALM))
-        return;
+    WorldPackets::Misc::TimeSyncRequest timeSyncRequest;
+    timeSyncRequest.SequenceIndex = _timeSyncNextCounter;
+    SendPacket(timeSyncRequest.Write());
 
-    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_RECOVERY);
-    stmt->setUInt32(0, GetAccountId());
+    _pendingTimeSyncRequests[_timeSyncNextCounter] = getMSTime();
 
-    PreparedQueryResult result = CharacterDatabase.Query(stmt);
-    if (!result)
-        return;
+    // Schedule next sync in 10 sec (except for the 2 first packets, which are spaced by only 5s)
+    _timeSyncTimer = _timeSyncNextCounter == 0 ? 5000 : 10000;
+    _timeSyncNextCounter++;
+}
 
-    do
+uint32 WorldSession::AdjustClientMovementTime(uint32 time) const
+{
+    int64 movementTime = int64(time) + _timeSyncClockDelta;
+    if (_timeSyncClockDelta == 0 || movementTime < 0 || movementTime > 0xFFFFFFFF)
     {
-        Field* fields = result->Fetch();
-
-        uint32 recoveryId = fields[0].GetUInt32();
-        uint32 race = fields[1].GetUInt32();
-        uint32 cclass = fields[2].GetUInt32();
-        uint32 level = fields[3].GetUInt32();
-        uint32 skill1 = fields[4].GetUInt32();
-        uint32 skill1_value = fields[5].GetUInt32();
-        uint32 skill2 = fields[6].GetUInt32();
-        uint32 skill2_value = fields[7].GetUInt32();
-        std::string items = fields[8].GetString();
-        std::string spells = fields[9].GetString();
-        uint32 at_login = fields[10].GetUInt32();
-
-        Player newChar(this);
-
-        // On split les items dans une liste
-        std::vector<ItemRecovery> itemList;
-        Tokenizer itemsTokens(items, ' ');
-        itemList.resize(itemsTokens.size());
-
-        for (uint32 i = 0; i < itemsTokens.size(); ++i)
-        {
-            Tokenizer itemAndBonusTokens(itemsTokens[i], ':');
-
-            itemList[i].itemId = atoi(itemAndBonusTokens[0]);
-
-            if (itemAndBonusTokens.size() > 1)
-                itemList[i].context = atoi(itemAndBonusTokens[1]);
-            else
-                itemList[i].context = 0;
-        }
-
-        Tokenizer spellsTokens(spells, ' ');
-        for (auto spellChr : spellsTokens)
-            newChar.LearnSpell(atoi(spellChr), false);
-
-        // Et on donne tous les items
-        for (ItemRecovery itemRecovery : itemList)
-        {
-            if (ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemRecovery.itemId))
-            {
-                if ((proto->GetAllowableRace().RawValue & newChar.getRaceMask()) == 0)
-                    continue;
-
-                newChar.StoreNewItemInBestSlots(itemRecovery.itemId, 1, (ItemContext)itemRecovery.context);
-            }
-        }
-
-        newChar.SaveToDB(true);
-
-        WorldLocation loc;
-
-        if (newChar.GetTeamId() == TEAM_ALLIANCE)
-            loc.WorldRelocate(0, -8837.51f, 617.54f, 93.5f, 0.696735f);
-        else
-            loc.WorldRelocate(1, 1569.96f, -4397.41f, 16.05f, 0.543025f);
-
-        CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
-        Player::SavePositionInDB(loc, 0, newChar.GetGUID(), trans);
-
-        newChar.CleanupsBeforeDelete();
-
-        if (skill1 != 0 && skill1_value != 0)
-            CharacterDatabase.PExecute("INSERT INTO character_shop (guid, type, itemId, itemCount) VALUES (%u, 5, %u, %u)", newChar.GetGUID().GetCounter(), skill1, skill1_value);
-
-        if (skill2 != 0 && skill2_value != 0)
-            CharacterDatabase.PExecute("INSERT INTO character_shop (guid, type, itemId, itemCount) VALUES (%u, 5, %u, %u)", newChar.GetGUID().GetCounter(), skill2, skill2_value);
-
-        stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_RECOVERY_DELIVERED);
-        stmt->setUInt32(0, recoveryId);
-        trans->Append(stmt);
-
-        CharacterDatabase.CommitTransaction(trans);
-    } while (result->NextRow());
+        TC_LOG_WARN("misc", "The computed movement time using clockDelta is erronous. Using fallback instead");
+        return GameTime::GetGameTimeMS();
+    }
+    else
+        return uint32(movementTime);
 }

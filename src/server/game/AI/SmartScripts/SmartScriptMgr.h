@@ -98,7 +98,7 @@ enum SMART_EVENT
 {
     SMART_EVENT_UPDATE_IC                = 0,       // InitialMin, InitialMax, RepeatMin, RepeatMax
     SMART_EVENT_UPDATE_OOC               = 1,       // InitialMin, InitialMax, RepeatMin, RepeatMax
-    SMART_EVENT_HEALT_PCT                = 2,       // HPMin%, HPMax%,  RepeatMin, RepeatMax
+    SMART_EVENT_HEALTH_PCT               = 2,       // HPMin%, HPMax%,  RepeatMin, RepeatMax
     SMART_EVENT_MANA_PCT                 = 3,       // ManaMin%, ManaMax%, RepeatMin, RepeatMax
     SMART_EVENT_AGGRO                    = 4,       // NONE
     SMART_EVENT_KILL                     = 5,       // CooldownMin0, CooldownMax1, playerOnly2, else creature entry3
@@ -115,8 +115,8 @@ enum SMART_EVENT
     SMART_EVENT_FRIENDLY_MISSING_BUFF    = 16,      // SpellId, Radius, RepeatMin, RepeatMax
     SMART_EVENT_SUMMONED_UNIT            = 17,      // CreatureId(0 all), CooldownMin, CooldownMax
     SMART_EVENT_TARGET_MANA_PCT          = 18,      // ManaMin%, ManaMax%, RepeatMin, RepeatMax
-    SMART_EVENT_ACCEPTED_QUEST           = 19,      // QuestID(0any)
-    SMART_EVENT_REWARD_QUEST             = 20,      // QuestID(0any)
+    SMART_EVENT_ACCEPTED_QUEST           = 19,      // QuestID (0 = any), CooldownMin, CooldownMax
+    SMART_EVENT_REWARD_QUEST             = 20,      // QuestID (0 = any), CooldownMin, CooldownMax
     SMART_EVENT_REACHED_HOME             = 21,      // NONE
     SMART_EVENT_RECEIVE_EMOTE            = 22,      // EmoteId, CooldownMin, CooldownMax, condition, val1, val2, val3
     SMART_EVENT_HAS_AURA                 = 23,      // Param1 = SpellID, Param2 = Stack amount, Param3/4 RepeatMin, RepeatMax
@@ -276,6 +276,8 @@ struct SmartEvent
         struct
         {
             uint32 quest;
+            uint32 cooldownMin;
+            uint32 cooldownMax;
         } quest;
 
         struct
@@ -366,7 +368,7 @@ struct SmartEvent
 
         struct
         {
-            uint32 noReportUse;
+            uint32 filter;
         } gossipHello;
 
         struct
@@ -548,7 +550,7 @@ enum SMART_ACTION
     SMART_ACTION_ADD_NPC_FLAG                       = 82,     // Flags
     SMART_ACTION_REMOVE_NPC_FLAG                    = 83,     // Flags
     SMART_ACTION_SIMPLE_TALK                        = 84,     // groupID, can be used to make players say groupID, Text_over event is not triggered, whisper can not be used (Target units will say the text)
-    SMART_ACTION_INVOKER_CAST                       = 85,     // spellID, castFlags,   if avaliable, last used invoker will cast spellId with castFlags on targets
+    SMART_ACTION_SELF_CAST                          = 85,     // spellID, castFlags
     SMART_ACTION_CROSS_CAST                         = 86,     // spellID, castFlags, CasterTargetType, CasterTarget param1, CasterTarget param2, CasterTarget param3, ( + the origonal target fields as Destination target),   CasterTargets will cast spellID on all Targets (use with caution if targeting multiple * multiple units)
     SMART_ACTION_CALL_RANDOM_TIMED_ACTIONLIST       = 87,     // script9 ids 1-9
     SMART_ACTION_CALL_RANDOM_RANGE_TIMED_ACTIONLIST = 88,     // script9 id min, max
@@ -597,8 +599,8 @@ enum SMART_ACTION
     SMART_ACTION_SPAWN_SPAWNGROUP                   = 131,    // Group ID, min secs, max secs, spawnflags
     SMART_ACTION_DESPAWN_SPAWNGROUP                 = 132,    // Group ID, min secs, max secs, spawnflags
     SMART_ACTION_RESPAWN_BY_SPAWNID                 = 133,    // spawnType, spawnId
-    // 134 : 3.3.5 reserved
-    SMART_ACTION_PLAY_CINEMATIC                     = 135,    // reserved for future uses
+    SMART_ACTION_INVOKER_CAST                       = 134,    // spellID, castFlags
+    SMART_ACTION_PLAY_CINEMATIC                     = 135,    // entry, cinematic
     SMART_ACTION_SET_MOVEMENT_SPEED                 = 136,    // movementType, speedInteger, speedFraction
     SMART_ACTION_PLAY_SPELL_VISUAL_KIT              = 137,    // spellVisualKitId, kitType (unknown values, copypaste from packet dumps), duration
     SMART_ACTION_CREATE_CONVERSATION                = 143,    // conversation_template.id
@@ -752,6 +754,7 @@ struct SmartAction
         {
             uint32 spell;
             uint32 charges;
+            uint32 onlyOwnedAuras;
         } removeAura;
 
         struct
@@ -997,6 +1000,7 @@ struct SmartAction
         {
             uint32 id;
             uint32 timerType;
+            uint32 allowOverride;
         } timedActionList;
 
         struct
@@ -1185,6 +1189,11 @@ struct SmartAction
 
         struct
         {
+            uint32 entry;
+        } cinematic;
+
+        struct
+        {
             uint32 movementType;
             uint32 speedInteger;
             uint32 speedFraction;
@@ -1274,12 +1283,13 @@ enum SMARTAI_TARGETS
 
 struct SmartTarget
 {
-    SmartTarget (SMARTAI_TARGETS t = SMART_TARGET_NONE, uint32 p1 = 0, uint32 p2 = 0, uint32 p3 = 0)
+    SmartTarget (SMARTAI_TARGETS t = SMART_TARGET_NONE, uint32 p1 = 0, uint32 p2 = 0, uint32 p3 = 0, uint32 p4 = 0)
     {
         type = t;
         raw.param1 = p1;
         raw.param2 = p2;
         raw.param3 = p3;
+        raw.param4 = p4;
         x = 0.0f;
         y = 0.0f;
         z = 0.0f;
@@ -1308,6 +1318,7 @@ struct SmartTarget
             uint32 creature;
             uint32 minDist;
             uint32 maxDist;
+            uint32 maxSize;
         } unitRange;
 
         struct
@@ -1320,6 +1331,7 @@ struct SmartTarget
         {
             uint32 creature;
             uint32 dist;
+            uint32 maxSize;
         } unitDistance;
 
         struct
@@ -1343,6 +1355,7 @@ struct SmartTarget
             uint32 entry;
             uint32 minDist;
             uint32 maxDist;
+            uint32 maxSize;
         } goRange;
 
         struct
@@ -1355,6 +1368,7 @@ struct SmartTarget
         {
             uint32 entry;
             uint32 dist;
+            uint32 maxSize;
         } goDistance;
 
         struct
@@ -1391,6 +1405,7 @@ struct SmartTarget
             uint32 param1;
             uint32 param2;
             uint32 param3;
+            uint32 param4;
         } raw;
 
         struct
@@ -1455,7 +1470,7 @@ const uint32 SmartAIEventMask[SMART_EVENT_END][2] =
 {
     {SMART_EVENT_UPDATE_IC,                 SMART_SCRIPT_TYPE_MASK_CREATURE + SMART_SCRIPT_TYPE_MASK_TIMED_ACTIONLIST},
     {SMART_EVENT_UPDATE_OOC,                SMART_SCRIPT_TYPE_MASK_CREATURE + SMART_SCRIPT_TYPE_MASK_GAMEOBJECT + SMART_SCRIPT_TYPE_MASK_INSTANCE + SMART_SCRIPT_TYPE_MASK_AREATRIGGER_ENTITY },
-    {SMART_EVENT_HEALT_PCT,                 SMART_SCRIPT_TYPE_MASK_CREATURE },
+    {SMART_EVENT_HEALTH_PCT,                SMART_SCRIPT_TYPE_MASK_CREATURE },
     {SMART_EVENT_MANA_PCT,                  SMART_SCRIPT_TYPE_MASK_CREATURE },
     {SMART_EVENT_AGGRO,                     SMART_SCRIPT_TYPE_MASK_CREATURE },
     {SMART_EVENT_KILL,                      SMART_SCRIPT_TYPE_MASK_CREATURE },

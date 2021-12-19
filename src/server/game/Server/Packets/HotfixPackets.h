@@ -58,7 +58,7 @@ namespace WorldPackets
             ByteBuffer Data;
         };
 
-        class TC_GAME_API AvailableHotfixes final : public ServerPacket
+        class AvailableHotfixes final : public ServerPacket
         {
         public:
             AvailableHotfixes(int32 virtualRealmAddress, DB2Manager::HotfixContainer const& hotfixes)

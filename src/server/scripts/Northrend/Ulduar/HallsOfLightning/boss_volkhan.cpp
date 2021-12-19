@@ -260,9 +260,9 @@ public:
                             DoCast(me, SPELL_SHATTERING_STOMP);
 
                             Talk(EMOTE_SHATTER);
-                            events.ScheduleEvent(EVENT_SHATTERING_STOMP, 30 * IN_MILLISECONDS, 0, PHASE_NORMAL);
                             m_bCanShatterGolem = true;
                         }
+                        events.ScheduleEvent(EVENT_SHATTERING_STOMP, 30 * IN_MILLISECONDS, 0, PHASE_NORMAL);
                         break;
                     case EVENT_SHATTER:
                         if (m_bCanShatterGolem)
@@ -283,6 +283,10 @@ public:
                 if (me->HasUnitState(UNIT_STATE_CASTING))
                     return;
             }
+
+            // All the events below happen during the PHASE_NORMAL phase and shouldn't be executed before that
+            if (!events.IsInPhase(PHASE_NORMAL))
+                return;
 
             // Health check
             if (!m_bCanShatterGolem && me->HealthBelowPct(100 - 20 * m_uiHealthAmountModifier))
@@ -461,11 +465,11 @@ public:
                 {
                     case EVENT_BLAST:
                         DoCast(me, SPELL_BLAST_WAVE);
-                        events.ScheduleEvent(EVENT_BLAST, 20 * IN_MILLISECONDS);
+                        events.ScheduleEvent(EVENT_BLAST, 20s);
                         break;
                     case EVENT_IMMOLATION:
                         DoCastVictim(SPELL_IMMOLATION_STRIKE);
-                        events.ScheduleEvent(EVENT_BLAST, 5 * IN_MILLISECONDS);
+                        events.ScheduleEvent(EVENT_BLAST, 5s);
                         break;
                     default:
                         break;

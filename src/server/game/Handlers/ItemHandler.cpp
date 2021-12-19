@@ -536,7 +536,8 @@ void WorldSession::HandleBuybackItem(WorldPackets::Item::BuyBackItem& packet)
         {
             _player->ModifyMoney(-(int32)price);
             _player->RemoveItemFromBuyBackSlot(packet.Slot, false);
-            _player->MoveItemToInventory(dest, pItem, true);
+            _player->ItemAddedQuestCheck(pItem->GetEntry(), pItem->GetCount());
+            _player->StoreItem(dest, pItem, true);
         }
         else
             _player->SendEquipError(msg, pItem, nullptr);
@@ -641,7 +642,7 @@ void WorldSession::SendListInventory(ObjectGuid vendorGuid)
             if (!_player->IsGameMaster()) // ignore conditions if GM on
             {
                 // Respect allowed class
-                if (!(itemTemplate->GetAllowableClass() & _player->getClassMask()) && itemTemplate->GetBonding() == BIND_ON_ACQUIRE)
+                if (!(itemTemplate->GetAllowableClass() & _player->GetClassMask()) && itemTemplate->GetBonding() == BIND_ON_ACQUIRE)
                     continue;
 
                 // Only display items in vendor lists for the team the player is on
@@ -1086,7 +1087,7 @@ void WorldSession::HandleSocketGems(WorldPackets::Item::SocketGems& socketGems)
     {
         if (gems[i])
         {
-            uint32 gemScalingLevel = _player->getLevel();
+            uint32 gemScalingLevel = _player->GetLevel();
             if (uint32 fixedLevel = gems[i]->GetModifier(ITEM_MODIFIER_TIMEWALKER_LEVEL))
                 gemScalingLevel = fixedLevel;
 
@@ -1201,15 +1202,14 @@ void WorldSession::HandleUseCritterItem(WorldPackets::Item::UseCritterItem& useC
     if (!item)
         return;
 
-    if (item->GetBonus()->EffectCount < 2)
-        return;
+    for (ItemEffectEntry const* itemEffect : item->GetEffects())
+   {
+        if (itemEffect->TriggerType != ITEM_SPELLTRIGGER_LEARN_SPELL_ID)
+            continue;
 
-    int32 spellToLearn = item->GetEffect(1)->SpellID;
-
-    if (BattlePetSpeciesEntry const* entry = sSpellMgr->GetBattlePetSpecies(uint32(spellToLearn)))
-    {
-        GetBattlePetMgr()->AddPet(entry->ID, entry->CreatureID, BattlePetMgr::RollPetBreed(entry->ID), BattlePetMgr::GetDefaultPetQuality(entry->ID));
-        _player->UpdateCriteria(CriteriaType::UniquePetsOwned);
+        if (BattlePetSpeciesEntry const* speciesEntry = sSpellMgr->GetBattlePetSpecies(uint32(itemEffect->SpellID)))
+            GetBattlePetMgr()->AddPet(speciesEntry->ID, BattlePets::BattlePetMgr::SelectPetDisplay(speciesEntry),
+                BattlePets::BattlePetMgr::RollPetBreed(speciesEntry->ID), BattlePets::BattlePetMgr::GetDefaultPetQuality(speciesEntry->ID));
     }
 
     _player->DestroyItem(item->GetBagSlot(), item->GetSlot(), true);

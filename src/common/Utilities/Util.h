@@ -22,6 +22,7 @@
 #include "Errors.h"
 #include <array>
 #include <string>
+#include <utility>
 #include <vector>
 #include "advstd.h"
 
@@ -55,15 +56,17 @@ private:
     StorageType m_storage;
 };
 
-TC_COMMON_API void stripLineInvisibleChars(std::string &src);
-
 TC_COMMON_API int64 MoneyStringToMoney(std::string const& moneyString);
 
 TC_COMMON_API struct tm* localtime_r(time_t const* time, struct tm *result);
+TC_COMMON_API time_t LocalTimeToUTCTime(time_t time);
+TC_COMMON_API time_t GetLocalHourTimestamp(time_t time, uint8 hour, bool onlyAfterTime = true);
+TC_COMMON_API tm TimeBreakdown(time_t t);
 
 TC_COMMON_API std::string secsToTimeString(uint64 timeInSecs, bool shortText = false, bool hoursOnly = false);
 TC_COMMON_API uint32 TimeStringToSecs(std::string const& timestring);
 TC_COMMON_API std::string TimeToTimestampStr(time_t t);
+TC_COMMON_API std::string TimeToHumanReadable(time_t t);
 
 // Percentage calculation
 template <class T, class U>
@@ -351,6 +354,13 @@ std::array<uint8, Size> HexStrToByteArray(std::string const& str, bool reverse =
 
 TC_COMMON_API bool StringToBool(std::string const& str);
 TC_COMMON_API float DegToRad(float degrees);
+
+TC_COMMON_API bool StringContainsStringI(std::string const& haystack, std::string const& needle);
+template <typename T>
+inline bool ValueContainsStringI(std::pair<T, std::string> const& haystack, std::string const& needle)
+{
+    return StringContainsStringI(haystack.second, needle);
+}
 
 // simple class for not-modifyable list
 template <typename T>

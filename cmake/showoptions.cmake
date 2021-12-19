@@ -104,6 +104,13 @@ if ( HELGRIND )
   add_definitions(-DHELGRIND)
 endif()
 
+if ( ASAN )
+  message("")
+  message(" *** ASAN - WARNING!")
+  message(" *** Please note that this is for DEBUGGING WITH ADDRESS SANITIZER only!")
+  add_definitions(-DASAN)
+endif()
+
 if ( PERFORMANCE_PROFILING )
   message("")
   message(" *** PERFORMANCE_PROFILING - WARNING!")
@@ -132,14 +139,6 @@ if (BUILD_SHARED_LIBS)
   add_definitions(-DTRINITY_API_USE_DYNAMIC_LINKING)
 
   WarnAboutSpacesInBuildPath()
-endif()
-
-if (ELUNA)
-	message("* Build Eluna Lua Engine : Yes (default)")
-	add_definitions(-DELUNA)
-	add_definitions(-DTRINITY)
-else()
-	message("* Build Eluna Lua Engine : No")
 endif()
 
 message("")

@@ -326,6 +326,8 @@ ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Battleground::RatedPvpInf
     data << int32(bracketInfo.PvpTierID);
     data << int32(bracketInfo.Unused3);
     data << int32(bracketInfo.WeeklyBestWinPvpTierID);
+    data << int32(bracketInfo.Unused4);
+    data << int32(bracketInfo.Rank);
     data.WriteBit(bracketInfo.Disqualified);
     data.FlushBits();
 
@@ -364,83 +366,6 @@ WorldPacket const* WorldPackets::Battleground::PVPMatchComplete::Write()
 
     if (LogData)
         _worldPacket << *LogData;
-
-    return &_worldPacket;
-}
-
-void WorldPackets::Battleground::BattlemasterJoinBrawl::Read()
-{
-    _worldPacket >> RolesMask;
-}
-
-WorldPacket const* WorldPackets::Battleground::WargameRequestSuccessfullySentToOpponent::Write()
-{
-    _worldPacket << UnkInt;
-    _worldPacket.WriteBit(UnkInt2.is_initialized());
-    _worldPacket.WriteBit(UnkInt3.is_initialized());
-    _worldPacket.FlushBits();
-
-    if (UnkInt2.is_initialized())
-        _worldPacket << *UnkInt2;
-
-    if (UnkInt3.is_initialized())
-        _worldPacket << *UnkInt3;
-
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Battleground::SendRequestScheduledPVPInfoResponse::Write()
-{
-    _worldPacket << uint32(BrawlType);
-    _worldPacket << int32(TimeToEnd);
-    _worldPacket.FlushBits();
-    _worldPacket.WriteBit(IsActive);
-
-    return &_worldPacket;
-}
-
-void WorldPackets::Battleground::AcceptWargameInvite::Read()
-{
-    _worldPacket >> OpposingPartyMember;
-    _worldPacket >> QueueID;
-    Accept = _worldPacket.ReadBit();
-}
-
-void WorldPackets::Battleground::BattlemasterJoinArenaSkirmish::Read()
-{
-    _worldPacket.clear();
-}
-
-WorldPacket const* WorldPackets::Battleground::MapObjectivesInit::Write()
-{
-    _worldPacket << static_cast<uint32>(CapturePointInfo.size());
-    //  for (auto& v : CapturePointInfo)
-       //   _worldPacket << v;
-
-    return &_worldPacket;
-}
-
-ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Battleground::BattlegroundCapturePointInfoData& info)
-{
-    data << info.Guid;
-    data << info.Pos;
-    data << int8(info.NodeState);
-    if (info.NodeState == NODE_STATE_HORDE_ASSAULT || info.NodeState == NODE_STATE_ALLIANCE_ASSAULT)
-    {
-        data << info.CaptureTime;
-        data << info.CaptureTotalDuration;
-    }
-
-    return data;
-}
-
-WorldPacket const* WorldPackets::Battleground::ConquestFormulaContants::Write()
-{
-    _worldPacket << uint32(PvpMinCPPerWeek);
-    _worldPacket << uint32(PvpMaxCPPerWeek);
-    _worldPacket << float(PvpCPBaseCoefficient);
-    _worldPacket << float(PvpCPExpCoefficient);
-    _worldPacket << float(PvpCPNumerato);
 
     return &_worldPacket;
 }

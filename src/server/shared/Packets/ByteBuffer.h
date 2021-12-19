@@ -53,7 +53,7 @@ public:
 class TC_SHARED_API ByteBuffer
 {
     public:
-        static size_t const DEFAULT_SIZE = 0x50000;
+        static size_t const DEFAULT_SIZE = 0x1000;
         static uint8 const InitialBitPos = 8;
 
         // constructor
@@ -550,6 +550,11 @@ class TC_SHARED_API ByteBuffer
         {
             if (ressize > size())
                 _storage.reserve(ressize);
+        }
+
+        void shrink_to_fit()
+        {
+            _storage.shrink_to_fit();
         }
 
         void append(const char *src, size_t cnt)

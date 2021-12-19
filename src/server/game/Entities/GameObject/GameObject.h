@@ -98,7 +98,7 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
         void CleanupsBeforeDelete(bool finalCleanup = true) override;
 
     private:
-        bool Create(uint32 entry, Map* map, Position const& pos, QuaternionData const& rotation, uint32 animProgress, GOState goState, uint32 artKit, bool dynamic, ObjectGuid::LowType spawnid, float size = -1.0f, bool hasDoodads = true, float visibility = SIZE_OF_GRIDS);
+        bool Create(uint32 entry, Map* map, Position const& pos, QuaternionData const& rotation, uint32 animProgress, GOState goState, uint32 artKit, bool dynamic, ObjectGuid::LowType spawnid);
     public:
         static GameObject* CreateGameObject(uint32 entry, Map* map, Position const& pos, QuaternionData const& rotation, uint32 animProgress, GOState goState, uint32 artKit = 0);
         static GameObject* CreateGameObjectFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap = true);
@@ -117,10 +117,13 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
         ObjectGuid::LowType GetSpawnId() const { return m_spawnId; }
 
          // z_rot, y_rot, x_rot - rotation angles around z, y and x axes
-        void SetWorldRotationAngles(float z_rot, float y_rot, float x_rot);
-        void SetWorldRotation(float qx, float qy, float qz, float qw);
+        void SetLocalRotationAngles(float z_rot, float y_rot, float x_rot);
+        void SetLocalRotation(float qx, float qy, float qz, float qw);
         void SetParentRotation(QuaternionData const& rotation);      // transforms(rotates) transport's path
-        int64 GetPackedWorldRotation() const { return m_packedRotation; }
+        QuaternionData const& GetLocalRotation() const { return m_localRotation; }
+        int64 GetPackedLocalRotation() const { return m_packedRotation; }
+
+        QuaternionData GetWorldRotation() const;
 
         // overwrite WorldObject function for proper name localization
         std::string GetNameForLocaleIdx(LocaleConstant locale) const override;
@@ -128,7 +131,7 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
         void SaveToDB();
         void SaveToDB(uint32 mapid, std::vector<Difficulty> const& spawnDifficulties);
         bool LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, bool = true); // arg4 is unused, only present to match the signature on Creature
-        void DeleteFromDB();
+        static bool DeleteFromDB(ObjectGuid::LowType spawnId);
 
         void SetOwnerGUID(ObjectGuid owner)
         {
@@ -164,7 +167,7 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
         void SetSpawnedByDefault(bool b) { m_spawnedByDefault = b; }
         uint32 GetRespawnDelay() const { return m_respawnDelayTime; }
         void Refresh();
-        void DespawnOrUnsummon(Milliseconds const& delay = 0ms, Seconds const& forceRespawnTime = 0s);
+        void DespawnOrUnsummon(Milliseconds delay = 0ms, Seconds forceRespawnTime = 0s);
         void Delete();
         void SendGameObjectDespawn();
         void getFishLoot(Loot* loot, Player* loot_owner);
@@ -216,7 +219,7 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
         uint32 GetUseCount() const { return m_usetimes; }
         uint32 GetUniqueUseCount() const { return uint32(m_unique_users.size()); }
 
-        void SaveRespawnTime(uint32 forceDelay = 0, bool savetodb = true) override;
+        void SaveRespawnTime(uint32 forceDelay = 0);
 
         Loot        loot;
 
@@ -285,8 +288,6 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
 
         Transport* ToTransport() { if (GetGOInfo()->type == GAMEOBJECT_TYPE_MAP_OBJ_TRANSPORT) return reinterpret_cast<Transport*>(this); else return nullptr; }
         Transport const* ToTransport() const { if (GetGOInfo()->type == GAMEOBJECT_TYPE_MAP_OBJ_TRANSPORT) return reinterpret_cast<Transport const*>(this); else return nullptr; }
-        bool HasDoodads() const { return m_hasDoodads; }
-        void SetDoodads(bool hasDoodads);
 
         float GetStationaryX() const override { return m_stationaryPosition.GetPositionX(); }
         float GetStationaryY() const override { return m_stationaryPosition.GetPositionY(); }
@@ -297,6 +298,14 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
         float GetInteractionDistance() const;
 
         void UpdateModelPosition();
+
+        bool IsAtInteractDistance(Position const& pos, float radius) const;
+        bool IsAtInteractDistance(Player const* player, SpellInfo const* spell = nullptr) const;
+
+        bool IsWithinDistInMap(Player const* player) const;
+        using WorldObject::IsWithinDistInMap;
+
+        SpellInfo const* GetSpellForLock(Player const* player) const;
 
         uint16 GetAIAnimKitId() const override { return _animKitId; }
         void SetAnimKitId(uint16 animKitId, bool oneshot);
@@ -309,9 +318,9 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
         void AIM_Destroy();
         bool AIM_Initialize();
 
-        UF::UpdateField<UF::GameObjectData, 0, TYPEID_GAMEOBJECT> m_gameObjectData;
+        std::string GetDebugInfo() const override;
 
-        bool m_hasDoodads;
+        UF::UpdateField<UF::GameObjectData, 0, TYPEID_GAMEOBJECT> m_gameObjectData;
 
     protected:
         void CreateModel();
@@ -324,6 +333,7 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
         LootState   m_lootState;
         ObjectGuid  m_lootStateUnitGUID;                    // GUID of the unit passed with SetLootState(LootState, Unit*)
         bool        m_spawnedByDefault;
+        time_t      m_restockTime;
         time_t      m_cooldownTime;                         // used as internal reaction delay time store (not state change reaction).
                                                             // For traps this: spell casting cooldown, for doors/buttons: reset time.
         GOState     m_prevGoState;                          // What state to set whenever resetting
@@ -344,7 +354,7 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
         GameObjectValue m_goValue;
 
         int64 m_packedRotation;
-        QuaternionData m_worldRotation;
+        QuaternionData m_localRotation;
         Position m_stationaryPosition;
 
         ObjectGuid m_lootRecipient;

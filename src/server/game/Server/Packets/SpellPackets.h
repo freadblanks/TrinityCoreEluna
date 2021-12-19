@@ -572,6 +572,7 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             bool IsPet = false;
+            bool WithoutCategoryCooldown = false;
             int32 DeltaTime = 0;
             int32 SpellID = 0;
         };
@@ -586,7 +587,7 @@ namespace WorldPackets
             float ModRate = 1.0f;
         };
 
-        class SpellCooldown : public ServerPacket
+        class TC_GAME_API SpellCooldown : public ServerPacket
         {
         public:
             SpellCooldown() : ServerPacket(SMSG_SPELL_COOLDOWN, 4 + 16 + 1) { }
@@ -743,9 +744,9 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             ObjectGuid Source;
-            ObjectGuid Target; // Exclusive with TargetPosition
+            ObjectGuid Target;
             ObjectGuid Transport; // Used when Target = Empty && (SpellVisual::Flags & 0x400) == 0
-            TaggedPosition<Position::XYZ> TargetPosition; // Exclusive with Target
+            TaggedPosition<Position::XYZ> TargetPosition; // Overrides missile destination for SpellVisual::SpellVisualMissileSetID
             uint32 SpellVisualID = 0;
             float TravelSpeed = 0.0f;
             uint16 HitReason = 0;
@@ -984,6 +985,7 @@ namespace WorldPackets
             void Read() override;
 
             ObjectGuid Guid;
+            ObjectGuid CastID;
             uint16 MoveMsgID = 0;
             int32 SpellID = 0;
             float Pitch = 0.0f;
