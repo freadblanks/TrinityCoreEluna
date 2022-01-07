@@ -59,10 +59,10 @@ class boss_meathook : public CreatureScript
                     me->RemoveLootMode(LOOT_MODE_DEFAULT);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void JustEngagedWith(Unit* who) override
             {
                 Talk(SAY_AGGRO);
-                _JustEngagedWith();
+                BossAI::JustEngagedWith(who);
                 events.ScheduleEvent(EVENT_CHAIN, Seconds(7), Seconds(11));
                 events.ScheduleEvent(EVENT_DISEASE, Seconds(2));
                 events.ScheduleEvent(EVENT_FRENZY, Seconds(13), Seconds(17));
@@ -73,9 +73,9 @@ class boss_meathook : public CreatureScript
                 switch (eventId)
                 {
                     case EVENT_CHAIN:
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, -20.0f, true))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, -20.0f, true))
                             DoCast(target, SPELL_CONSTRICTING_CHAINS);
-                        else if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 1, 100.0f, true))
+                        else if (Unit* target = SelectTarget(SelectTargetMethod::Random, 1, 100.0f, true))
                             DoCast(target, SPELL_CONSTRICTING_CHAINS);
                         else
                             DoCastVictim(SPELL_CONSTRICTING_CHAINS);

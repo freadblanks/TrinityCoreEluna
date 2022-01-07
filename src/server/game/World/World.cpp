@@ -156,6 +156,9 @@ World::World()
     _guidAlert = false;
     _warnDiff = 0;
     _warnShutdownTime = GameTime::GetGameTime();
+
+    _warModeDominantFaction = TEAM_NEUTRAL;
+    _warModeOutnumberedFactionReward = 0;
 }
 
 /// World destructor
@@ -326,7 +329,7 @@ bool World::RemoveSession(uint32 id)
         if (itr->second->PlayerLoading())
             return false;
 
-        itr->second->KickPlayer();
+        itr->second->KickPlayer("World::RemoveSession");
     }
 
     return true;
@@ -350,9 +353,9 @@ void World::AddSession_(WorldSession* s)
 
     ///- kick already loaded player with same account (if any) and remove session
     ///- if player is in loading and want to load again, return
-    if (!RemoveSession (s->GetAccountId()))
+    if (!RemoveSession(s->GetAccountId()))
     {
-        s->KickPlayer();
+        s->KickPlayer("World::AddSession_ Couldn't remove the other session while on loading screen");
         delete s;                                           // session not added yet in session list, so not listed in queue
         return;
     }
@@ -799,7 +802,7 @@ void World::LoadConfigSettings(bool reload)
     if (reload)
         sMapMgr->SetGridCleanUpDelay(m_int_configs[CONFIG_INTERVAL_GRIDCLEAN]);
 
-    m_int_configs[CONFIG_INTERVAL_MAPUPDATE] = sConfigMgr->GetIntDefault("MapUpdateInterval", 100);
+    m_int_configs[CONFIG_INTERVAL_MAPUPDATE] = sConfigMgr->GetIntDefault("MapUpdateInterval", 10);
     if (m_int_configs[CONFIG_INTERVAL_MAPUPDATE] < MIN_MAP_UPDATE_DELAY)
     {
         TC_LOG_ERROR("server.loading", "MapUpdateInterval (%i) must be greater %u. Use this minimal value.", m_int_configs[CONFIG_INTERVAL_MAPUPDATE], MIN_MAP_UPDATE_DELAY);
@@ -858,6 +861,8 @@ void World::LoadConfigSettings(bool reload)
 
     /// @todo Add MonsterSight (with meaning) in worldserver.conf or put them as define
     m_float_configs[CONFIG_SIGHT_MONSTER] = sConfigMgr->GetFloatDefault("MonsterSight", 50.0f);
+
+    m_bool_configs[CONFIG_REGEN_HP_CANNOT_REACH_TARGET_IN_RAID] = sConfigMgr->GetBoolDefault("Creature.RegenHPCannotReachTargetInRaid", true);
 
     if (reload)
     {
@@ -1522,7 +1527,6 @@ void World::LoadConfigSettings(bool reload)
     if (m_int_configs[CONFIG_PVP_TOKEN_COUNT] < 1)
         m_int_configs[CONFIG_PVP_TOKEN_COUNT] = 1;
 
-    m_bool_configs[CONFIG_ALLOW_TRACK_BOTH_RESOURCES] = sConfigMgr->GetBoolDefault("AllowTrackBothResources", false);
     m_bool_configs[CONFIG_NO_RESET_TALENT_COST] = sConfigMgr->GetBoolDefault("NoResetTalentsCost", false);
     m_bool_configs[CONFIG_SHOW_KICK_IN_WORLD] = sConfigMgr->GetBoolDefault("ShowKickInWorld", false);
     m_bool_configs[CONFIG_SHOW_MUTE_IN_WORLD] = sConfigMgr->GetBoolDefault("ShowMuteInWorld", false);
@@ -1658,6 +1662,12 @@ void World::LoadConfigSettings(bool reload)
 
     // Whether to use LoS from game objects
     m_bool_configs[CONFIG_CHECK_GOBJECT_LOS] = sConfigMgr->GetBoolDefault("CheckGameObjectLoS", true);
+
+    // FactionBalance
+    m_int_configs[CONFIG_FACTION_BALANCE_LEVEL_CHECK_DIFF] = sConfigMgr->GetIntDefault("Pvp.FactionBalance.LevelCheckDiff", 0);
+    m_float_configs[CONFIG_CALL_TO_ARMS_5_PCT] = sConfigMgr->GetFloatDefault("Pvp.FactionBalance.Pct5", 0.6f);
+    m_float_configs[CONFIG_CALL_TO_ARMS_10_PCT] = sConfigMgr->GetFloatDefault("Pvp.FactionBalance.Pct10", 0.7f);
+    m_float_configs[CONFIG_CALL_TO_ARMS_20_PCT] = sConfigMgr->GetFloatDefault("Pvp.FactionBalance.Pct20", 0.8f);
 
     // call ScriptMgr if we're reloading the configuration
     if (reload)
@@ -2027,6 +2037,9 @@ void World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Loading Vehicle Accessories...");
     sObjectMgr->LoadVehicleAccessories();                       // must be after LoadCreatureTemplates() and LoadNPCSpellClickSpells()
+
+    TC_LOG_INFO("server.loading", "Loading Vehicle Seat Addon Data...");
+    sObjectMgr->LoadVehicleSeatAddon();                         // must be after loading DBC
 
     TC_LOG_INFO("server.loading", "Loading SpellArea Data...");                // must be after quest load
     sSpellMgr->LoadSpellAreas();
@@ -2457,6 +2470,17 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.worldserver", "World initialized in %u minutes %u seconds", (startupDuration / 60000), ((startupDuration % 60000) / 1000));
 
     TC_METRIC_EVENT("events", "World initialized", "World initialized in " + std::to_string(startupDuration / 60000) + " minutes " + std::to_string((startupDuration % 60000) / 1000) + " seconds");
+}
+
+void World::SetForcedWarModeFactionBalanceState(TeamId team, int32 reward)
+{
+    _warModeDominantFaction = team;
+    _warModeOutnumberedFactionReward = reward;
+}
+
+void World::DisableForcedWarModeFactionBalanceState()
+{
+    UpdateWarModeRewardValues();
 }
 
 void World::LoadAutobroadcasts()
@@ -2953,7 +2977,7 @@ void World::KickAll()
 
     // session not removed at kick and will removed in next update tick
     for (SessionMap::const_iterator itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
-        itr->second->KickPlayer();
+        itr->second->KickPlayer("World::KickAll");
 }
 
 /// Kick (and save) all players with security level less `sec`
@@ -2962,7 +2986,7 @@ void World::KickAllLess(AccountTypes sec)
     // session not removed at kick and will removed in next update tick
     for (SessionMap::const_iterator itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
         if (itr->second->GetSecurity() < sec)
-            itr->second->KickPlayer();
+            itr->second->KickPlayer("World::KickAllLess");
 }
 
 /// Ban an account or ban an IP address, duration will be parsed using TimeStringToSecs if it is positive, otherwise permban
@@ -3050,7 +3074,7 @@ BanReturn World::BanAccount(BanMode mode, std::string const& nameOrIP, uint32 du
 
         if (WorldSession* sess = FindSession(account))
             if (std::string(sess->GetPlayerName()) != author)
-                sess->KickPlayer();
+                sess->KickPlayer("World::BanAccount Banning account");
     } while (resultAccounts->NextRow());
 
     LoginDatabase.CommitTransaction(trans);
@@ -3121,7 +3145,7 @@ BanReturn World::BanCharacter(std::string const& name, std::string const& durati
     CharacterDatabase.CommitTransaction(trans);
 
     if (banned)
-        banned->GetSession()->KickPlayer();
+        banned->GetSession()->KickPlayer("World::BanCharacter Banning character");
 
     return BAN_SUCCESS;
 }
@@ -3216,7 +3240,7 @@ void World::ShutdownMsg(bool show, Player* player, const std::string& reason)
         (m_ShutdownTimer < 12 * HOUR && (m_ShutdownTimer % HOUR) == 0) || // < 12 h ; every 1 h
         (m_ShutdownTimer > 12 * HOUR && (m_ShutdownTimer % (12 * HOUR)) == 0)) // > 12 h ; every 12 h
     {
-        std::string str = secsToTimeString(m_ShutdownTimer);
+        std::string str = secsToTimeString(m_ShutdownTimer, TimeFormat::Numeric);
         if (!reason.empty())
             str += " - " + reason;
 
@@ -3436,6 +3460,9 @@ void World::ResetWeeklyQuests()
 
     // reselect pools
     sQuestPoolMgr->ChangeWeeklyQuests();
+
+    // Update faction balance
+    UpdateWarModeRewardValues();
 
     // store next reset time
     time_t now = GameTime::GetGameTime();
@@ -3788,6 +3815,63 @@ void World::ReloadRBAC()
 void World::RemoveOldCorpses()
 {
     m_timers[WUPDATE_CORPSES].SetCurrent(m_timers[WUPDATE_CORPSES].GetInterval());
+}
+
+void World::UpdateWarModeRewardValues()
+{
+    std::array<int64, 2> warModeEnabledFaction = { };
+
+    // Search for characters that have war mode enabled and played during the last week
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_WAR_MODE_TUNING);
+    stmt->setUInt32(0, PLAYER_FLAGS_WAR_MODE_DESIRED);
+    stmt->setUInt32(1, PLAYER_FLAGS_WAR_MODE_DESIRED);
+    if (PreparedQueryResult result = CharacterDatabase.Query(stmt))
+    {
+        do
+        {
+            Field* fields = result->Fetch();
+            uint8 race = fields[0].GetUInt8();
+            if (ChrRacesEntry const* raceEntry = sChrRacesStore.LookupEntry(race))
+            {
+                if (FactionTemplateEntry const* raceFaction = sFactionTemplateStore.AssertEntry(raceEntry->FactionID))
+                {
+                    if (raceFaction->FactionGroup & FACTION_MASK_ALLIANCE)
+                        warModeEnabledFaction[TEAM_ALLIANCE] += fields[1].GetInt64();
+                    else if (raceFaction->FactionGroup & FACTION_MASK_HORDE)
+                        warModeEnabledFaction[TEAM_HORDE] += fields[1].GetInt64();
+                }
+            }
+
+        } while (result->NextRow());
+    }
+
+    _warModeDominantFaction = TEAM_NEUTRAL;
+    _warModeOutnumberedFactionReward = 0;
+
+    if (std::all_of(warModeEnabledFaction.begin(), warModeEnabledFaction.end(), [](int64 val) { return val == 0; }))
+        return;
+
+    int64 dominantFactionCount = warModeEnabledFaction[TEAM_ALLIANCE];
+    TeamId dominantFaction = TEAM_ALLIANCE;
+    if (warModeEnabledFaction[TEAM_ALLIANCE] < warModeEnabledFaction[TEAM_HORDE])
+    {
+        dominantFactionCount = warModeEnabledFaction[TEAM_HORDE];
+        dominantFaction = TEAM_HORDE;
+    }
+
+    double total = warModeEnabledFaction[TEAM_ALLIANCE] + warModeEnabledFaction[TEAM_HORDE];
+    double pct = dominantFactionCount / total;
+
+    if (pct >= sWorld->getFloatConfig(CONFIG_CALL_TO_ARMS_20_PCT))
+        _warModeOutnumberedFactionReward = 20;
+    else if (pct >= sWorld->getFloatConfig(CONFIG_CALL_TO_ARMS_10_PCT))
+        _warModeOutnumberedFactionReward = 10;
+    else if (pct >= sWorld->getFloatConfig(CONFIG_CALL_TO_ARMS_5_PCT))
+        _warModeOutnumberedFactionReward = 5;
+    else
+        return;
+
+    _warModeDominantFaction = dominantFaction;
 }
 
 Realm realm;

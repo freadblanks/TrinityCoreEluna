@@ -76,9 +76,9 @@ class boss_darkmaster_gandling : public CreatureScript
                     gate->SetGoState(GO_STATE_ACTIVE);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void JustEngagedWith(Unit* who) override
             {
-                _JustEngagedWith();
+                BossAI::JustEngagedWith(who);
                 events.ScheduleEvent(EVENT_ARCANEMISSILES, 4500ms);
                 events.ScheduleEvent(EVENT_SHADOWSHIELD, 12s);
                 events.ScheduleEvent(EVENT_CURSE, 2s);
@@ -123,7 +123,7 @@ class boss_darkmaster_gandling : public CreatureScript
                         case EVENT_SHADOW_PORTAL:
                             if (HealthAbovePct(3))
                             {
-                                DoCast(SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true), SPELL_SHADOW_PORTAL, true);
+                                DoCast(SelectTarget(SelectTargetMethod::Random, 0, 100, true), SPELL_SHADOW_PORTAL, true);
                                 events.ScheduleEvent(EVENT_SHADOW_PORTAL, 17s, 27s);
                             }
                     }

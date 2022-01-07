@@ -70,7 +70,7 @@ class boss_nethermancer_sepethrea : public CreatureScript
 
             void JustEngagedWith(Unit* who) override
             {
-                _JustEngagedWith();
+                BossAI::JustEngagedWith(who);
                 events.ScheduleEvent(EVENT_FROST_ATTACK, 7s, 10s);
                 events.ScheduleEvent(EVENT_ARCANE_BLAST, 12s, 18s);
                 events.ScheduleEvent(EVENT_DRAGONS_BREATH, 18s, 22s);
@@ -206,7 +206,7 @@ class npc_ragin_flames : public CreatureScript
 
                     if (!onlyonce)
                     {
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                             me->GetMotionMaster()->MoveChase(target);
                         onlyonce = true;
                     }

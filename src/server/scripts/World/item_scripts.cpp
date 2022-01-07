@@ -23,7 +23,6 @@ SDCategory: Items
 EndScriptData */
 
 /* ContentData
-item_nether_wraith_beacon(i31742)   Summons creatures for quest Becoming a Spellfire Tailor (q10832)
 item_flying_machine(i34060, i34061)  Engineering crafted flying machines
 item_gor_dreks_ointment(i30175)     Protecting Our Own(q10488)
 item_only_for_flight                Items which should only useable while flying
@@ -86,29 +85,6 @@ public:
 };
 
 /*#####
-# item_nether_wraith_beacon
-#####*/
-
-class item_nether_wraith_beacon : public ItemScript
-{
-public:
-    item_nether_wraith_beacon() : ItemScript("item_nether_wraith_beacon") { }
-
-    bool OnUse(Player* player, Item* /*item*/, SpellCastTargets const& /*targets*/, ObjectGuid /*castId*/) override
-    {
-        if (player->GetQuestStatus(10832) == QUEST_STATUS_INCOMPLETE)
-        {
-            if (Creature* nether = player->SummonCreature(22408, player->GetPositionX(), player->GetPositionY()+20, player->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN, 180000))
-                nether->AI()->AttackStart(player);
-
-            if (Creature* nether = player->SummonCreature(22408, player->GetPositionX(), player->GetPositionY()-20, player->GetPositionZ(), 0, TEMPSUMMON_TIMED_DESPAWN, 180000))
-                nether->AI()->AttackStart(player);
-        }
-        return false;
-    }
-};
-
-/*#####
 # item_gor_dreks_ointment
 #####*/
 
@@ -125,27 +101,6 @@ public:
 
         player->SendEquipError(EQUIP_ERR_CLIENT_LOCKED_OUT, item, nullptr);
         return true;
-    }
-};
-
-/*#####
-# item_incendiary_explosives
-#####*/
-
-class item_incendiary_explosives : public ItemScript
-{
-public:
-    item_incendiary_explosives() : ItemScript("item_incendiary_explosives") { }
-
-    bool OnUse(Player* player, Item* item, SpellCastTargets const& /*targets*/, ObjectGuid /*castId*/) override
-    {
-        if (player->FindNearestCreature(26248, 15) || player->FindNearestCreature(26249, 15))
-            return false;
-        else
-        {
-            player->SendEquipError(EQUIP_ERR_OUT_OF_RANGE, item, nullptr);
-            return true;
-        }
     }
 };
 
@@ -347,9 +302,7 @@ class item_generic_limit_chance_above_60 : public ItemScript
 void AddSC_item_scripts()
 {
     new item_only_for_flight();
-    new item_nether_wraith_beacon();
     new item_gor_dreks_ointment();
-    new item_incendiary_explosives();
     new item_mysterious_egg();
     new item_disgusting_jar();
     new item_petrov_cluster_bombs();

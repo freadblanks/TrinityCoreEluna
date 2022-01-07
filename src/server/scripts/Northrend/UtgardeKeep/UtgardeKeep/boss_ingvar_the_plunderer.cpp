@@ -154,11 +154,11 @@ class boss_ingvar_the_plunderer : public CreatureScript
                 events.ScheduleEvent(EVENT_JUST_TRANSFORMED, 500ms, 0, PHASE_EVENT);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void JustEngagedWith(Unit* who) override
             {
                 if (events.IsInPhase(PHASE_EVENT) || events.IsInPhase(PHASE_UNDEAD)) // ingvar gets multiple JustEngagedWith calls
                     return;
-                _JustEngagedWith();
+                BossAI::JustEngagedWith(who);
 
                 Talk(SAY_AGGRO);
                 events.SetPhase(PHASE_HUMAN);
@@ -251,7 +251,7 @@ class boss_ingvar_the_plunderer : public CreatureScript
                             events.ScheduleEvent(EVENT_WOE_STRIKE, 10s, 14s, 0, PHASE_UNDEAD);
                             break;
                         case EVENT_SHADOW_AXE:
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 1, 0.0f, true))
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 1, 0.0f, true))
                                 DoCast(target, SPELL_SHADOW_AXE_SUMMON);
                             events.ScheduleEvent(EVENT_SHADOW_AXE, 30*IN_MILLISECONDS, 0, PHASE_UNDEAD);
                             break;

@@ -108,9 +108,9 @@ struct boss_mother_shahraz : public BossAI
         _enraged = false;
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void JustEngagedWith(Unit* who) override
     {
-        _JustEngagedWith();
+        BossAI::JustEngagedWith(who);
         Talk(SAY_AGGRO);
         events.ScheduleEvent(EVENT_SILENCING_SHRIEK, 22s);
         events.ScheduleEvent(EVENT_PRISMATIC_SHIELD, 15s);
@@ -260,7 +260,7 @@ class spell_mother_shahraz_saber_lash : public AuraScript
         PreventDefaultAction();
 
         uint32 triggerSpell = aurEff->GetSpellEffectInfo().TriggerSpell;
-        if (Unit* target = GetUnitOwner()->GetAI()->SelectTarget(SELECT_TARGET_RANDOM, 0))
+        if (Unit* target = GetUnitOwner()->GetAI()->SelectTarget(SelectTargetMethod::Random, 0))
             GetUnitOwner()->CastSpell(target, triggerSpell, true);
     }
 
@@ -289,7 +289,7 @@ class spell_mother_shahraz_generic_periodic : public AuraScript
         PreventDefaultAction();
 
         uint32 triggerSpell = aurEff->GetSpellEffectInfo().TriggerSpell;
-        if (Unit* target = GetUnitOwner()->GetAI()->SelectTarget(SELECT_TARGET_RANDOM, 0))
+        if (Unit* target = GetUnitOwner()->GetAI()->SelectTarget(SelectTargetMethod::Random, 0))
             GetUnitOwner()->CastSpell(target, triggerSpell, true);
     }
 

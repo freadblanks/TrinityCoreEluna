@@ -100,9 +100,9 @@ public:
             instance->DoStopCriteriaTimer(CriteriaStartEvent::SendEvent, ACHIEV_TIMELY_DEATH_START_EVENT);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
             Talk(SAY_AGGRO);
             events.SetPhase(PHASE_NORMAL);
             events.ScheduleEvent(EVENT_ARC_LIGHTNING, 15000);
@@ -147,7 +147,7 @@ public:
                 switch (eventId)
                 {
                     case EVENT_ARC_LIGHTNING:
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                             DoCast(target, SPELL_ARC_LIGHTNING);
                         events.ScheduleEvent(EVENT_ARC_LIGHTNING, 15s, 16s);
                         break;

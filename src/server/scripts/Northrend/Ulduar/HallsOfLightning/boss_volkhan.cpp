@@ -52,8 +52,9 @@ enum Spells
     // Molten Golem
     SPELL_BLAST_WAVE                        = 23113,
     SPELL_IMMOLATION_STRIKE                 = 52433,
-    SPELL_SHATTER                           = 52429,
 };
+
+#define SPELL_SHATTER DUNGEON_MODE<uint32>(52429,59527)
 
 enum Events
 {
@@ -119,14 +120,14 @@ public:
             events.ScheduleEvent(EVENT_FORGE_CAST, 2 * IN_MILLISECONDS, 0, PHASE_INTRO);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
             Talk(SAY_AGGRO);
             events.SetPhase(PHASE_NORMAL);
             events.ScheduleEvent(EVENT_PAUSE,            3.5 * IN_MILLISECONDS, 0, PHASE_NORMAL);
             events.ScheduleEvent(EVENT_SHATTERING_STOMP,   0 * IN_MILLISECONDS, 0, PHASE_NORMAL);
             events.ScheduleEvent(EVENT_SHATTER,            5 * IN_MILLISECONDS, 0, PHASE_NORMAL);
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
         }
 
         void AttackStart(Unit* who) override
@@ -196,7 +197,7 @@ public:
             {
                 m_lGolemGUIDList.push_back(summoned->GetGUID());
 
-                if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                     summoned->GetMotionMaster()->MoveFollow(target, 0.0f, 0.0f);
 
                 // Why healing when just summoned?
@@ -330,7 +331,7 @@ public:
                     // 4 - Wait for delay to expire
                     if (m_uiDelay_Timer <= diff)
                     {
-                        if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT, 0))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::MaxThreat, 0))
                         {
                             me->SetReactState(REACT_AGGRESSIVE);
                             me->SetInCombatWith(target);
@@ -440,10 +441,10 @@ public:
             }
         }
 
-        void SpellHit(Unit* /*pCaster*/, SpellInfo const* pSpell) override
+        void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo) override
         {
             // This is the dummy effect of the spells
-            if (pSpell->Id == SPELL_SHATTER)
+            if (spellInfo->Id == SPELL_SHATTER)
                 if (me->GetEntry() == NPC_BRITTLE_GOLEM)
                     me->DespawnOrUnsummon();
         }

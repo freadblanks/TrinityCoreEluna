@@ -159,13 +159,13 @@ struct boss_jedoga_shadowseeker : public BossAI
         events.ScheduleEvent(EVENT_INTRO_SAY, Minutes(2), 0, PHASE_INTRO);
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void JustEngagedWith(Unit* who) override
     {
         me->RemoveAurasDueToSpell(SPELL_SPHERE_VISUAL);
         me->RemoveAurasDueToSpell(SPELL_RANDOM_LIGHTNING_VISUAL);
         me->SummonCreatureGroup(SUMMON_GROUP_WORSHIPPERS);
 
-        _JustEngagedWith();
+        BossAI::JustEngagedWith(who);
         Talk(SAY_AGGRO);
         events.SetPhase(PHASE_ONE);
 
@@ -372,12 +372,12 @@ struct boss_jedoga_shadowseeker : public BossAI
                     events.Repeat(Seconds(15), Seconds(30));
                     break;
                 case EVENT_LIGHTNING_BOLT:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
                         DoCast(target, SPELL_LIGHTNING_BOLT);
                     events.Repeat(Seconds(15), Seconds(30));
                     break;
                 case EVENT_THUNDERSHOCK:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
                         DoCast(target, SPELL_THUNDERSHOCK);
                     events.Repeat(Seconds(15), Seconds(30));
                     break;

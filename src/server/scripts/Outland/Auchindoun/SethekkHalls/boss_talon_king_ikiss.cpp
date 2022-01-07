@@ -81,9 +81,9 @@ public:
             BossAI::MoveInLineOfSight(who);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
             Talk(SAY_AGGRO);
             events.ScheduleEvent(EVENT_ARCANE_VOLLEY, 5s);
             events.ScheduleEvent(EVENT_POLYMORPH, 8s);
@@ -99,9 +99,9 @@ public:
                 case EVENT_POLYMORPH:
                     // Second top aggro in normal, random target in heroic.
                     if (IsHeroic())
-                        DoCast(SelectTarget(SELECT_TARGET_RANDOM, 0), SPELL_POLYMORPH);
+                        DoCast(SelectTarget(SelectTargetMethod::Random, 0), SPELL_POLYMORPH);
                     else
-                        DoCast(SelectTarget(SELECT_TARGET_MAXTHREAT, 1), SPELL_POLYMORPH);
+                        DoCast(SelectTarget(SelectTargetMethod::MaxThreat, 1), SPELL_POLYMORPH);
                     events.ScheduleEvent(EVENT_POLYMORPH, urand(15000, 17500));
                     break;
                 case EVENT_ARCANE_VOLLEY:

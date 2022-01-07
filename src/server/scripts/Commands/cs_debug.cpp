@@ -88,6 +88,10 @@ public:
             { "spellfail",     rbac::RBAC_PERM_COMMAND_DEBUG_SEND_SPELLFAIL,     false, &HandleDebugSendSpellFailCommand,       "" },
             { "playerchoice",  rbac::RBAC_PERM_COMMAND_DEBUG_SEND_PLAYER_CHOICE, false, &HandleDebugSendPlayerChoiceCommand,    "" },
         };
+        static std::vector<ChatCommand> debugPvpCommandTable =
+        {
+            { "warmode",       rbac::RBAC_PERM_COMMAND_DEBUG,                    false, &HandleDebugWarModeFactionBalanceCommand, "" },
+        };
         static std::vector<ChatCommand> debugAsanCommandTable =
         {
             { "memoryleak",    rbac::RBAC_PERM_COMMAND_DEBUG_ASAN,               true,  &HandleDebugMemoryLeak,         "" },
@@ -124,9 +128,11 @@ public:
             { "conversation" , rbac::RBAC_PERM_COMMAND_DEBUG_CONVERSATION,  false, &HandleDebugConversationCommand,     "" },
             { "worldstate" ,   rbac::RBAC_PERM_COMMAND_DEBUG,               false, &HandleDebugWorldStateCommand,       "" },
             { "wsexpression" , rbac::RBAC_PERM_COMMAND_DEBUG,               false, &HandleDebugWSExpressionCommand,     "" },
+            { "pvp",           rbac::RBAC_PERM_COMMAND_DEBUG,               false, nullptr,                             "", debugPvpCommandTable },
             { "dummy",         rbac::RBAC_PERM_COMMAND_DEBUG_DUMMY,         false, &HandleDebugDummyCommand,            "" },
             { "asan",          rbac::RBAC_PERM_COMMAND_DEBUG_ASAN,          true,  nullptr,                             "", debugAsanCommandTable },
             { "guidlimits",    rbac::RBAC_PERM_COMMAND_DEBUG,               true,  &HandleDebugGuidLimitsCommand,       "" },
+            { "objectcount",   rbac::RBAC_PERM_COMMAND_DEBUG,               true,  &HandleDebugObjectCountCommand,      "" },
             { "questreset",    rbac::RBAC_PERM_COMMAND_DEBUG_QUESTRESET,    true,  &HandleDebugQuestResetCommand,       "" }
         };
         static std::vector<ChatCommand> commandTable =
@@ -135,6 +141,50 @@ public:
             { "wpgps",         rbac::RBAC_PERM_COMMAND_WPGPS,               false, &HandleWPGPSCommand,                 "" },
         };
         return commandTable;
+    }
+
+    static bool TryExtractTeamId(std::string const &args, TeamId &outFaction)
+    {
+        if ("a" == args || "alliance" == args)
+            outFaction = TEAM_ALLIANCE;
+        else if ("h" == args || "horde" == args)
+            outFaction = TEAM_HORDE;
+        else if ("n" == args || "neutral" == args)
+            outFaction = TEAM_NEUTRAL;
+        else
+            return false;
+
+        return true;
+    }
+
+    static bool HandleDebugWarModeFactionBalanceCommand(ChatHandler* handler, Variant<uint32, ExactSequence<'a','l','l','i','a','n','c','e'>, ExactSequence<'h','o','r','d','e'>, ExactSequence<'n','e','u','t','r','a','l'>, ExactSequence<'o','f','f'>> command, Optional<int32> rewardValue)
+    {
+        // USAGE: .debug pvp fb <alliance|horde|neutral|off> [pct]
+        // neutral     Sets faction balance off.
+        // alliance    Set faction balance to alliance.
+        // horde       Set faction balance to horde.
+        // off         Reset the faction balance and use the calculated value of it
+        switch (command.which())
+        {
+            case 0: // workaround for Variant of only ExactSequences not being supported
+                handler->SendSysMessage(LANG_BAD_VALUE);
+                handler->SetSentErrorMessage(true);
+                return false;
+            case 1:
+                sWorld->SetForcedWarModeFactionBalanceState(TEAM_ALLIANCE, rewardValue.get_value_or(0));
+                break;
+            case 2:
+                sWorld->SetForcedWarModeFactionBalanceState(TEAM_HORDE, rewardValue.get_value_or(0));
+                break;
+            case 3:
+                sWorld->SetForcedWarModeFactionBalanceState(TEAM_NEUTRAL);
+                break;
+            case 4:
+                sWorld->DisableForcedWarModeFactionBalanceState();
+                break;
+        }
+
+        return true;
     }
 
     static bool HandleDebugPlayCinematicCommand(ChatHandler* handler, char const* args)
@@ -1404,7 +1454,7 @@ public:
         else if (target->GetDBPhase() < 0)
             handler->PSendSysMessage("Target creature's PhaseGroup in DB: %d", abs(target->GetDBPhase()));
 
-        PhasingHandler::PrintToChat(handler, target->GetPhaseShift());
+        PhasingHandler::PrintToChat(handler, target);
         return true;
     }
 
@@ -1796,6 +1846,39 @@ public:
     {
         handler->PSendSysMessage("Map Id: %u Name: '%s' Instance Id: %u Highest Guid Creature: " UI64FMTD " GameObject: " UI64FMTD,
             map->GetId(), map->GetMapName(), map->GetInstanceId(), uint64(map->GenerateLowGuid<HighGuid::Creature>()), uint64(map->GetMaxLowGuid<HighGuid::GameObject>()));
+    }
+
+    static bool HandleDebugObjectCountCommand(ChatHandler* handler, CommandArgs* args)
+    {
+        auto mapId = args->TryConsume<uint32>();
+        if (mapId)
+        {
+            sMapMgr->DoForAllMapsWithMapId(mapId.get(),
+                [handler](Map* map) -> void
+                {
+                    HandleDebugObjectCountMap(handler, map);
+                }
+            );
+        }
+        else
+        {
+            sMapMgr->DoForAllMaps(
+                [handler](Map* map) -> void
+                {
+                    HandleDebugObjectCountMap(handler, map);
+                }
+            );
+        }
+
+        return true;
+    }
+
+    static void HandleDebugObjectCountMap(ChatHandler* handler, Map* map)
+    {
+        handler->PSendSysMessage("Map Id: %u Name: '%s' Instance Id: %u Creatures: " UI64FMTD " GameObjects: " UI64FMTD,
+            map->GetId(), map->GetMapName(), map->GetInstanceId(),
+            uint64(map->GetObjectsStore().Size<Creature>()),
+            uint64(map->GetObjectsStore().Size<GameObject>()));
     }
 
     static bool HandleDebugDummyCommand(ChatHandler* handler, CommandArgs* /*args*/)

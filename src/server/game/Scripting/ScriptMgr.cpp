@@ -85,6 +85,10 @@ struct is_script_database_bound<AreaTriggerScript>
     : std::true_type { };
 
 template<>
+struct is_script_database_bound<BattlefieldScript>
+        : std::true_type { };
+
+template<>
 struct is_script_database_bound<BattlegroundScript>
     : std::true_type { };
 
@@ -724,6 +728,11 @@ class ScriptRegistrySwapHooks<AreaTriggerEntityScript, Base>
     AreaTrigger, AreaTriggerEntityScript, Base
     > { };
 
+/// This hook is responsible for swapping BattlefieldScripts
+template<typename Base>
+class ScriptRegistrySwapHooks<BattlefieldScript, Base>
+        : public UnsupportedScriptRegistrySwapHooks<Base> { };
+
 /// This hook is responsible for swapping BattlegroundScript's
 template<typename Base>
 class ScriptRegistrySwapHooks<BattlegroundScript, Base>
@@ -971,7 +980,7 @@ public:
             if (stored_script.second->GetName() == script->GetName())
             {
                 // If the script is already assigned -> delete it!
-                TC_LOG_ERROR("scripts", "Script '%s' already assigned with the same script name, "
+                ABORT_MSG("Script '%s' already assigned with the same script name, "
                     "so the script can't work.", script->GetName().c_str());
 
                 // Error that should be fixed ASAP.
@@ -1720,6 +1729,12 @@ bool ScriptMgr::OnAreaTrigger(Player* player, AreaTriggerEntry const* trigger, b
     return entered ? tmpscript->OnTrigger(player, trigger) : tmpscript->OnExit(player, trigger);
 }
 
+Battlefield* ScriptMgr::CreateBattlefield(uint32 scriptId)
+{
+    GET_SCRIPT_RET(BattlefieldScript, scriptId, tmpscript, nullptr);
+    return tmpscript->GetBattlefield();
+}
+
 Battleground* ScriptMgr::CreateBattleground(BattlegroundTypeId /*typeId*/)
 {
     /// @todo Implement script-side battlegrounds.
@@ -2329,6 +2344,7 @@ void ScriptMgr::OnQuestObjectiveChange(Player* player, Quest const* quest, Quest
 void ScriptMgr::ModifyVehiclePassengerExitPos(Unit* passenger, Vehicle* vehicle, Position& pos)
 {
     FOREACH_SCRIPT(UnitScript)->ModifyVehiclePassengerExitPos(passenger, vehicle, pos);
+    FOREACH_SCRIPT(CreatureScript)->ModifyVehiclePassengerExitPos(passenger, vehicle, pos);
 }
 
 SpellScriptLoader::SpellScriptLoader(char const* name)
@@ -2435,6 +2451,12 @@ bool OnlyOnceAreaTriggerScript::OnTrigger(Player* player, AreaTriggerEntry const
 }
 void OnlyOnceAreaTriggerScript::ResetAreaTriggerDone(InstanceScript* script, uint32 triggerId) { script->ResetAreaTriggerDone(triggerId); }
 void OnlyOnceAreaTriggerScript::ResetAreaTriggerDone(Player const* player, AreaTriggerEntry const* trigger) { if (InstanceScript* instance = player->GetInstanceScript()) ResetAreaTriggerDone(instance, trigger->ID); }
+
+BattlefieldScript::BattlefieldScript(char const* name)
+        : ScriptObject(name)
+{
+    ScriptRegistry<BattlefieldScript>::Instance()->AddScript(this);
+}
 
 BattlegroundScript::BattlegroundScript(char const* name)
     : ScriptObject(name)
@@ -2556,6 +2578,7 @@ template class TC_GAME_API ScriptRegistry<ItemScript>;
 template class TC_GAME_API ScriptRegistry<CreatureScript>;
 template class TC_GAME_API ScriptRegistry<GameObjectScript>;
 template class TC_GAME_API ScriptRegistry<AreaTriggerScript>;
+template class TC_GAME_API ScriptRegistry<BattlefieldScript>;
 template class TC_GAME_API ScriptRegistry<BattlegroundScript>;
 template class TC_GAME_API ScriptRegistry<OutdoorPvPScript>;
 template class TC_GAME_API ScriptRegistry<CommandScript>;

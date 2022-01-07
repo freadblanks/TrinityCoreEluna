@@ -138,9 +138,9 @@ public:
             me->SetReactState(REACT_AGGRESSIVE);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
             Talk(SAY_AGGRO);
             events.ScheduleEvent(EVENT_BANE, 18s, 23s, EVENT_GROUP_BASE_SPELLS);
             events.ScheduleEvent(EVENT_FETID_ROT, 8s, 13s, EVENT_GROUP_BASE_SPELLS);
@@ -148,9 +148,9 @@ public:
             events.ScheduleEvent(EVENT_ANCESTORS_VENGEANCE, DUNGEON_MODE(60000, 45000), EVENT_GROUP_BASE_SPELLS);
         }
 
-        void SpellHitTarget(Unit* who, SpellInfo const* spell) override
+        void SpellHitTarget(WorldObject* target, SpellInfo const* spellInfo) override
         {
-            if (who && who->GetTypeId() == TYPEID_PLAYER && spell->Id == SPELL_BANE_HIT)
+            if (target->GetTypeId() == TYPEID_PLAYER && spellInfo->Id == SPELL_BANE_HIT)
                 kingsBane = false;
         }
 
@@ -192,7 +192,7 @@ public:
                     SpiritFountGUID = summon->GetGUID();
                     break;
                 case NPC_AVENGING_SPIRIT:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                     {
                         AddThreat(target, 0.0f, summon);
                         summon->AI()->AttackStart(target);

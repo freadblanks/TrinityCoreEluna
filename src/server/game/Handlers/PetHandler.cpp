@@ -142,8 +142,8 @@ void WorldSession::HandlePetActionHelper(Unit* pet, ObjectGuid guid1, uint32 spe
     CharmInfo* charmInfo = pet->GetCharmInfo();
     if (!charmInfo)
     {
-        TC_LOG_DEBUG("entities.pet", "WorldSession::HandlePetAction(petGuid: %s, tagGuid: %s, spellId: %u, flag: %u): object (%s Entry: %u TypeId: %u) is considered pet-like but doesn't have a charminfo!",
-            guid1.ToString().c_str(), guid2.ToString().c_str(), spellid, flag, pet->GetGUID().ToString().c_str(), pet->GetEntry(), pet->GetTypeId());
+        TC_LOG_DEBUG("entities.pet", "WorldSession::HandlePetAction(petGuid: %s, tagGuid: %s, spellId: %u, flag: %u): object %s is considered pet-like but doesn't have a charminfo!",
+            guid1.ToString().c_str(), guid2.ToString().c_str(), spellid, flag, pet->GetGUID().ToString().c_str());
         return;
     }
 
@@ -473,7 +473,7 @@ void WorldSession::HandlePetSetAction(WorldPackets::Pet::PetSetAction& packet)
     CharmInfo* charmInfo = pet->GetCharmInfo();
     if (!charmInfo)
     {
-        TC_LOG_ERROR("entities.pet", "WorldSession::HandlePetSetAction: object (%s) is considered pet-like but doesn't have a charminfo!", pet->GetGUID().ToString().c_str());
+        TC_LOG_ERROR("entities.pet", "WorldSession::HandlePetSetAction: object %s is considered pet-like but doesn't have a charminfo!", pet->GetGUID().ToString().c_str());
         return;
     }
 
@@ -649,7 +649,7 @@ void WorldSession::HandlePetSpellAutocastOpcode(WorldPackets::Pet::PetSpellAutoc
         CharmInfo* charmInfo = petControlled->GetCharmInfo();
         if (!charmInfo)
         {
-            TC_LOG_ERROR("entities.pet", "WorldSession::HandlePetSpellAutocastOpcode: object (%s) is considered pet-like but doesn't have a charminfo!", petControlled->GetGUID().ToString().c_str());
+            TC_LOG_ERROR("entities.pet", "WorldSession::HandlePetSpellAutocastOpcode: object %s is considered pet-like but doesn't have a charminfo!", petControlled->GetGUID().ToString().c_str());
             return;
         }
 
@@ -686,13 +686,30 @@ void WorldSession::HandlePetCastSpellOpcode(WorldPackets::Spells::PetCastSpell& 
         return;
     }
 
-    // do not cast not learned spells
-    if (!caster->HasSpell(spellInfo->Id) || spellInfo->IsPassive())
-        return;
-
     SpellCastTargets targets(caster, petCastSpell.Cast);
 
-    Spell* spell = new Spell(caster, spellInfo, TRIGGERED_NONE);
+    TriggerCastFlags triggerCastFlags = TRIGGERED_NONE;
+
+    if (spellInfo->IsPassive())
+        return;
+
+    // cast only learned spells
+    if (!caster->HasSpell(spellInfo->Id))
+    {
+        bool allow = false;
+
+        // allow casting of spells triggered by clientside periodic trigger auras
+        if (caster->HasAuraTypeWithTriggerSpell(SPELL_AURA_PERIODIC_TRIGGER_SPELL_FROM_CLIENT, spellInfo->Id))
+        {
+            allow = true;
+            triggerCastFlags = TRIGGERED_FULL_MASK;
+        }
+
+        if (!allow)
+            return;
+    }
+
+    Spell* spell = new Spell(caster, spellInfo, triggerCastFlags);
     spell->m_fromClient = true;
     spell->m_misc.Raw.Data[0] = petCastSpell.Cast.Misc[0];
     spell->m_misc.Raw.Data[1] = petCastSpell.Cast.Misc[1];
@@ -747,5 +764,21 @@ void WorldSession::SendPetNameInvalid(uint32 error, const std::string& name, Dec
 
 void WorldSession::HandleRequestPetInfo(WorldPackets::Pet::RequestPetInfo& /*requestPetInfo*/)
 {
-    GetPlayer()->PetSpellInitialize();
+    // Handle the packet CMSG_REQUEST_PET_INFO - sent when player does ingame /reload command
+
+    // Packet sent when player has a pet
+    if (_player->GetPet())
+        _player->PetSpellInitialize();
+    else if (Unit* charm = _player->GetCharmed())
+    {
+        // Packet sent when player has a possessed unit
+        if (charm->HasUnitState(UNIT_STATE_POSSESSED))
+            _player->PossessSpellInitialize();
+        // Packet sent when player controlling a vehicle
+        else if (charm->HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) && charm->HasUnitFlag(UNIT_FLAG_POSSESSED))
+            _player->VehicleSpellInitialize();
+        // Packet sent when player has a charmed unit
+        else
+            _player->CharmSpellInitialize();
+    }
 }

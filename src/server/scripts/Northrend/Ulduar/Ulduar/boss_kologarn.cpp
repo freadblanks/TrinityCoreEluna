@@ -35,7 +35,6 @@ EndScriptData */
 
 enum Spells
 {
-    SPELL_ARM_DEAD_DAMAGE               = 63629,
     SPELL_TWO_ARM_SMASH                 = 63356,
     SPELL_ONE_ARM_SMASH                 = 63573,
     SPELL_ARM_SWEEP                     = 63766,
@@ -61,6 +60,8 @@ enum Spells
 
     SPELL_BERSERK                       = 47008  // guess
 };
+
+#define SPELL_ARM_DEAD_DAMAGE RAID_MODE<uint32>(63629,63979)
 
 enum NPCs
 {
@@ -117,7 +118,7 @@ class boss_kologarn : public CreatureScript
             bool left, right;
             ObjectGuid eyebeamTarget;
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void JustEngagedWith(Unit* who) override
             {
                 Talk(SAY_AGGRO);
 
@@ -133,7 +134,7 @@ class boss_kologarn : public CreatureScript
                         if (Unit* arm = vehicle->GetPassenger(i))
                             DoZoneInCombat(arm->ToCreature());
 
-                _JustEngagedWith();
+                BossAI::JustEngagedWith(who);
             }
 
             void Reset() override
@@ -304,7 +305,7 @@ class boss_kologarn : public CreatureScript
                             break;
                         }
                         case EVENT_FOCUSED_EYEBEAM:
-                            if (Unit* eyebeamTargetUnit = SelectTarget(SELECT_TARGET_MAXDISTANCE, 0, 0, true))
+                            if (Unit* eyebeamTargetUnit = SelectTarget(SelectTargetMethod::MaxDistance, 0, 0, true))
                             {
                                 eyebeamTarget = eyebeamTargetUnit->GetGUID();
                                 DoCast(me, SPELL_SUMMON_FOCUSED_EYEBEAM, true);

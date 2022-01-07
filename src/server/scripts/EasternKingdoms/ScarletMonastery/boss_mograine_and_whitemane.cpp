@@ -103,9 +103,9 @@ public:
         instance->HandleGameObject(ObjectGuid::Empty, false, instance->GetGameObject(DATA_HIGH_INQUISITORS_DOOR));
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void JustEngagedWith(Unit* who) override
     {
-        _JustEngagedWith();
+        BossAI::JustEngagedWith(who);
 
         Talk(SAY_MO_AGGRO);
 
@@ -181,10 +181,10 @@ public:
             damage = 0;
     }
 
-    void SpellHit(Unit* /*who*/, SpellInfo const* spell) override
+    void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo) override
     {
         // Casted from Whitemane
-        if (spell->Id == SPELL_SCARLET_RESURRECTION)
+        if (spellInfo->Id == SPELL_SCARLET_RESURRECTION)
         {
             scheduler.Schedule(3s, [this](TaskContext /*context*/)
             {
@@ -400,7 +400,7 @@ public:
         });
     }
 
-    void SpellHitTarget(Unit* target, SpellInfo const* spellInfo) override
+    void SpellHitTarget(WorldObject* target, SpellInfo const* spellInfo) override
     {
         if (target->GetEntry() == NPC_MOGRAINE && spellInfo->Id == SPELL_SCARLET_RESURRECTION)
             MograineResurrected();

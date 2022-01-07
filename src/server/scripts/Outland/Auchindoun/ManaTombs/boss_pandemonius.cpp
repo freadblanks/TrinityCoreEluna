@@ -67,9 +67,9 @@ public:
             Talk(SAY_KILL);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
             Talk(SAY_AGGRO);
             events.ScheduleEvent(EVENT_DARK_SHELL, 20s);
             events.ScheduleEvent(EVENT_VOID_BLAST, 8s, 23s);
@@ -80,7 +80,7 @@ public:
             switch (eventId)
             {
                 case EVENT_VOID_BLAST:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
                     {
                         DoCast(target, SPELL_VOID_BLAST);
                         ++VoidBlastCounter;

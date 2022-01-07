@@ -40,6 +40,7 @@ class Aura;
 class AuraEffect;
 class BasicEvent;
 class Corpse;
+class DamageInfo;
 class DynamicObject;
 class DynObjAura;
 class GameObject;
@@ -325,6 +326,7 @@ class TC_GAME_API Spell
         void EffectSendTaxi();
         void EffectKnockBack();
         void EffectPullTowards();
+        void EffectPullTowardsDest();
         void EffectDispelMechanic();
         void EffectResurrectPet();
         void EffectDestroyAllTotems();
@@ -398,6 +400,7 @@ class TC_GAME_API Spell
         void EffectLearnAzeriteEssencePower();
         void EffectCreatePrivateConversation();
         void EffectSendChatMessage();
+        void EffectGrantBattlePetExperience();
 
         typedef std::unordered_set<Aura*> UsedSpellMods;
 
@@ -608,6 +611,7 @@ class TC_GAME_API Spell
         Difficulty GetCastDifficulty() const;
         std::vector<SpellPowerCost> const& GetPowerCost() const { return m_powerCost; }
         bool HasPowerTypeCost(Powers power) const;
+        Optional<int32> GetPowerTypeCostAmount(Powers power) const;
 
         bool UpdatePointers();                              // must be used at call Spell code after time delay (non triggered spell cast/update spell call/etc)
 
@@ -626,6 +630,7 @@ class TC_GAME_API Spell
         int64 GetItemTargetCountForEffect(SpellEffIndex effect) const;
 
         std::string GetDebugInfo() const;
+        void CallScriptOnResistAbsorbCalculateHandlers(DamageInfo const& damageInfo, uint32& resistAmount, int32& absorbAmount);
 
     protected:
         bool HasGlobalCooldown() const;
@@ -902,9 +907,10 @@ namespace Trinity
 
     struct TC_GAME_API WorldObjectSpellConeTargetCheck : public WorldObjectSpellAreaTargetCheck
     {
+        Position _coneSrc;
         float _coneAngle;
         float _lineWidth;
-        WorldObjectSpellConeTargetCheck(float coneAngle, float lineWidth, float range, WorldObject* caster,
+        WorldObjectSpellConeTargetCheck(Position const& coneSrc, float coneAngle, float lineWidth, float range, WorldObject* caster,
             SpellInfo const* spellInfo, SpellTargetCheckTypes selectionType, ConditionContainer const* condList, SpellTargetObjectTypes objectType);
 
         bool operator()(WorldObject* target) const;
@@ -929,6 +935,8 @@ namespace Trinity
 
         bool operator()(WorldObject* target) const;
     };
+
+    TC_GAME_API void SelectRandomInjuredTargets(std::list<WorldObject*>& targets, size_t maxTargets, bool prioritizePlayers);
 }
 
 using SpellEffectHandlerFn = void(Spell::*)();

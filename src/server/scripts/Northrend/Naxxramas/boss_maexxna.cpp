@@ -104,9 +104,9 @@ public:
     {
         boss_maexxnaAI(Creature* creature) : BossAI(creature, BOSS_MAEXXNA)  {  }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
             events.ScheduleEvent(EVENT_WRAP, 20s);
             events.ScheduleEvent(EVENT_SPRAY, 40s);
             events.ScheduleEvent(EVENT_SHOCK, randtime(Seconds(5), Seconds(10)));
@@ -139,7 +139,7 @@ public:
                     case EVENT_WRAP:
                     {
                         std::list<Unit*> targets;
-                        SelectTargetList(targets, RAID_MODE(1, 2), SELECT_TARGET_RANDOM, 1, WebTargetSelector(me));
+                        SelectTargetList(targets, RAID_MODE(1, 2), SelectTargetMethod::Random, 1, WebTargetSelector(me));
                         if (!targets.empty())
                         {
                             Talk(EMOTE_WEB_WRAP);

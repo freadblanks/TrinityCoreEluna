@@ -17,7 +17,6 @@
 
 #include "SpellMgr.h"
 #include "BattlefieldMgr.h"
-#include "BattlefieldWG.h"
 #include "BattlegroundMgr.h"
 #include "Chat.h"
 #include "Containers.h"
@@ -3262,6 +3261,7 @@ void SpellMgr::LoadSpellInfoCustomAttributes()
                     switch (spellEffectInfo.ApplyAuraName)
                     {
                         case SPELL_AURA_PERIODIC_TRIGGER_SPELL:
+                        case SPELL_AURA_PERIODIC_TRIGGER_SPELL_FROM_CLIENT:
                         case SPELL_AURA_PERIODIC_TRIGGER_SPELL_WITH_VALUE:
                             if (SpellInfo const* triggerSpell = sSpellMgr->GetSpellInfo(spellEffectInfo.TriggerSpell, DIFFICULTY_NONE))
                             {
@@ -3438,6 +3438,15 @@ void SpellMgr::LoadSpellInfoCorrections()
                 spellEffectInfo->ApplyAuraName = SPELL_AURA_PERIODIC_TRIGGER_SPELL;
             });
         });
+
+        // Lich Pet
+        ApplySpellFix({ 70050 }, [](SpellInfo* spellInfo)
+        {
+            ApplySpellEffectFix(spellInfo, EFFECT_0, [](SpellEffectInfo* spellEffectInfo)
+            {
+                spellEffectInfo->TriggerSpell = 70049;
+            });
+        });
     }
 
     // Allows those to crit
@@ -3584,7 +3593,9 @@ void SpellMgr::LoadSpellInfoCorrections()
         43109, // Throw Torch
         58552, // Return to Orgrimmar
         58533, // Return to Stormwind
-        21855  // Challenge Flag
+        21855, // Challenge Flag
+        51122, // Fierce Lightning Stike
+        71848  // Toxic Wasteling Find Target
     }, [](SpellInfo* spellInfo)
     {
         spellInfo->MaxAffectedTargets = 1;
@@ -3982,6 +3993,12 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->DurationEntry = sSpellDurationStore.LookupEntry(4); // 2 minutes
     });
 
+    // Dark Conclave Ritualist Channel
+    ApplySpellFix({ 38469 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->RangeEntry = sSpellRangeStore.LookupEntry(6);  // 100yd
+    });
+
     //
     // VIOLET HOLD SPELLS
     //
@@ -4248,13 +4265,6 @@ void SpellMgr::LoadSpellInfoCorrections()
         {
             spellEffectInfo->TargetB = SpellImplicitTargetInfo(TARGET_UNIT_TARGET_ENEMY);
         });
-    });
-
-    // Mutated Transformation (Professor Putricide)
-    ApplySpellFix({ 70402 }, [](SpellInfo* spellInfo)
-    {
-        // Resistance is calculated inside of SpellScript
-        spellInfo->AttributesEx4 |= SPELL_ATTR4_IGNORE_RESISTANCES;
     });
 
     // Empowered Flare (Blood Prince Council)

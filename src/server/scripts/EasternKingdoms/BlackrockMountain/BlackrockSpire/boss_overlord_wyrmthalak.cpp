@@ -75,9 +75,9 @@ public:
             Initialize();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
             events.ScheduleEvent(EVENT_BLAST_WAVE, 20s);
             events.ScheduleEvent(EVENT_SHOUT, 2s);
             events.ScheduleEvent(EVENT_CLEAVE, 6s);
@@ -96,7 +96,7 @@ public:
 
             if (!Summoned && HealthBelowPct(51))
             {
-                if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true))
+                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100, true))
                 {
                     if (Creature* warlord = me->SummonCreature(NPC_SPIRESTONE_WARLORD, SummonLocation1, TEMPSUMMON_TIMED_DESPAWN, 300 * IN_MILLISECONDS))
                         warlord->AI()->AttackStart(target);

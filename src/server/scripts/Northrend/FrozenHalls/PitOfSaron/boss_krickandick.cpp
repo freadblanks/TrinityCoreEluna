@@ -160,9 +160,9 @@ struct boss_ick : public BossAI
         BossAI::JustSummoned(summon);
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void JustEngagedWith(Unit* who) override
     {
-        _JustEngagedWith();
+        BossAI::JustEngagedWith(who);
 
         if (Creature* krick = GetKrick())
             krick->AI()->Talk(SAY_KRICK_AGGRO);
@@ -233,7 +233,7 @@ struct boss_ick : public BossAI
                 case EVENT_TOXIC_WASTE:
                     if (Creature* krick = GetKrick())
                     {
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.f, true))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.f, true))
                             krick->CastSpell(target, SPELL_TOXIC_WASTE);
                     }
                     events.ScheduleEvent(EVENT_TOXIC_WASTE, 7s, 10s);
@@ -241,7 +241,7 @@ struct boss_ick : public BossAI
                 case EVENT_SHADOW_BOLT:
                     if (Creature* krick = GetKrick())
                     {
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 1, 0.f, true))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 1, 0.f, true))
                             krick->CastSpell(target, SPELL_SHADOW_BOLT);
                     }
                     events.ScheduleEvent(EVENT_SHADOW_BOLT, 15s);

@@ -231,7 +231,31 @@ DEFINE_ENUM_FLAG(BattlemasterListFlags);
 
 enum class ChrRacesFlag : int32
 {
-    AlliedRace  = 0x80000
+    NPCOnly                                     = 0x000001,
+    DoNotComponentFeet                          = 0x000002,
+    CanMount                                    = 0x000004,
+    HasBald                                     = 0x000008,
+    BindToStartingArea                          = 0x000010,
+    AlternateForm                               = 0x000020,
+    CanMountSelf                                = 0x000040,
+    ForceToHDModelIfAvailable                   = 0x000080,
+    ExaltedWithAllVendors                       = 0x000100,
+    NotSelectable                               = 0x000200,
+    ReputationBonus                             = 0x000400,
+    UseLoincloth                                = 0x000800,
+    RestBonus                                   = 0x001000,
+    NoStartKits                                 = 0x002000,
+    NoStartingWeapon                            = 0x004000,
+    DontRedeemAccountLicenses                   = 0x008000,
+    SkinVariationIsHairColor                    = 0x010000,
+    UsePandarenRingForComponentingTexture       = 0x020000,
+    IgnoreForAssetManifestComponentInfoParsing  = 0x040000,
+    IsAlliedRace                                = 0x080000,
+    VoidVendorDiscount                          = 0x100000,
+    DAMMComponentNoMaleGeneration               = 0x200000,
+    DAMMComponentNoFemaleGeneration             = 0x400000,
+    NoAssociatedFactionReputationInRaceChange   = 0x800000,
+    InternalOnly                                = 0x100000,
 };
 
 DEFINE_ENUM_FLAG(ChrRacesFlag);
@@ -270,6 +294,30 @@ enum class CorruptionEffectsFlag
 };
 
 DEFINE_ENUM_FLAG(CorruptionEffectsFlag);
+
+enum class CreatureModelDataFlags : uint32
+{
+    NoFootprintParticles                    = 0x00001,
+    NoBreathParticles                       = 0x00002,
+    IsPlayerModel                           = 0x00004,
+    NoAttachedWeapons                       = 0x00010,
+    NoFootprintTrailTextures                = 0x00020,
+    DisableHighlight                        = 0x00040,
+    CanMountWhileTransformedAsThis          = 0x00080,
+    DisableScaleInterpolation               = 0x00100,
+    ForceProjectedTex                       = 0x00200,
+    CanJumpInPlaceAsMount                   = 0x00400,
+    AICannotUseWalkBackwardsAnim            = 0x00800,
+    IgnoreSpineLowForSplitBody              = 0x01000,
+    IgnoreHeadForSplitBody                  = 0x02000,
+    IgnoreSpineLowForSplitBodyWhenFlying    = 0x04000,
+    IgnoreHeadForSplitBodyWhenFlying        = 0x08000,
+    UseWheelAnimationOnUnitWheelBones       = 0x10000,
+    IsHDModel                               = 0x20000,
+    SuppressEmittersOnLowSettings           = 0x40000
+};
+
+DEFINE_ENUM_FLAG(CreatureModelDataFlags);
 
 enum class CriteriaFailEvent : uint8
 {
@@ -487,9 +535,9 @@ enum class CriteriaType : uint8
     AccountObtainPetThroughBattle                  = 157, /*NYI*/ // (Account Only) Obtain a pet through battle
     WinPetBattle                                   = 158, /*NYI*/ // Win a pet battle
     LosePetBattle                                  = 159, /*NYI*/ // Lose a pet battle
-    BattlePetReachLevel                            = 160, /*NYI*/ // (Account Only) Battle pet has reached level {#Level}
+    BattlePetReachLevel                            = 160, // (Account Only) Battle pet has reached level {#Level}
     PlayerObtainPetThroughBattle                   = 161, /*NYI*/ // (Player) Obtain a pet through battle
-    ActivelyEarnPetLevel                           = 162, /*NYI*/ // (Player) Actively earn level {#Level} with a pet by a player
+    ActivelyEarnPetLevel                           = 162, // (Player) Actively earn level {#Level} with a pet by a player
     EnterArea                                      = 163, /*NYI*/ // Enter Map Area "{AreaTable}"
     LeaveArea                                      = 164, /*NYI*/ // Leave Map Area "{AreaTable}"
     DefeatDungeonEncounter                         = 165, /*NYI*/ // Defeat Encounter "{DungeonEncounter}"
@@ -666,25 +714,6 @@ enum DifficultyFlags
     DIFFICULTY_FLAG_LEGACY          = 0x20,
     DIFFICULTY_FLAG_DISPLAY_HEROIC  = 0x40, // Controls icon displayed on minimap when inside the instance
     DIFFICULTY_FLAG_DISPLAY_MYTHIC  = 0x80  // Controls icon displayed on minimap when inside the instance
-};
-
-enum SpawnMask
-{
-    SPAWNMASK_CONTINENT = (1 << DIFFICULTY_NONE), // any maps without spawn modes
-
-    SPAWNMASK_DUNGEON_NORMAL    = (1 << DIFFICULTY_NORMAL),
-    SPAWNMASK_DUNGEON_HEROIC    = (1 << DIFFICULTY_HEROIC),
-    SPAWNMASK_DUNGEON_ALL       = (SPAWNMASK_DUNGEON_NORMAL | SPAWNMASK_DUNGEON_HEROIC),
-
-    SPAWNMASK_RAID_10MAN_NORMAL = (1 << DIFFICULTY_10_N),
-    SPAWNMASK_RAID_25MAN_NORMAL = (1 << DIFFICULTY_25_N),
-    SPAWNMASK_RAID_NORMAL_ALL   = (SPAWNMASK_RAID_10MAN_NORMAL | SPAWNMASK_RAID_25MAN_NORMAL),
-
-    SPAWNMASK_RAID_10MAN_HEROIC = (1 << DIFFICULTY_10_HC),
-    SPAWNMASK_RAID_25MAN_HEROIC = (1 << DIFFICULTY_25_HC),
-    SPAWNMASK_RAID_HEROIC_ALL   = (SPAWNMASK_RAID_10MAN_HEROIC | SPAWNMASK_RAID_25MAN_HEROIC),
-
-    SPAWNMASK_RAID_ALL          = (SPAWNMASK_RAID_NORMAL_ALL | SPAWNMASK_RAID_HEROIC_ALL)
 };
 
 enum class ExpectedStatType : uint8
@@ -1571,7 +1600,7 @@ enum class SummonPropertiesFlags : uint32
     CannotDismissPet                  = 0x00000020, // NYI
     UseDemonTimeout                   = 0x00000040, // NYI
     UnlimitedSummons                  = 0x00000080, // NYI
-    UseCreatureLevel                  = 0x00000100, // NYI
+    UseCreatureLevel                  = 0x00000100,
     JoinSummonerSpawnGroup            = 0x00000200, // NYI
     DoNotToggle                       = 0x00000400, // NYI
     DespawnWhenExpired                = 0x00000800, // NYI
@@ -1584,7 +1613,7 @@ enum class SummonPropertiesFlags : uint32
     CastRideVehicleSpellOnSummoner    = 0x00040000, // NYI
     GuardianActsLikePet               = 0x00080000, // NYI
     DontSnapSessileToGround           = 0x00100000, // NYI
-    SummonFromBattlePetJournal        = 0x00200000, // NYI
+    SummonFromBattlePetJournal        = 0x00200000,
     UnitClutter                       = 0x00400000, // NYI
     DefaultNameColor                  = 0x00800000, // NYI
     UseOwnInvisibilityDetection       = 0x01000000, // NYI. Ignore Owner's Invisibility Detection

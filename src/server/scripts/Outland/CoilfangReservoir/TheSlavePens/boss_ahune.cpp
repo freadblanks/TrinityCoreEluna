@@ -176,9 +176,9 @@ struct boss_ahune : public BossAI
         me->SetControlled(true, UNIT_STATE_ROOT);
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void JustEngagedWith(Unit* who) override
     {
-        _JustEngagedWith();
+        BossAI::JustEngagedWith(who);
         events.ScheduleEvent(EVENT_INITIAL_EMERGE, 4ms);
         events.ScheduleEvent(EVENT_SYNCH_HEALTH, 3s);
     }
@@ -514,7 +514,7 @@ struct npc_earthen_ring_flamecaller : public ScriptedAI
         DoCastSelf(SPELL_FIND_OPENING_CHANNEL);
     }
 
-    void SpellHit(Unit* /*caster*/, SpellInfo const* spellInfo) override
+    void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo) override
     {
         switch (spellInfo->Id)
         {

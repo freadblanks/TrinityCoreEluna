@@ -186,9 +186,9 @@ enum KilJaedenTimers
 // Locations of the Hand of Deceiver adds
 Position DeceiverLocations[3]=
 {
-    {1682.045f, 631.299f, 5.936f, 0.0f},
-    {1684.099f, 618.848f, 0.589f, 0.0f},
-    {1694.170f, 612.272f, 1.416f, 0.0f}
+    {1682.949951f, 637.75000f, 28.0231f, 5.717090f},
+    {1684.699951f, 614.41998f, 28.0580f, 0.698392f},
+    {1707.609985f, 612.15002f, 28.0946f, 1.990370f}
 };
 
 // Locations, where Shield Orbs will spawn
@@ -675,7 +675,7 @@ public:
             Talk(SAY_KJ_REFLECTION);
             for (uint8 i = 0; i < 4; ++i)
             {
-                if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true, true, -SPELL_VENGEANCE_OF_THE_BLUE_FLIGHT))
+                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100, true, true, -SPELL_VENGEANCE_OF_THE_BLUE_FLIGHT))
                 {
                     float x, y, z;
                     target->GetPosition(x, y, z);
@@ -759,7 +759,7 @@ public:
                                 me->RemoveAurasDueToSpell(SPELL_SOUL_FLAY);
                                 for (uint8 z = 0; z < 6; ++z)
                                 {
-                                    pRandomPlayer = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true);
+                                    pRandomPlayer = SelectTarget(SelectTargetMethod::Random, 0, 100, true);
                                     if (!pRandomPlayer || !pRandomPlayer->HasAura(SPELL_VENGEANCE_OF_THE_BLUE_FLIGHT))
                                         break;
                                 }
@@ -852,7 +852,7 @@ public:
                             Unit* target = nullptr;
                             for (uint8 z = 0; z < 6; ++z)
                             {
-                                target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true);
+                                target = SelectTarget(SelectTargetMethod::Random, 0, 100, true);
                                 if (!target || !target->HasAura(SPELL_VENGEANCE_OF_THE_BLUE_FLIGHT)) break;
                             }
                             if (target)
@@ -1057,7 +1057,7 @@ public:
             if (uiSpawnFiendTimer <= diff)
             {
                 if (Creature* pFiend = DoSpawnCreature(NPC_VOLATILE_FELFIRE_FIEND, 0, 0, 0, 0, TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN, 20000))
-                    AddThreat(SelectTarget(SELECT_TARGET_RANDOM, 0), 100000.0f, pFiend);
+                    AddThreat(SelectTarget(SelectTargetMethod::Random, 0), 100000.0f, pFiend);
                 uiSpawnFiendTimer = urand(4000, 8000);
             } else uiSpawnFiendTimer -= diff;
         }
@@ -1401,7 +1401,7 @@ public:
                     }
                     if (uiTimer[2] <= diff)
                     {
-                        DoCast(SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true), SPELL_SR_CURSE_OF_AGONY, true);
+                        DoCast(SelectTarget(SelectTargetMethod::Random, 0, 100, true), SPELL_SR_CURSE_OF_AGONY, true);
                         uiTimer[2] = urand(2000, 4000);
                     }
                     DoMeleeAttackIfReady();

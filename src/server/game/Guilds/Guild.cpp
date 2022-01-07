@@ -1163,7 +1163,7 @@ bool Guild::Create(Player* pLeader, std::string const& name)
     m_createdDate = GameTime::GetGameTime();
     _CreateLogHolders();
 
-    TC_LOG_DEBUG("guild", "GUILD: creating guild [%s] for leader %s (%s)",
+    TC_LOG_DEBUG("guild", "GUILD: creating guild [%s] for leader %s %s",
         name.c_str(), pLeader->GetName().c_str(), m_leaderGuid.ToString().c_str());
 
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
@@ -1968,6 +1968,13 @@ void Guild::HandleMemberDepositMoney(WorldSession* session, uint64 amount, bool 
     // Call script after validation and before money transfer.
     sScriptMgr->OnGuildMemberDepositMoney(this, player, amount);
 
+    if (m_bankMoney > GUILD_BANK_MONEY_LIMIT - amount)
+    {
+        if (!cashFlow)
+            SendCommandResult(session, GUILD_COMMAND_MOVE_ITEM, ERR_GUILD_TOO_MUCH_MONEY);
+        return;
+    }
+
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
     _ModifyBankMoney(trans, amount, true);
     if (!cashFlow)
@@ -2185,7 +2192,7 @@ void Guild::SendPermissions(WorldSession* session) const
 
     WorldPackets::Guild::GuildPermissionsQueryResults queryResult;
     queryResult.RankID = rankId;
-    queryResult.WithdrawGoldLimit = int32(_GetRankBankMoneyPerDay(rankId));
+    queryResult.WithdrawGoldLimit = _GetRankBankMoneyPerDay(rankId);
     queryResult.Flags = _GetRankRights(rankId);
     queryResult.NumTabs = _GetPurchasedTabsSize();
     queryResult.Tab.reserve(GUILD_BANK_MAX_TABS);
@@ -2792,9 +2799,12 @@ void Guild::DeleteMember(CharacterDatabaseTransaction& trans, ObjectGuid guid, b
     // Call script on remove before member is actually removed from guild (and database)
     sScriptMgr->OnGuildRemoveMember(this, guid, isDisbanding, isKicked);
 
-    if (Member* member = GetMember(guid))
-        delete member;
-    m_members.erase(guid);
+    auto memberItr = m_members.find(guid);
+    if (memberItr != m_members.end())
+    {
+        delete memberItr->second;
+        m_members.erase(memberItr);
+    }
 
     // If player not online data in data field will be loaded from guild tabs no need to update it !!
     Player* player = ObjectAccessor::FindConnectedPlayer(guid);
@@ -3200,14 +3210,6 @@ void Guild::_MoveItems(MoveItemData* pSrc, MoveItemData* pDest, uint32 splitedAm
     // 2. Check source item
     if (!pSrc->CheckItem(splitedAmount))
         return; // Source item or splited amount is invalid
-    /*
-    if (pItemSrc->GetCount() == 0)
-    {
-        TC_LOG_FATAL("guild", "Guild::SwapItems: Player %s(GUIDLow: %u) tried to move item %u from tab %u slot %u to tab %u slot %u, but item %u has a stack of zero!",
-            player->GetName(), player->GetGUIDLow(), pItemSrc->GetEntry(), tabId, slotId, destTabId, destSlotId, pItemSrc->GetEntry());
-        //return; // Commented out for now, uncomment when it's verified that this causes a crash!!
-    }
-    // */
 
     // 3. Check destination rights
     if (!pDest->HasStoreRights(pSrc))

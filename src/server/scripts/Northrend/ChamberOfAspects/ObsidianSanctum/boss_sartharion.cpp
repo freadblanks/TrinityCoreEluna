@@ -163,10 +163,10 @@ public:
             _Reset();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
             Talk(SAY_SARTHARION_AGGRO);
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
             DoZoneInCombat();
 
             FetchDragons();
@@ -456,7 +456,7 @@ public:
                         events.ScheduleEvent(EVENT_CLEAVE_ATTACK, 7s, 10s);
                         break;
                     case EVENT_LAVA_STRIKE:
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                         {
                             CastLavaStrikeOnTarget(target);
                             if (urand(0, 5) == 0)

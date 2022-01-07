@@ -38,8 +38,8 @@ enum DrakuruShackles
 {
     NPC_RAGECLAW                             = 29686,
     QUEST_TROLLS_IS_GONE_CRAZY               = 12861,
-    SPELL_LEFT_CHAIN                         = 59951,
-    SPELL_RIGHT_CHAIN                        = 59952,
+    SPELL_CHAIN_OF_THE_SCURGE_RIGHT          = 54990,
+    SPELL_CHAIN_OF_THE_SCURGE_LEFT           = 55009,
     SPELL_UNLOCK_SHACKLE                     = 55083,
     SPELL_FREE_RAGECLAW                      = 55223
 };
@@ -73,32 +73,31 @@ public:
             // pointer check not needed
             me->SetFacingToObject(rageclaw);
             rageclaw->SetFacingToObject(me);
-
-            DoCast(rageclaw, SPELL_LEFT_CHAIN, true);
-            DoCast(rageclaw, SPELL_RIGHT_CHAIN, true);
         }
 
-        void UnlockRageclaw(Unit* who, Creature* rageclaw)
+        void UnlockRageclaw(Creature* rageclaw)
         {
-            if (!who)
-                return;
-
             // pointer check not needed
             DoCast(rageclaw, SPELL_FREE_RAGECLAW, true);
 
             me->setDeathState(DEAD);
         }
 
-        void SpellHit(Unit* caster, SpellInfo const* spell) override
+        void SpellHit(WorldObject* caster, SpellInfo const* spellInfo) override
         {
-            if (spell->Id == SPELL_UNLOCK_SHACKLE)
+            Player* playerCaster = caster->ToPlayer();
+            if (!playerCaster)
+                return;
+
+            if (spellInfo->Id == SPELL_UNLOCK_SHACKLE)
             {
-                if (caster->ToPlayer()->GetQuestStatus(QUEST_TROLLS_IS_GONE_CRAZY) == QUEST_STATUS_INCOMPLETE)
+                if (playerCaster->GetQuestStatus(QUEST_TROLLS_IS_GONE_CRAZY) == QUEST_STATUS_INCOMPLETE)
                 {
                     if (Creature* rageclaw = ObjectAccessor::GetCreature(*me, _rageclawGUID))
                     {
-                        UnlockRageclaw(caster, rageclaw);
-                        caster->ToPlayer()->KilledMonster(rageclaw->GetCreatureTemplate(), _rageclawGUID);
+                        UnlockRageclaw(rageclaw);
+                        playerCaster->KilledMonster(rageclaw->GetCreatureTemplate(), _rageclawGUID);
+                        me->RemoveAurasDueToSpell(SPELL_CHAIN_OF_THE_SCURGE_RIGHT);
                         me->DespawnOrUnsummon();
                     }
                     else
@@ -124,7 +123,6 @@ public:
 enum Rageclaw
 {
     SPELL_UNSHACKLED                         = 55085,
-    SPELL_KNEEL                              = 39656,
     SAY_RAGECLAW                             = 0
 };
 
@@ -140,18 +138,17 @@ public:
         void Reset() override
         {
             me->SetFaction(FACTION_FRIENDLY);
-            DoCast(me, SPELL_KNEEL, true); // Little Hack for kneel - Thanks Illy :P
+            DoCast(me, SPELL_CHAIN_OF_THE_SCURGE_RIGHT, true);
         }
 
         void MoveInLineOfSight(Unit* /*who*/) override { }
 
-        void SpellHit(Unit* /*caster*/, SpellInfo const* spell) override
+        void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo) override
         {
-            if (spell->Id == SPELL_FREE_RAGECLAW)
+            if (spellInfo->Id == SPELL_FREE_RAGECLAW)
             {
-                me->RemoveAurasDueToSpell(SPELL_LEFT_CHAIN);
-                me->RemoveAurasDueToSpell(SPELL_RIGHT_CHAIN);
-                me->RemoveAurasDueToSpell(SPELL_KNEEL);
+                me->RemoveAurasDueToSpell(SPELL_CHAIN_OF_THE_SCURGE_LEFT);
+                me->SetStandState(UNIT_STAND_STATE_STAND);
                 me->SetFaction(me->GetCreatureTemplate()->faction);
                 DoCast(me, SPELL_UNSHACKLED, true);
                 Talk(SAY_RAGECLAW);
@@ -929,16 +926,22 @@ public:
             Reset();
         }
 
-        void SpellHit(Unit* caster, SpellInfo const* spell) override
+        void SpellHit(WorldObject* caster, SpellInfo const* spellInfo) override
         {
-            if (spell->Id != GYMERS_GRAB)
+            Unit* unitCaster = caster->ToUnit();
+            if (!unitCaster)
                 return;
 
-            if (Vehicle* veh = caster->GetVehicleKit())
-                if (veh->GetAvailableSeatCount() != 0)
+            if (spellInfo->Id != GYMERS_GRAB)
+                return;
+
+            if (Vehicle* veh = unitCaster->GetVehicleKit())
             {
-                me->CastSpell(caster, RIDE_VEHICLE, true);
-                me->CastSpell(caster, HEALING_WINDS, true);
+                if (veh->GetAvailableSeatCount() != 0)
+                {
+                    me->CastSpell(caster, RIDE_VEHICLE, true);
+                    me->CastSpell(caster, HEALING_WINDS, true);
+                }
             }
         }
     };

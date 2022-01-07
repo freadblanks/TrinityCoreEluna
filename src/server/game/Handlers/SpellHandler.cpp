@@ -81,14 +81,14 @@ void WorldSession::HandleUseItemOpcode(WorldPackets::Spells::UseItem& packet)
     }
 
     // only allow conjured consumable, bandage, poisons (all should have the 2^21 item flag set in DB)
-    if (proto->GetClass() == ITEM_CLASS_CONSUMABLE && !(proto->GetFlags() & ITEM_FLAG_IGNORE_DEFAULT_ARENA_RESTRICTIONS) && user->InArena())
+    if (proto->GetClass() == ITEM_CLASS_CONSUMABLE && !proto->HasFlag(ITEM_FLAG_IGNORE_DEFAULT_ARENA_RESTRICTIONS) && user->InArena())
     {
         user->SendEquipError(EQUIP_ERR_NOT_DURING_ARENA_MATCH, item, nullptr);
         return;
     }
 
     // don't allow items banned in arena
-    if (proto->GetFlags() & ITEM_FLAG_NOT_USEABLE_IN_ARENA && user->InArena())
+    if (proto->HasFlag(ITEM_FLAG_NOT_USEABLE_IN_ARENA) && user->InArena())
     {
         user->SendEquipError(EQUIP_ERR_NOT_DURING_ARENA_MATCH, item, nullptr);
         return;
@@ -163,10 +163,10 @@ void WorldSession::HandleOpenItemOpcode(WorldPackets::Spells::OpenItem& packet)
     }
 
     // Verify that the bag is an actual bag or wrapped item that can be used "normally"
-    if (!(proto->GetFlags() & ITEM_FLAG_HAS_LOOT) && !item->HasItemFlag(ITEM_FIELD_FLAG_WRAPPED))
+    if (!proto->HasFlag(ITEM_FLAG_HAS_LOOT) && !item->IsWrapped())
     {
         player->SendEquipError(EQUIP_ERR_CLIENT_LOCKED_OUT, item, nullptr);
-        TC_LOG_ERROR("entities.player.cheat", "Possible hacking attempt: Player %s [%s] tried to open item [%s, entry: %u] which is not openable!",
+        TC_LOG_ERROR("entities.player.cheat", "Possible hacking attempt: Player %s %s tried to open item [%s, entry: %u] which is not openable!",
             player->GetName().c_str(), player->GetGUID().ToString().c_str(), item->GetGUID().ToString().c_str(), proto->GetId());
         return;
     }
@@ -180,7 +180,7 @@ void WorldSession::HandleOpenItemOpcode(WorldPackets::Spells::OpenItem& packet)
         if (!lockInfo)
         {
             player->SendEquipError(EQUIP_ERR_ITEM_LOCKED, item, nullptr);
-            TC_LOG_ERROR("network", "WORLD::OpenItem: item [%s] has an unknown lockId: %u!", item->GetGUID().ToString().c_str(), lockId);
+            TC_LOG_ERROR("network", "WORLD::OpenItem: item %s has an unknown lockId: %u!", item->GetGUID().ToString().c_str(), lockId);
             return;
         }
 
@@ -192,7 +192,7 @@ void WorldSession::HandleOpenItemOpcode(WorldPackets::Spells::OpenItem& packet)
         }
     }
 
-    if (item->HasItemFlag(ITEM_FIELD_FLAG_WRAPPED))// wrapped?
+    if (item->IsWrapped())
     {
         CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_GIFT_BY_ITEM);
         stmt->setUInt64(0, item->GetGUID().GetCounter());
@@ -212,12 +212,12 @@ void WorldSession::HandleOpenWrappedItemCallback(uint16 pos, ObjectGuid itemGuid
     if (!item)
         return;
 
-    if (item->GetGUID() != itemGuid || !item->HasItemFlag(ITEM_FIELD_FLAG_WRAPPED)) // during getting result, gift was swapped with another item
+    if (item->GetGUID() != itemGuid || !item->IsWrapped()) // during getting result, gift was swapped with another item
         return;
 
     if (!result)
     {
-        TC_LOG_ERROR("network", "Wrapped item %s don't have record in character_gifts table and will deleted", item->GetGUID().ToString().c_str());
+        TC_LOG_ERROR("network", "Wrapped item %s does't have record in character_gifts table and will deleted", item->GetGUID().ToString().c_str());
         GetPlayer()->DestroyItem(item->GetBagSlot(), item->GetSlot(), true);
         return;
     }
@@ -315,15 +315,12 @@ void WorldSession::HandleCastSpellOpcode(WorldPackets::Spells::CastSpell& cast)
             if (go->GetSpellForLock(caster->ToPlayer()) == spellInfo)
                 allow = true;
 
-        // TODO: Preparation for #23204
         // allow casting of spells triggered by clientside periodic trigger auras
-        /*
-         if (caster->HasAuraTypeWithTriggerSpell(SPELL_AURA_PERIODIC_TRIGGER_SPELL_FROM_CLIENT, spellId))
+        if (caster->HasAuraTypeWithTriggerSpell(SPELL_AURA_PERIODIC_TRIGGER_SPELL_FROM_CLIENT, spellInfo->Id))
         {
             allow = true;
             triggerFlag = TRIGGERED_FULL_MASK;
         }
-        */
 
         if (!allow)
             return;
@@ -402,25 +399,6 @@ void WorldSession::HandleCancelAuraOpcode(WorldPackets::Spells::CancelAura& canc
         return;
 
     _player->RemoveOwnedAura(cancelAura.SpellID, cancelAura.CasterGUID, 0, AURA_REMOVE_BY_CANCEL);
-
-    // If spell being removed is a resource tracker, see if player was tracking both (herbs / minerals) and remove the other
-    if (sWorld->getBoolConfig(CONFIG_ALLOW_TRACK_BOTH_RESOURCES) && spellInfo->HasAura(SPELL_AURA_TRACK_RESOURCES))
-    {
-        Unit::AuraEffectList const& auraEffects = _player->GetAuraEffectsByType(SPELL_AURA_TRACK_RESOURCES);
-        if (!auraEffects.empty())
-        {
-            // Build list of spell IDs to cancel. Trying to cancel the aura while iterating
-            //  over AuraEffectList caused "incompatible iterator" errors on second pass
-            std::list<uint32> spellIDs;
-
-            for (Unit::AuraEffectList::const_iterator auraEffect = auraEffects.begin(); auraEffect != auraEffects.end(); ++auraEffect)
-                spellIDs.push_back((*auraEffect)->GetId());
-
-            // Remove all auras related to resource tracking (only Herbs and Minerals in 3.3.5a)
-            for (std::list<uint32>::iterator it = spellIDs.begin(); it != spellIDs.end(); ++it)
-                _player->RemoveOwnedAura(*it, cancelAura.CasterGUID, 0, AURA_REMOVE_BY_CANCEL);
-        }
-    }
 }
 
 void WorldSession::HandlePetCancelAuraOpcode(WorldPackets::Spells::PetCancelAura& packet)
@@ -479,11 +457,23 @@ void WorldSession::HandleCancelAutoRepeatSpellOpcode(WorldPackets::Spells::Cance
     _player->InterruptSpell(CURRENT_AUTOREPEAT_SPELL);
 }
 
-void WorldSession::HandleCancelChanneling(WorldPackets::Spells::CancelChannelling& /*cancelChanneling*/)
+void WorldSession::HandleCancelChanneling(WorldPackets::Spells::CancelChannelling& cancelChanneling)
 {
     // ignore for remote control state (for player case)
     Unit* mover = _player->GetUnitBeingMoved();
     if (mover != _player && mover->GetTypeId() == TYPEID_PLAYER)
+        return;
+
+    SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(cancelChanneling.ChannelSpell, mover->GetMap()->GetDifficultyID());
+    if (!spellInfo)
+        return;
+
+    // not allow remove spells with attr SPELL_ATTR0_CANT_CANCEL
+    if (spellInfo->HasAttribute(SPELL_ATTR0_CANT_CANCEL))
+        return;
+
+    Spell* spell = mover->GetCurrentSpell(CURRENT_CHANNELED_SPELL);
+    if (!spell || spell->GetSpellInfo()->Id != spellInfo->Id)
         return;
 
     mover->InterruptSpell(CURRENT_CHANNELED_SPELL);

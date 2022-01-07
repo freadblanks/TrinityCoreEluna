@@ -171,7 +171,6 @@ enum WorldBoolConfigs
     CONFIG_STATS_LIMITS_ENABLE,
     CONFIG_INSTANCES_RESET_ANNOUNCE,
     CONFIG_IP_BASED_ACTION_LOGGING,
-    CONFIG_ALLOW_TRACK_BOTH_RESOURCES,
     CONFIG_CALCULATE_CREATURE_ZONE_AREA_DATA,
     CONFIG_CALCULATE_GAMEOBJECT_ZONE_AREA_DATA,
     CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED,
@@ -193,6 +192,7 @@ enum WorldBoolConfigs
     CONFIG_GAME_OBJECT_CHECK_INVALID_POSITION,
     CONFIG_CHECK_GOBJECT_LOS,
     CONFIG_RESPAWN_DYNAMIC_ESCORTNPC,
+    CONFIG_REGEN_HP_CANNOT_REACH_TARGET_IN_RAID,
     CONFIG_CHARACTER_CREATING_DISABLE_ALLIED_RACE_ACHIEVEMENT_REQUIREMENT,
     BOOL_CONFIG_VALUE_COUNT
 };
@@ -218,6 +218,9 @@ enum WorldFloatConfigs
     CONFIG_ARENA_MATCHMAKER_RATING_MODIFIER,
     CONFIG_RESPAWN_DYNAMICRATE_CREATURE,
     CONFIG_RESPAWN_DYNAMICRATE_GAMEOBJECT,
+    CONFIG_CALL_TO_ARMS_5_PCT,
+    CONFIG_CALL_TO_ARMS_10_PCT,
+    CONFIG_CALL_TO_ARMS_20_PCT,
     FLOAT_CONFIG_VALUE_COUNT
 };
 
@@ -421,6 +424,7 @@ enum WorldIntConfigs
     CONFIG_SOCKET_TIMEOUTTIME_ACTIVE,
     CONFIG_BLACKMARKET_MAXAUCTIONS,
     CONFIG_BLACKMARKET_UPDATE_PERIOD,
+    CONFIG_FACTION_BALANCE_LEVEL_CHECK_DIFF,
     INT_CONFIG_VALUE_COUNT
 };
 
@@ -551,20 +555,6 @@ enum RealmZone
     REALM_ZONE_CN2_6_9       = 35,                          // basic-Latin at create, any at login
     REALM_ZONE_CN3_7         = 36,                          // basic-Latin at create, any at login
     REALM_ZONE_CN5_8         = 37                           // basic-Latin at create, any at login
-};
-
-enum WorldStates
-{
-    WS_CURRENCY_RESET_TIME      = 20001,                     // Next currency reset time
-    WS_WEEKLY_QUEST_RESET_TIME  = 20002,                     // Next weekly quest reset time
-    WS_BG_DAILY_RESET_TIME      = 20003,                     // Next daily BG reset time
-    WS_CLEANING_FLAGS           = 20004,                     // Cleaning Flags
-    WS_GUILD_DAILY_RESET_TIME   = 20006,                     // Next guild cap reset time
-    WS_MONTHLY_QUEST_RESET_TIME = 20007,                     // Next monthly quest reset time
-    WS_DAILY_QUEST_RESET_TIME   = 20008,                     // Next daily quest reset time
-    WS_DAILY_CALENDAR_DELETION_OLD_EVENTS_TIME = 20009,      // Next daily calendar deletions of old events time
-    // Cata specific custom worldstates
-    WS_GUILD_WEEKLY_RESET_TIME  = 20050,                     // Next guild week reset time
 };
 
 /// Storage class for commands issued for delayed execution
@@ -808,6 +798,12 @@ class TC_GAME_API World
         bool IsGuidWarning() { return _guidWarn; }
         bool IsGuidAlert() { return _guidAlert; }
 
+        // War mode balancing
+        TeamId GetWarModeDominantFaction() const { return _warModeDominantFaction; }
+        int32 GetWarModeOutnumberedFactionReward() const { return _warModeOutnumberedFactionReward; }
+        void SetForcedWarModeFactionBalanceState(TeamId team, int32 reward = 0);
+        void DisableForcedWarModeFactionBalanceState();
+
     protected:
         void _UpdateGameTime();
 
@@ -930,6 +926,12 @@ class TC_GAME_API World
         bool _guidAlert;
         uint32 _warnDiff;
         time_t _warnShutdownTime;
+
+        // War mode balancing
+        void UpdateWarModeRewardValues();
+
+        TeamId _warModeDominantFaction; // the team that has higher percentage
+        int32 _warModeOutnumberedFactionReward;
 
     friend class debug_commandscript;
 };

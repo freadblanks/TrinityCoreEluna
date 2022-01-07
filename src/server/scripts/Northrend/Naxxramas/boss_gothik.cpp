@@ -319,9 +319,9 @@ class boss_gothik : public CreatureScript
                 Initialize();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void JustEngagedWith(Unit* who) override
             {
-                _JustEngagedWith();
+                BossAI::JustEngagedWith(who);
                 events.SetPhase(PHASE_ONE);
                 events.ScheduleEvent(EVENT_SUMMON, Seconds(25), 0, PHASE_ONE);
                 events.ScheduleEvent(EVENT_DOORS_UNLOCK, Minutes(3) + Seconds(25), 0, PHASE_ONE);
@@ -909,12 +909,10 @@ public:
 
             return nullptr;
         }
-        void SpellHit(Unit* /*caster*/, SpellInfo const* spell) override
-        {
-            if (!spell)
-                return;
 
-            switch (spell->Id)
+        void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo) override
+        {
+            switch (spellInfo->Id)
             {
                 case SPELL_ANCHOR_1_TRAINEE:
                     DoCastAOE(SPELL_ANCHOR_2_TRAINEE, true);

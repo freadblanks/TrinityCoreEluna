@@ -52,9 +52,9 @@ public:
             _Reset();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
             events.ScheduleEvent(EVENT_FLAME_BREAK,     12 * IN_MILLISECONDS);
             events.ScheduleEvent(EVENT_IMMOLATE,         3 * IN_MILLISECONDS);
             events.ScheduleEvent(EVENT_TERRIFYING_ROAR, 23 * IN_MILLISECONDS);
@@ -84,7 +84,7 @@ public:
                         events.ScheduleEvent(EVENT_FLAME_BREAK, 10 * IN_MILLISECONDS);
                         break;
                     case EVENT_IMMOLATE:
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100, true))
                             DoCast(target, SPELL_IMMOLATE);
                         events.ScheduleEvent(EVENT_IMMOLATE, 8 * IN_MILLISECONDS);
                         break;

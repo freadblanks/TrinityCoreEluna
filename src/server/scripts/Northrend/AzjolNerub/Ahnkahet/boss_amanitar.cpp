@@ -89,9 +89,9 @@ struct boss_amanitar : public BossAI
 {
     boss_amanitar(Creature* creature) : BossAI(creature, DATA_AMANITAR) { }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void JustEngagedWith(Unit* who) override
     {
-        _JustEngagedWith();
+        BossAI::JustEngagedWith(who);
         events.ScheduleEvent(EVENT_ROOT, 5s, 9s);
         events.ScheduleEvent(EVENT_BASH, 10s, 14s);
         events.ScheduleEvent(EVENT_BOLT, 15s, 20s);
@@ -151,7 +151,7 @@ struct boss_amanitar : public BossAI
                         SpawnMushroom(pos);
                     break;
                 case EVENT_MINI:
-                    if (SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true, true, -SPELL_MINI))
+                    if (SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true, true, -SPELL_MINI))
                     {
                         DoCastAOE(SPELL_MINI);
                         events.Repeat(Seconds(30));
@@ -160,7 +160,7 @@ struct boss_amanitar : public BossAI
                         events.Repeat(Seconds(1));
                     break;
                 case EVENT_ROOT:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 1, 100.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 1, 100.0f, true))
                         DoCast(target, SPELL_ENTANGLING_ROOTS, true);
                     events.Repeat(Seconds(10), Seconds(15));
                     break;
@@ -169,7 +169,7 @@ struct boss_amanitar : public BossAI
                     events.Repeat(Seconds(7), Seconds(12));
                     break;
                 case EVENT_BOLT:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
                         DoCast(target, SPELL_VENOM_BOLT_VOLLEY, true);
                     events.Repeat(Seconds(18), Seconds(22));
                     break;

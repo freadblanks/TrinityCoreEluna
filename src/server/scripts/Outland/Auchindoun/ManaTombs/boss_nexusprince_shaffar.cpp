@@ -105,10 +105,10 @@ class boss_nexusprince_shaffar : public CreatureScript
                 }
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void JustEngagedWith(Unit* who) override
             {
                 Talk(SAY_AGGRO);
-                _JustEngagedWith();
+                BossAI::JustEngagedWith(who);
 
                 events.ScheduleEvent(EVENT_BEACON, 10s);
                 events.ScheduleEvent(EVENT_FIREBALL, 8s);
@@ -122,7 +122,7 @@ class boss_nexusprince_shaffar : public CreatureScript
                 {
                     summoned->CastSpell(summoned, SPELL_ETHEREAL_BEACON_VISUAL, false);
 
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                         summoned->AI()->AttackStart(target);
                 }
 

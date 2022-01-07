@@ -1167,7 +1167,7 @@ void GameEventMgr::UpdateEventNPCFlags(uint16 event_id)
     for (NPCFlagList::iterator itr = mGameEventNPCFlags[event_id].begin(); itr != mGameEventNPCFlags[event_id].end(); ++itr)
         // get the creature data from the low guid to get the entry, to be able to find out the whole guid
         if (CreatureData const* data = sObjectMgr->GetCreatureData(itr->first))
-            creaturesByMap[data->spawnPoint.GetMapId()].insert(itr->first);
+            creaturesByMap[data->mapId].insert(itr->first);
 
     for (auto const& p : creaturesByMap)
     {
@@ -1231,10 +1231,10 @@ void GameEventMgr::GameEventSpawn(int16 event_id)
         // Add to correct cell
         if (CreatureData const* data = sObjectMgr->GetCreatureData(*itr))
         {
-            sObjectMgr->AddCreatureToGrid(*itr, data);
+            sObjectMgr->AddCreatureToGrid(data);
 
             // Spawn if necessary (loaded grids only)
-            Map* map = sMapMgr->CreateBaseMap(data->spawnPoint.GetMapId());
+            Map* map = sMapMgr->CreateBaseMap(data->mapId);
             map->RemoveRespawnTime(SPAWN_TYPE_CREATURE, *itr);
             // We use spawn coords to spawn
             if (map && !map->Instanceable() && map->IsGridLoaded(data->spawnPoint))
@@ -1254,10 +1254,10 @@ void GameEventMgr::GameEventSpawn(int16 event_id)
         // Add to correct cell
         if (GameObjectData const* data = sObjectMgr->GetGameObjectData(*itr))
         {
-            sObjectMgr->AddGameobjectToGrid(*itr, data);
+            sObjectMgr->AddGameobjectToGrid(data);
             // Spawn if necessary (loaded grids only)
             // this base map checked as non-instanced and then only existed
-            Map* map = sMapMgr->CreateBaseMap(data->spawnPoint.GetMapId());
+            Map* map = sMapMgr->CreateBaseMap(data->mapId);
             map->RemoveRespawnTime(SPAWN_TYPE_GAMEOBJECT, *itr);
             // We use current coords to unspawn, not spawn coords since creature can have changed grid
             if (map && !map->Instanceable() && map->IsGridLoaded(data->spawnPoint))
@@ -1305,9 +1305,9 @@ void GameEventMgr::GameEventUnspawn(int16 event_id)
         // Remove the creature from grid
         if (CreatureData const* data = sObjectMgr->GetCreatureData(*itr))
         {
-            sObjectMgr->RemoveCreatureFromGrid(*itr, data);
+            sObjectMgr->RemoveCreatureFromGrid(data);
 
-            sMapMgr->DoForAllMapsWithMapId(data->spawnPoint.GetMapId(), [&itr](Map* map)
+            sMapMgr->DoForAllMapsWithMapId(data->mapId, [&itr](Map* map)
             {
                 map->RemoveRespawnTime(SPAWN_TYPE_CREATURE, *itr);
                 auto creatureBounds = map->GetCreatureBySpawnIdStore().equal_range(*itr);
@@ -1336,9 +1336,9 @@ void GameEventMgr::GameEventUnspawn(int16 event_id)
         // Remove the gameobject from grid
         if (GameObjectData const* data = sObjectMgr->GetGameObjectData(*itr))
         {
-            sObjectMgr->RemoveGameobjectFromGrid(*itr, data);
+            sObjectMgr->RemoveGameobjectFromGrid(data);
 
-            sMapMgr->DoForAllMapsWithMapId(data->spawnPoint.GetMapId(), [&itr](Map* map)
+            sMapMgr->DoForAllMapsWithMapId(data->mapId, [&itr](Map* map)
             {
                 map->RemoveRespawnTime(SPAWN_TYPE_GAMEOBJECT, *itr);
                 auto gameobjectBounds = map->GetGameObjectBySpawnIdStore().equal_range(*itr);
@@ -1360,7 +1360,7 @@ void GameEventMgr::GameEventUnspawn(int16 event_id)
 
     for (IdList::iterator itr = mGameEventPoolIds[internal_event_id].begin(); itr != mGameEventPoolIds[internal_event_id].end(); ++itr)
     {
-        sPoolMgr->DespawnPool(*itr);
+        sPoolMgr->DespawnPool(*itr, true);
     }
 }
 
@@ -1374,7 +1374,7 @@ void GameEventMgr::ChangeEquipOrModel(int16 event_id, bool activate)
             continue;
 
         // Update if spawned
-        sMapMgr->DoForAllMapsWithMapId(data->spawnPoint.GetMapId(), [&itr, activate](Map* map)
+        sMapMgr->DoForAllMapsWithMapId(data->mapId, [&itr, activate](Map* map)
         {
             auto creatureBounds = map->GetCreatureBySpawnIdStore().equal_range(itr->first);
             for (auto itr2 = creatureBounds.first; itr2 != creatureBounds.second; ++itr2)
