@@ -1114,6 +1114,8 @@ struct GameObjectData : public SpawnData
     uint32 animprogress = 0;
     GOState goState = GO_STATE_ACTIVE;
     uint8 artKit = 0;
+    float size = 0.0f;
+    float visibility = 533.3333f;
 };
 
 #endif // GameObjectData_h__

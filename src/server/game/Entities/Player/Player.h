@@ -1313,6 +1313,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         std::vector<Item*> GetItemListByEntry(uint32 entry, bool inBankAlso = false) const;
         Item* GetItemByPos(uint16 pos) const;
         Item* GetItemByPos(uint8 bag, uint8 slot) const;
+        Item* GetEquippedItem(EquipmentSlots slot) const; //Custom
         Item* GetUseableItemByPos(uint8 bag, uint8 slot) const;
         Bag*  GetBagByPos(uint8 slot) const;
         uint32 GetFreeInventorySpace() const;
@@ -1486,6 +1487,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void LoadPet();
 
         bool AddItem(uint32 itemId, uint32 count);
+        bool AddItemBonus(uint32 itemId, uint32 count, uint32 bonusId); //Custom
 
         uint32 m_stableSlots;
 

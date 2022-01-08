@@ -89,6 +89,7 @@ enum Expansions
     EXPANSION_LEGION                   = 6,
     EXPANSION_BATTLE_FOR_AZEROTH       = 7,
     EXPANSION_SHADOWLANDS              = 8,
+    EXPANSION_CLASS_AND_RACE_BLOCKER   = 9,
     MAX_EXPANSIONS,
 
     MAX_ACCOUNT_EXPANSIONS
@@ -117,6 +118,8 @@ constexpr uint32 GetMaxLevelForExpansion(uint32 expansion)
         case EXPANSION_BATTLE_FOR_AZEROTH:
             return 50;
         case EXPANSION_SHADOWLANDS:
+            return 60;
+        case EXPANSION_CLASS_AND_RACE_BLOCKER:
             return 60;
         default:
             break;
