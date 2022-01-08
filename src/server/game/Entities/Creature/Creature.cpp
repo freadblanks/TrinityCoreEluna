@@ -82,7 +82,12 @@ VendorItemCount::VendorItemCount(uint32 _item, uint32 _count)
 
 bool VendorItem::IsGoldRequired(ItemTemplate const* pProto) const
 {
-    return pProto->HasFlag(ITEM_FLAG2_DONT_IGNORE_BUY_PRICE) || !ExtendedCost;
+    return pProto->HasFlag(ITEM_FLAG2_DONT_IGNORE_BUY_PRICE) || !ExtendedCost || OverrideGoldCost >= 0;
+}
+
+int64 VendorItem::GetBuyPrice(ItemTemplate const* pProto) const
+{
+    return OverrideGoldCost >= 0 ? OverrideGoldCost : pProto->GetBuyPrice();
 }
 
 bool VendorItemData::RemoveItem(uint32 item_id, uint8 type)

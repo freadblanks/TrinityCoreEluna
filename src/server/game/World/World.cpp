@@ -30,6 +30,7 @@
 #include "BattlefieldMgr.h"
 #include "BattlegroundMgr.h"
 #include "BattlenetRpcErrorCodes.h"
+#include "BattlePayData.h"
 #include "BattlePetMgr.h"
 #include "BlackMarketMgr.h"
 #include "CalendarMgr.h"
@@ -1544,7 +1545,8 @@ void World::LoadConfigSettings(bool reload)
     m_int_configs[CONFIG_WARDEN_CLIENT_RESPONSE_DELAY] = sConfigMgr->GetIntDefault("Warden.ClientResponseDelay", 600);
 
     // Feature System
-    m_bool_configs[CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED]         = sConfigMgr->GetBoolDefault("FeatureSystem.BpayStore.Enabled", false);
+    m_bool_configs[CONFIG_FEATURE_SYSTEM_BATTLE_PAY_ENABLED]         = sConfigMgr->GetBoolDefault("FeatureSystem.BattlePay.Enabled", false);
+    m_bool_configs[CONFIG_FEATURE_SYSTEM_BATTLE_PAY_AVAILABLE]       = sConfigMgr->GetBoolDefault("FeatureSystem.BattlePay.Available", false);
     m_bool_configs[CONFIG_FEATURE_SYSTEM_CHARACTER_UNDELETE_ENABLED] = sConfigMgr->GetBoolDefault("FeatureSystem.CharacterUndelete.Enabled", false);
     m_int_configs[CONFIG_FEATURE_SYSTEM_CHARACTER_UNDELETE_COOLDOWN] = sConfigMgr->GetIntDefault("FeatureSystem.CharacterUndelete.Cooldown", 2592000);
 
@@ -1580,6 +1582,12 @@ void World::LoadConfigSettings(bool reload)
         m_timers[WUPDATE_AUTOBROADCAST].SetInterval(m_int_configs[CONFIG_AUTOBROADCAST_INTERVAL]);
         m_timers[WUPDATE_AUTOBROADCAST].Reset();
     }
+
+    // Autorestarter
+    m_int_configs[CONFIG_AUTORESTART_TIMER] = sConfigMgr->GetIntDefault("Autorestart.Timer", 0);
+
+    if (m_int_configs[CONFIG_AUTORESTART_TIMER] < 0)
+        m_int_configs[CONFIG_AUTORESTART_TIMER] = 0;
 
     // MySQL ping time interval
     m_int_configs[CONFIG_DB_PING_INTERVAL] = sConfigMgr->GetIntDefault("MaxPingTime", 30);
@@ -1638,6 +1646,10 @@ void World::LoadConfigSettings(bool reload)
 
     m_int_configs[CONFIG_BLACKMARKET_MAXAUCTIONS] = sConfigMgr->GetIntDefault("BlackMarket.MaxAuctions", 12);
     m_int_configs[CONFIG_BLACKMARKET_UPDATE_PERIOD] = sConfigMgr->GetIntDefault("BlackMarket.UpdatePeriod", 24);
+
+    // BattlePay
+    m_bool_configs[CONFIG_BATTLE_PAY_ENABLED] = sConfigMgr->GetBoolDefault("BattlePay.Enabled", true);
+    m_int_configs[CONFIG_BATTLE_PAY_CURRENCY] = sConfigMgr->GetIntDefault("BattlePay.Currency", 1);
 
     // HotSwap
     m_bool_configs[CONFIG_HOTSWAP_ENABLED] = sConfigMgr->GetBoolDefault("HotSwap.Enabled", true);
@@ -2449,6 +2461,10 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading scenario poi data");
     sScenarioMgr->LoadScenarioPOI();
 
+    // load battle pay
+    TC_LOG_INFO("server.loading", "Loading battlepay data...");
+    sBattlePayDataStore->Initialize();
+
     TC_LOG_INFO("server.loading", "Loading phase names...");
     sObjectMgr->LoadPhaseNames();
 
@@ -2470,6 +2486,10 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.worldserver", "World initialized in %u minutes %u seconds", (startupDuration / 60000), ((startupDuration % 60000) / 1000));
 
     TC_METRIC_EVENT("events", "World initialized", "World initialized in " + std::to_string(startupDuration / 60000) + " minutes " + std::to_string((startupDuration % 60000) / 1000) + " seconds");
+
+    // Auto restarter
+    if (sWorld->getIntConfig(CONFIG_AUTORESTART_TIMER) != 0)
+        sWorld->ShutdownServ(sWorld->getIntConfig(CONFIG_AUTORESTART_TIMER), SHUTDOWN_MASK_RESTART, RESTART_EXIT_CODE);
 }
 
 void World::SetForcedWarModeFactionBalanceState(TeamId team, int32 reward)
@@ -2777,6 +2797,23 @@ void World::ForceGameEventUpdate()
     m_timers[WUPDATE_EVENTS].Reset();
 }
 
+void World::SendMapMessage(uint32 mapid, WorldPacket const* packet, WorldSession* self, uint32 team)
+{
+    SessionMap::const_iterator itr;
+    for (itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
+    {
+        if (itr->second &&
+            itr->second->GetPlayer() &&
+            itr->second->GetPlayer()->IsInWorld() &&
+            itr->second->GetPlayer()->GetMapId() == mapid &&
+            itr->second != self &&
+            (team == 0 || itr->second->GetPlayer()->GetTeam() == team))
+        {
+            itr->second->SendPacket(packet);
+        }
+    }
+}
+
 /// Send a packet to all players (except self if mentioned)
 void World::SendGlobalMessage(WorldPacket const* packet, WorldSession* self, uint32 team)
 {
@@ -2962,12 +2999,68 @@ bool World::SendZoneMessage(uint32 zone, WorldPacket const* packet, WorldSession
     return foundPlayerToSend;
 }
 
+bool World::SendAreaIDMessage(uint32 areaID, WorldPacket const* packet, WorldSession* self, uint32 team)
+{
+    bool foundPlayerToSend = false;
+    SessionMap::const_iterator itr;
+
+    for (itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
+    {
+        if (itr->second &&
+            itr->second->GetPlayer() &&
+            itr->second->GetPlayer()->IsInWorld() &&
+            itr->second->GetPlayer()->GetAreaId() == areaID &&
+            itr->second != self &&
+            (team == 0 || itr->second->GetPlayer()->GetTeam() == team))
+        {
+            itr->second->SendPacket(packet);
+            foundPlayerToSend = true;
+        }
+    }
+
+    return foundPlayerToSend;
+}
+
 /// Send a System Message to all players in the zone (except self if mentioned)
 void World::SendZoneText(uint32 zone, char const* text, WorldSession* self, uint32 team)
 {
     WorldPackets::Chat::Chat packet;
     packet.Initialize(CHAT_MSG_SYSTEM, LANG_UNIVERSAL, nullptr, nullptr, text);
     SendZoneMessage(zone, packet.Write(), self, team);
+}
+
+/// Send a System Message to all GMs (except self if mentioned)
+void World::SendMapText(uint32 mapid, uint32 string_id, ...)
+{
+
+    SessionMap::const_iterator itr;
+
+    va_list ap;
+    va_start(ap, string_id);
+
+    Trinity::WorldWorldTextBuilder wt_builder(string_id, &ap);
+    Trinity::LocalizedDo<Trinity::WorldWorldTextBuilder> wt_do(wt_builder);
+    for (SessionMap::const_iterator itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
+    {
+        // Session should have permissions to receive global gm messages
+        WorldSession* session = itr->second;
+        WorldSession* self;
+
+
+        if (itr->second &&
+            itr->second->GetPlayer() &&
+            itr->second->GetPlayer()->IsInWorld() &&
+            itr->second->GetPlayer()->GetMapId() == mapid &&
+            itr->second != self)
+        {
+
+            wt_do(itr->second->GetPlayer());
+            va_end(ap);
+
+        }
+
+    }
+
 }
 
 /// Kick (and save) all players

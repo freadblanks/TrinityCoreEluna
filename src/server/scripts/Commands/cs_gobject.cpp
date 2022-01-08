@@ -420,7 +420,11 @@ public:
         Map* map = object->GetMap();
 
         object->Relocate(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), oz);
+        object->RelocateStationaryPosition(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), object->GetOrientation());
         object->SetLocalRotationAngles(oz, oy, ox);
+        object->DestroyForNearbyPlayers();
+        object->UpdateObjectVisibility();
+
         object->SaveToDB();
 
         // Generate a completely new spawn with new guid
@@ -461,11 +465,12 @@ public:
         char* toY = strtok(nullptr, " ");
         char* toZ = strtok(nullptr, " ");
 
-        float x, y, z;
+        float x, y, z, o;
         if (!toX)
         {
             Player* player = handler->GetSession()->GetPlayer();
             player->GetPosition(x, y, z);
+            o = player->GetOrientation();
         }
         else
         {
@@ -475,6 +480,7 @@ public:
             x = (float)atof(toX);
             y = (float)atof(toY);
             z = (float)atof(toZ);
+            o = 0;
 
             if (!MapManager::IsValidMapCoord(object->GetMapId(), x, y, z))
             {
@@ -486,12 +492,16 @@ public:
 
         Map* map = object->GetMap();
 
-        object->Relocate(x, y, z, object->GetOrientation());
+        object->DestroyForNearbyPlayers();
+        object->RelocateStationaryPosition(x, y, z, object->GetOrientation());
+        object->GetMap()->GameObjectRelocation(object, x, y, z, object->GetOrientation());
+        //object->Relocate(x, y, z, object->GetOrientation());
+        object->SaveToDB();
 
         // update which cell has this gameobject registered for loading
-        sObjectMgr->RemoveGameobjectFromGrid(object->GetGameObjectData());
+        /*sObjectMgr->RemoveGameobjectFromGrid(object->GetGameObjectData());
         object->SaveToDB();
-        sObjectMgr->AddGameobjectToGrid(object->GetGameObjectData());
+        sObjectMgr->AddGameobjectToGrid(object->GetGameObjectData());*/
 
         // Generate a completely new spawn with new guid
         // 3.3.5a client caches recently deleted objects and brings them back to life
@@ -508,9 +518,9 @@ public:
     }
 
     //set phasemask for selected object
-    static bool HandleGameObjectSetPhaseCommand(ChatHandler* /*handler*/, char const* /*args*/)
+    static bool HandleGameObjectSetPhaseCommand(ChatHandler* handler, char const* args)
     {
-        /*// number or [name] Shift-click form |color|Hgameobject:go_id|h[name]|h|r
+        // number or [name] Shift-click form |color|Hgameobject:go_id|h[name]|h|r
         char* id = handler->extractKeyFromLink((char*)args, "Hgameobject");
         if (!id)
             return false;
@@ -527,7 +537,7 @@ public:
             return false;
         }
 
-        char* phase = strtok (nullptr, " ");
+        char* phase = strtok(nullptr, " ");
         uint32 phaseMask = phase ? atoul(phase) : 0;
         if (phaseMask == 0)
         {
@@ -536,8 +546,8 @@ public:
             return false;
         }
 
-        object->SetPhaseMask(phaseMask, true);
-        object->SaveToDB();*/
+        object->GetPhaseShift().AddPhase(phaseMask, PhaseFlags::None, nullptr);
+        object->SaveToDB();
         return true;
     }
 
@@ -871,6 +881,12 @@ public:
         object->DestroyForNearbyPlayers();
         object->UpdateObjectVisibility();
         object->SaveToDB();
+
+        Map* map = object->GetMap();
+
+        object->Delete(); object = GameObject::CreateGameObjectFromDB(guidLow, map);
+        if (!object)
+            return false;
 
         handler->PSendSysMessage("Set %s scale to %f", object->GetGUID().ToString(), scale);
         return true;

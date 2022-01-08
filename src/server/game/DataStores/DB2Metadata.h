@@ -3382,7 +3382,7 @@ struct CreatureDisplayInfoOptionMeta
         {
             { FT_INT, 1, true },
             { FT_INT, 1, true },
-            { FT_INT, 1, true },
+            { FT_INT, 1, false },
         };
         static DB2Meta instance(3692043, -1, 3, 2, 0x2155E881, fields, 2);
         return &instance;
@@ -8790,10 +8790,11 @@ struct NPCModelItemSlotDisplayInfoMeta
 {
     static DB2Meta const* Instance()
     {
-        static DB2MetaField const fields[3] =
+        static DB2MetaField const fields[4] =
         {
             { FT_INT, 1, true },
             { FT_BYTE, 1, true },
+            { FT_INT, 1, true },
             { FT_INT, 1, true },
         };
         static DB2Meta instance(1340661, -1, 3, 2, 0xBA98178D, fields, 2);
@@ -11113,7 +11114,7 @@ struct SoundKitEntryMeta
             { FT_INT, 1, false },
             { FT_INT, 1, true },
             { FT_BYTE, 1, false },
-            { FT_FLOAT, 1, true },
+            { FT_FLOAT, 1, false },
         };
         static DB2Meta instance(1237435, -1, 4, 4, 0x8FEA5F4F, fields, 0);
         return &instance;
@@ -11943,7 +11944,7 @@ struct SpellLabelMeta
         static DB2MetaField const fields[2] =
         {
             { FT_INT, 1, false },
-            { FT_INT, 1, true },
+            { FT_INT, 1, false },
         };
         static DB2Meta instance(1347275, -1, 2, 1, 0x46008468, fields, 1);
         return &instance;

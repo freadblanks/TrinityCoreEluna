@@ -100,7 +100,7 @@ struct SpawnMetadata
 struct SpawnData : public SpawnMetadata
 {
     uint32 id = 0; // entry in respective _template table
-    Position spawnPoint;
+    WorldLocation spawnPoint;
     uint8 phaseUseFlags = 0;
     uint32 phaseId = 0;
     uint32 phaseGroup = 0;
@@ -108,6 +108,7 @@ struct SpawnData : public SpawnMetadata
     int32 spawntimesecs = 0;
     std::vector<Difficulty> spawnDifficulties;
     uint32 scriptId = 0;
+    bool isActive = false;
 
     protected:
     SpawnData(SpawnObjectType t) : SpawnMetadata(t) {}

@@ -645,6 +645,7 @@ void GameObject::Update(uint32 diff)
                             udata.BuildPacket(&packet);
                             caster->ToPlayer()->SendDirectMessage(&packet);
 
+                            SetGoAnimProgress(0);
                             SendCustomAnim(GetGoAnimProgress());
                         }
 
@@ -1147,6 +1148,7 @@ void GameObject::SaveToDB(uint32 mapid, std::vector<Difficulty> const& spawnDiff
     data.goState = GetGoState();
     data.spawnDifficulties = spawnDifficulties;
     data.artKit = GetGoArtKit();
+    data.isActive = isActiveObject();
     if (!data.spawnGroupData)
         data.spawnGroupData = sObjectMgr->GetDefaultSpawnGroup();
     if (data.size == 0.0f)
@@ -1211,6 +1213,7 @@ void GameObject::SaveToDB(uint32 mapid, std::vector<Difficulty> const& spawnDiff
     stmt->setInt32(index++, int32(m_respawnDelayTime));
     stmt->setUInt8(index++, GetGoAnimProgress());
     stmt->setUInt8(index++, uint8(GetGoState()));
+    stmt->setUInt32(index++, uint8(isActiveObject()));
     stmt->setFloat(index++, data.size);
     stmt->setFloat(index++, GetVisibilityRange());
     trans->Append(stmt);
@@ -1281,6 +1284,8 @@ bool GameObject::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap
     }
 
     m_goData = data;
+
+    setActive(data->isActive || GetGoType() == GAMEOBJECT_TYPE_PHASEABLE_MO);
 
     if (addToMap && !GetMap()->AddToMap(this))
         return false;

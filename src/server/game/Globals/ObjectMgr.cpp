@@ -2474,8 +2474,8 @@ void ObjectMgr::LoadGameObjects()
     QueryResult result = WorldDatabase.Query("SELECT gameobject.guid, id, map, position_x, position_y, position_z, orientation, "
     //   7          8          9          10         11             12            13     14                 15          16
         "rotation0, rotation1, rotation2, rotation3, spawntimesecs, animprogress, state, spawnDifficulties, eventEntry, poolSpawnId, "
-    //   17             18       19          20              21          22    23
-        "phaseUseFlags, phaseid, phasegroup, terrainSwapMap, ScriptName, size, visibility "
+    //   17             18       19          20                 21          22      23   24
+        "phaseUseFlags, phaseid, phasegroup, terrainSwapMap, isActive, ScriptName, size, visibility "
         "FROM gameobject LEFT OUTER JOIN game_event_gameobject ON gameobject.guid = game_event_gameobject.guid "
         "LEFT OUTER JOIN pool_members ON pool_members.type = 1 AND gameobject.guid = pool_members.spawnId");
 
@@ -2597,8 +2597,8 @@ void ObjectMgr::LoadGameObjects()
         data.phaseUseFlags  = fields[17].GetUInt8();
         data.phaseId        = fields[18].GetUInt32();
         data.phaseGroup     = fields[19].GetUInt32();
-        data.size           = fields[22].GetFloat();
-        data.visibility     = fields[23].GetFloat();
+        data.size           = fields[23].GetFloat();
+        data.visibility     = fields[24].GetFloat();
 
         if (data.phaseUseFlags & ~PHASE_USE_FLAGS_ALL)
         {
@@ -2653,7 +2653,9 @@ void ObjectMgr::LoadGameObjects()
             }
         }
 
-        data.scriptId = GetScriptId(fields[21].GetString());
+        data.isActive = fields[21].GetBool();
+
+        data.scriptId = GetScriptId(fields[22].GetString());
 
         if (data.rotation.x < -1.0f || data.rotation.x > 1.0f)
         {
@@ -9423,9 +9425,10 @@ uint32 ObjectMgr::LoadReferenceVendor(int32 vendor, int32 item, std::set<uint32>
             vItem.maxcount          = fields[1].GetUInt32();
             vItem.incrtime          = fields[2].GetUInt32();
             vItem.ExtendedCost      = fields[3].GetUInt32();
-            vItem.Type              = fields[4].GetUInt8();
-            vItem.PlayerConditionId = fields[6].GetUInt32();
-            vItem.IgnoreFiltering   = fields[7].GetBool();
+            vItem.OverrideGoldCost  = fields[4].GetInt64();
+            vItem.Type              = fields[5].GetUInt8();
+            vItem.PlayerConditionId = fields[7].GetUInt32();
+            vItem.IgnoreFiltering   = fields[8].GetBool();
 
             Tokenizer bonusListIDsTok(fields[5].GetString(), ' ');
             for (char const* token : bonusListIDsTok)
@@ -9454,7 +9457,7 @@ void ObjectMgr::LoadVendors()
 
     std::set<uint32> skip_vendors;
 
-    QueryResult result = WorldDatabase.Query("SELECT entry, item, maxcount, incrtime, ExtendedCost, type, BonusListIDs, PlayerConditionID, IgnoreFiltering FROM npc_vendor ORDER BY entry, slot ASC");
+    QueryResult result = WorldDatabase.Query("SELECT entry, item, maxcount, incrtime, ExtendedCost, OverrideGoldCost, type, BonusListIDs, PlayerConditionID, IgnoreFiltering FROM npc_vendor ORDER BY entry, slot ASC");
     if (!result)
     {
         TC_LOG_ERROR("server.loading", ">>  Loaded 0 Vendors. DB table `npc_vendor` is empty!");
@@ -9480,9 +9483,10 @@ void ObjectMgr::LoadVendors()
             vItem.maxcount          = fields[2].GetUInt32();
             vItem.incrtime          = fields[3].GetUInt32();
             vItem.ExtendedCost      = fields[4].GetUInt32();
-            vItem.Type              = fields[5].GetUInt8();
-            vItem.PlayerConditionId = fields[7].GetUInt32();
-            vItem.IgnoreFiltering   = fields[8].GetBool();
+            vItem.OverrideGoldCost  = fields[5].GetInt64();
+            vItem.Type              = fields[6].GetUInt8();
+            vItem.PlayerConditionId = fields[8].GetUInt32();
+            vItem.IgnoreFiltering   = fields[9].GetBool();
 
             Tokenizer bonusListIDsTok(fields[6].GetString(), ' ');
             for (char const* token : bonusListIDsTok)

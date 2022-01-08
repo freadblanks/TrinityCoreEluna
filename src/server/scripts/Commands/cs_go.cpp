@@ -75,6 +75,7 @@ public:
             { "suggestionticket",   rbac::RBAC_PERM_COMMAND_GO,             false, &HandleGoTicketCommand<SuggestionTicket>,    "" },
             { "offset",             rbac::RBAC_PERM_COMMAND_GO,             false, &HandleGoOffsetCommand,                      "" },
             { "instance",           rbac::RBAC_PERM_COMMAND_GO,             false, &HandleGoInstanceCommand,                    "" },
+            { "",                   rbac::RBAC_PERM_COMMAND_GO,             false, &HandleGoXYZCommand,                         "" },
             { "boss",               rbac::RBAC_PERM_COMMAND_GO,             false, &HandleGoBossCommand,                        "" }
         };
 

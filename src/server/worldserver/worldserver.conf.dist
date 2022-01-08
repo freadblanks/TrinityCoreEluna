@@ -8,6 +8,7 @@
 #
 #    EXAMPLE CONFIG
 #    CONNECTIONS AND DIRECTORIES
+#	 AUTORESTARTER SETTINGS
 #    PERFORMANCE SETTINGS
 #    SERVER LOGGING
 #    SERVER SETTINGS
@@ -41,6 +42,7 @@
 #    PACKET SPOOF PROTECTION SETTINGS
 #    METRIC SETTINGS
 #    PVP SETTINGS
+#	 ELUNA SETTINGS
 #
 ###################################################################################################
 
@@ -57,6 +59,19 @@
 # Note to developers:
 # - Copy this example to keep the formatting.
 # - Line breaks should be at column 100.
+###################################################################################################
+
+###################################################################################################
+#    Autorestart.Timer
+#        Description: Automatic server restart by timer. Works when started via a restart, 
+#        otherwise it shuts down the server (instead of restarting).
+#
+#		 Default: 0 - disable
+#				 60 - restart 60 seconds after starting the server
+#				 3600 - restart 1 hour after starting the server
+#				 86400 - restart 24 hours after starting
+
+Autorestart.Timer = 0
 ###################################################################################################
 
 ###################################################################################################
@@ -941,6 +956,13 @@ RecruitAFriend.MaxDifference = 4
 
 DisableWaterBreath = 4
 
+#    Enable or Disable "Fatigue" timer
+#           default = 1 (enabled)
+#                   = 0 (disabled)
+
+fatigue.enabled = 1
+
+#
 #
 #    AllFlightPaths
 #        Description: Character knows all flight paths (of both factions) after creation.
@@ -4318,6 +4340,38 @@ Pvp.FactionBalance.Pct10 = 0.7
 #        Default:     0.8
 
 Pvp.FactionBalance.Pct20 = 0.8
+
+#
+###################################################################################################
+
+###################################################################################################
+# ELUNA SETTINGS
+#
+# These settings control if Eluna is enabled
+#
+#    Eluna.Enabled
+#        Description: If Eluna is enabled on the server
+#        Default:     True
+
+Eluna.Enabled = 1
+
+#
+# These settings control the Eluna scripts path
+#
+#    Eluna.ScriptPath
+#        Description: Eluna script Path
+#        Default:     lua_scripts
+
+Eluna.ScriptPath = "lua_scripts"
+
+#
+# These settings control the Eluna traceback
+#
+#    Eluna.ScriptPath
+#        Description: Eluna Trace back
+#        Default:     0
+
+Eluna.TraceBack = 0
 
 #
 ###################################################################################################

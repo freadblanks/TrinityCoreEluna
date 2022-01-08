@@ -23,6 +23,7 @@
 #include "QueryHolder.h"
 #include "AccountMgr.h"
 #include "AuthenticationPackets.h"
+#include "BattlePayMgr.h"
 #include "BattlePetMgr.h"
 #include "BattlegroundMgr.h"
 #include "BattlenetPackets.h"
@@ -153,6 +154,8 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
         ResetTimeOutTime(false);
         LoginDatabase.PExecute("UPDATE account SET online = 1 WHERE id = %u;", GetAccountId());     // One-time query
     }
+
+    _battlePayMgr = std::make_shared<BattlepayManager>(this);
 
     m_Socket[CONNECTION_TYPE_REALM] = sock;
     _instanceConnectKey.Raw = UI64LIT(0);
@@ -984,6 +987,26 @@ void WorldSession::ProcessQueryCallbacks()
 
     if (_charEnumCallback.valid() && _charEnumCallback.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
         HandleCharEnum(static_cast<CharacterDatabaseQueryHolder*>(_charEnumCallback.get()));
+}
+
+void WorldSession::RemoveAuthFlag(AuthFlags f)
+{
+    atAuthFlag = AuthFlags(atAuthFlag & ~f);
+    SaveAuthFlag();
+}
+
+void WorldSession::AddAuthFlag(AuthFlags f)
+{
+    atAuthFlag = AuthFlags(atAuthFlag | f);
+    SaveAuthFlag();
+}
+
+void WorldSession::SaveAuthFlag()
+{
+    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_AT_AUTH_FLAG);
+    stmt->setUInt16(0, atAuthFlag);
+    stmt->setUInt32(1, GetAccountId());
+    LoginDatabase.Execute(stmt);
 }
 
 TransactionCallback& WorldSession::AddTransactionCallback(TransactionCallback&& callback)

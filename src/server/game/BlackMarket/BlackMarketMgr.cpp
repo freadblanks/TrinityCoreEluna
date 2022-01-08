@@ -111,7 +111,7 @@ void BlackMarketMgr::LoadAuctions()
         return;
     }
 
-    _lastUpdate = GameTime::GetGameTime(); //Set update time before loading
+    _lastUpdate = time(nullptr); //Set update time before loading
 
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
     do
@@ -147,13 +147,16 @@ void BlackMarketMgr::Update(bool updateTime)
     time_t now = GameTime::GetGameTime();
     for (BlackMarketEntryMap::iterator itr = _auctions.begin(); itr != _auctions.end(); ++itr)
     {
-        BlackMarketEntry* entry = itr->second;
+        BlackMarketEntry* auction = itr->second;
 
-        if (entry->IsCompleted() && entry->GetBidder())
-            SendAuctionWonMail(entry, trans);
-
-        if (updateTime)
-            entry->Update(now);
+        if (auction->IsCompleted())
+        {
+            if (auction->GetBidder())
+            {
+                SendAuctionWonMail(auction, trans);
+                auction->DeleteFromDB(trans);
+            }
+        }
     }
 
     if (updateTime)
@@ -199,9 +202,13 @@ void BlackMarketMgr::RefreshAuctions()
     for (BlackMarketTemplate const* templat : templates)
     {
         BlackMarketEntry* entry = new BlackMarketEntry();
-        entry->Initialize(templat->MarketID, templat->Duration);
-        entry->SaveToDB(trans);
-        AddAuction(entry);
+        int32 timed = time(nullptr) + templat->Duration;
+        if (timed > 0)
+        {
+            entry->Initialize(templat->MarketID, timed);
+            entry->SaveToDB(trans);
+            AddAuction(entry);
+        }
     }
 
     CharacterDatabase.CommitTransaction(trans);
@@ -394,24 +401,19 @@ bool BlackMarketTemplate::LoadFromDB(Field* fields)
     return true;
 }
 
-void BlackMarketEntry::Update(time_t newTimeOfUpdate)
-{
-    _secondsRemaining = _secondsRemaining - (newTimeOfUpdate - sBlackMarketMgr->GetLastUpdate());
-}
-
 BlackMarketTemplate const* BlackMarketEntry::GetTemplate() const
 {
-    return sBlackMarketMgr->GetTemplateByID(_marketId);
+    return sBlackMarketMgr->GetTemplateByID(GetMarketId());
 }
 
 uint32 BlackMarketEntry::GetSecondsRemaining() const
 {
-    return _secondsRemaining - (GameTime::GetGameTime() - sBlackMarketMgr->GetLastUpdate());
+    return _startTime - time(nullptr);
 }
 
 time_t BlackMarketEntry::GetExpirationTime() const
 {
-    return GameTime::GetGameTime() + GetSecondsRemaining();
+    return time(nullptr) + GetSecondsRemaining();
 }
 
 bool BlackMarketEntry::IsCompleted() const
@@ -432,16 +434,12 @@ bool BlackMarketEntry::LoadFromDB(Field* fields)
     }
 
     _currentBid = fields[1].GetUInt64();
-    _secondsRemaining =  static_cast<time_t>(fields[2].GetInt64()) - sBlackMarketMgr->GetLastUpdate();
+    int32 secondsRemaining = fields[2].GetInt32();
+    if (secondsRemaining < 0) // bag
+        secondsRemaining = time(nullptr) + 7200;
+    _startTime = secondsRemaining;
     _numBids = fields[3].GetInt32();
     _bidder = fields[4].GetUInt64();
-
-    // Either no bidder or existing player
-    if (_bidder && !sCharacterCache->GetCharacterAccountIdByGuid(ObjectGuid::Create<HighGuid::Player>(_bidder))) // Probably a better way to check if player exists
-    {
-        TC_LOG_ERROR("misc", "Black market auction %i does not have a valid bidder (GUID: " UI64FMTD " ).", _marketId, _bidder);
-        return false;
-    }
 
     return true;
 }
@@ -487,9 +485,6 @@ void BlackMarketEntry::PlaceBid(uint64 bid, Player* player, CharacterDatabaseTra
 
     _currentBid = bid;
     ++_numBids;
-
-    if (GetSecondsRemaining() < 30 * MINUTE)
-        _secondsRemaining += 30 * MINUTE;
 
     _bidder = player->GetGUID().GetCounter();
 
