@@ -63,6 +63,9 @@ class ZoneScript;
 struct FactionTemplateEntry;
 struct PositionFullTerrainStatus;
 struct QuaternionData;
+#ifdef ELUNA
+class ElunaEventProcessor;
+#endif
 enum ZLiquidStatus : uint32;
 
 namespace WorldPackets
@@ -442,7 +445,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
     public:
         virtual ~WorldObject();
 
-        virtual void Update(uint32 /*time_diff*/) { }
+        virtual void Update(uint32 time_diff);
 
         void AddToWorld() override;
         void RemoveFromWorld() override;
@@ -721,6 +724,10 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         ObjectGuid GetPrivateObjectOwner() const { return _privateObjectOwner; }
         void SetPrivateObjectOwner(ObjectGuid const& owner) { _privateObjectOwner = owner; }
         bool CheckPrivateObjectOwnerVisibility(WorldObject const* seer) const;
+
+#ifdef ELUNA
+        ElunaEventProcessor* ElunaEvents;
+#endif
 
     protected:
         std::string m_name;

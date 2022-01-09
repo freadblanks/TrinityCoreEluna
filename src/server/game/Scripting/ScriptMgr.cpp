@@ -49,6 +49,10 @@
 #include "Weather.h"
 #include "WorldPacket.h"
 #include <unordered_map>
+#ifdef ELUNA
+#include "LuaEngine.h"
+#include "ElunaUtility.h"
+#endif
 
 // Trait which indicates whether this script type
 // must be assigned in the database.
@@ -1413,11 +1417,19 @@ void ScriptMgr::OnPacketSend(WorldSession* session, WorldPacket const& packet)
 
 void ScriptMgr::OnOpenStateChange(bool open)
 {
+#ifdef ELUNA
+    sEluna->OnOpenStateChange(open);
+#endif
+
     FOREACH_SCRIPT(WorldScript)->OnOpenStateChange(open);
 }
 
 void ScriptMgr::OnConfigLoad(bool reload)
 {
+#ifdef ELUNA
+    sEluna->OnConfigLoad(reload);
+#endif
+
     FOREACH_SCRIPT(WorldScript)->OnConfigLoad(reload);
 }
 
@@ -1428,16 +1440,28 @@ void ScriptMgr::OnMotdChange(std::string& newMotd)
 
 void ScriptMgr::OnShutdownInitiate(ShutdownExitCode code, ShutdownMask mask)
 {
+#ifdef ELUNA
+    sEluna->OnShutdownInitiate(code, mask);
+#endif
+
     FOREACH_SCRIPT(WorldScript)->OnShutdownInitiate(code, mask);
 }
 
 void ScriptMgr::OnShutdownCancel()
 {
+#ifdef ELUNA
+    sEluna->OnShutdownCancel();
+#endif
+
     FOREACH_SCRIPT(WorldScript)->OnShutdownCancel();
 }
 
 void ScriptMgr::OnWorldUpdate(uint32 diff)
 {
+#ifdef ELUNA
+    sEluna->OnWorldUpdate(diff);
+#endif
+
     FOREACH_SCRIPT(WorldScript)->OnUpdate(diff);
 }
 
@@ -1500,6 +1524,10 @@ void ScriptMgr::OnCreateMap(Map* map)
 {
     ASSERT(map);
 
+#ifdef ELUNA
+    sEluna->OnCreate(map);
+#endif
+
     SCR_MAP_BGN(WorldMapScript, map, itr, end, entry, IsWorldMap);
         itr->second->OnCreate(map);
     SCR_MAP_END;
@@ -1516,6 +1544,10 @@ void ScriptMgr::OnCreateMap(Map* map)
 void ScriptMgr::OnDestroyMap(Map* map)
 {
     ASSERT(map);
+
+#ifdef ELUNA
+    sEluna->OnDestroy(map);
+#endif
 
     SCR_MAP_BGN(WorldMapScript, map, itr, end, entry, IsWorldMap);
         itr->second->OnDestroy(map);
@@ -1571,6 +1603,11 @@ void ScriptMgr::OnPlayerEnterMap(Map* map, Player* player)
     ASSERT(map);
     ASSERT(player);
 
+#ifdef ELUNA
+    sEluna->OnMapChanged(player);           //One of these's gotta be redundant
+    sEluna->OnPlayerEnter(map, player);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnMapChanged(player);
 
     SCR_MAP_BGN(WorldMapScript, map, itr, end, entry, IsWorldMap);
@@ -1591,6 +1628,10 @@ void ScriptMgr::OnPlayerLeaveMap(Map* map, Player* player)
     ASSERT(map);
     ASSERT(player);
 
+#ifdef ELUNA
+    sEluna->OnPlayerLeave(map, player);
+#endif
+
     SCR_MAP_BGN(WorldMapScript, map, itr, end, entry, IsWorldMap);
         itr->second->OnPlayerLeave(map, player);
     SCR_MAP_END;
@@ -1607,6 +1648,10 @@ void ScriptMgr::OnPlayerLeaveMap(Map* map, Player* player)
 void ScriptMgr::OnMapUpdate(Map* map, uint32 diff)
 {
     ASSERT(map);
+
+#ifdef ELUNA
+    sEluna->OnUpdate(map, diff);
+#endif
 
     SCR_MAP_BGN(WorldMapScript, map, itr, end, entry, IsWorldMap);
         itr->second->OnUpdate(map, diff);
@@ -1638,6 +1683,10 @@ bool ScriptMgr::OnQuestAccept(Player* player, Item* item, Quest const* quest)
     ASSERT(item);
     ASSERT(quest);
 
+#ifdef ELUNA
+    if (sEluna->OnQuestAccept(player, item, quest)) return false;
+#endif
+
     GET_SCRIPT_RET(ItemScript, item->GetScriptId(), tmpscript, false);
     player->PlayerTalkClass->ClearMenus();
     return tmpscript->OnQuestAccept(player, item, quest);
@@ -1648,6 +1697,10 @@ bool ScriptMgr::OnItemUse(Player* player, Item* item, SpellCastTargets const& ta
     ASSERT(player);
     ASSERT(item);
 
+#ifdef ELUNA
+    if (!sEluna->OnUse(player, item, targets, castId)) return true;
+#endif
+
     GET_SCRIPT_RET(ItemScript, item->GetScriptId(), tmpscript, false);
     return tmpscript->OnUse(player, item, targets, castId);
 }
@@ -1656,6 +1709,10 @@ bool ScriptMgr::OnItemExpire(Player* player, ItemTemplate const* proto)
 {
     ASSERT(player);
     ASSERT(proto);
+
+#ifdef ELUNA
+    if (sEluna->OnExpire(player, proto)) return false;
+#endif
 
     GET_SCRIPT_RET(ItemScript, proto->ScriptId, tmpscript, false);
     return tmpscript->OnExpire(player, proto);
@@ -1666,8 +1723,30 @@ bool ScriptMgr::OnItemRemove(Player* player, Item* item)
     ASSERT(player);
     ASSERT(item);
 
+#ifdef ELUNA
+    if (sEluna->OnRemove(player, item)) return false;
+#endif
+
     GET_SCRIPT_RET(ItemScript, item->GetScriptId(), tmpscript, false);
     return tmpscript->OnRemove(player, item);
+}
+
+void ScriptMgr::OnGossipSelect(Player* player, Item* item, uint32 sender, uint32 action)
+{
+    ASSERT(player);
+    ASSERT(item);
+
+    GET_SCRIPT(ItemScript, item->GetScriptId(), tmpscript);
+    tmpscript->OnGossipSelect(player, item, sender, action);
+}
+
+void ScriptMgr::OnGossipSelectCode(Player* player, Item* item, uint32 sender, uint32 action, const char* code)
+{
+    ASSERT(player);
+    ASSERT(item);
+
+    GET_SCRIPT(ItemScript, item->GetScriptId(), tmpscript);
+    tmpscript->OnGossipSelectCode(player, item, sender, action, code);
 }
 
 bool ScriptMgr::OnCastItemCombatSpell(Player* player, Unit* victim, SpellInfo const* spellInfo, Item* item)
@@ -1689,6 +1768,10 @@ bool ScriptMgr::CanCreateCreatureAI(uint32 scriptId) const
 CreatureAI* ScriptMgr::GetCreatureAI(Creature* creature)
 {
     ASSERT(creature);
+
+#ifdef ELUNA
+    if (CreatureAI* luaAI = sEluna->GetAI(creature)) return luaAI;
+#endif
 
     GET_SCRIPT_RET(CreatureScript, creature->GetScriptId(), tmpscript, nullptr);
     return tmpscript->GetAI(creature);
@@ -1724,6 +1807,10 @@ bool ScriptMgr::OnAreaTrigger(Player* player, AreaTriggerEntry const* trigger, b
 {
     ASSERT(player);
     ASSERT(trigger);
+
+#ifdef ELUNA
+    if (sEluna->OnAreaTrigger(player, trigger, entered)) return false;   //New parameter entered; Need one for GetAreaTriggerAI?
+#endif
 
     GET_SCRIPT_RET(AreaTriggerScript, sObjectMgr->GetAreaTriggerScriptId(trigger->ID), tmpscript, false);
     return entered ? tmpscript->OnTrigger(player, trigger) : tmpscript->OnExit(player, trigger);
@@ -1771,6 +1858,10 @@ void ScriptMgr::OnWeatherChange(Weather* weather, WeatherState state, float grad
 {
     ASSERT(weather);
 
+#ifdef ELUNA
+    sEluna->OnChange(weather, weather->GetZone(), state, grade);
+#endif
+
     GET_SCRIPT(WeatherScript, weather->GetScriptId(), tmpscript);
     tmpscript->OnChange(weather, state, grade);
 }
@@ -1788,6 +1879,10 @@ void ScriptMgr::OnAuctionAdd(AuctionHouseObject* ah, AuctionPosting* auction)
     ASSERT(ah);
     ASSERT(auction);
 
+#ifdef ELUNA
+    sEluna->OnAdd(ah, auction);
+#endif
+
     FOREACH_SCRIPT(AuctionHouseScript)->OnAuctionAdd(ah, auction);
 }
 
@@ -1795,6 +1890,10 @@ void ScriptMgr::OnAuctionRemove(AuctionHouseObject* ah, AuctionPosting* auction)
 {
     ASSERT(ah);
     ASSERT(auction);
+
+#ifdef ELUNA
+    sEluna->OnRemove(ah, auction);
+#endif
 
     FOREACH_SCRIPT(AuctionHouseScript)->OnAuctionRemove(ah, auction);
 }
@@ -1804,6 +1903,10 @@ void ScriptMgr::OnAuctionSuccessful(AuctionHouseObject* ah, AuctionPosting* auct
     ASSERT(ah);
     ASSERT(auction);
 
+#ifdef ELUNA
+    sEluna->OnSuccessful(ah, auction);
+#endif
+
     FOREACH_SCRIPT(AuctionHouseScript)->OnAuctionSuccessful(ah, auction);
 }
 
@@ -1811,6 +1914,10 @@ void ScriptMgr::OnAuctionExpire(AuctionHouseObject* ah, AuctionPosting* auction)
 {
     ASSERT(ah);
     ASSERT(auction);
+
+#ifdef ELUNA
+    sEluna->OnExpire(ah, auction);
+#endif
 
     FOREACH_SCRIPT(AuctionHouseScript)->OnAuctionExpire(ah, auction);
 }
@@ -1828,6 +1935,10 @@ void ScriptMgr::OnInstall(Vehicle* veh)
     ASSERT(veh);
     ASSERT(veh->GetBase()->GetTypeId() == TYPEID_UNIT);
 
+#ifdef ELUNA
+    sEluna->OnInstall(veh);
+#endif
+
     GET_SCRIPT(VehicleScript, veh->GetBase()->ToCreature()->GetScriptId(), tmpscript);
     tmpscript->OnInstall(veh);
 }
@@ -1836,6 +1947,10 @@ void ScriptMgr::OnUninstall(Vehicle* veh)
 {
     ASSERT(veh);
     ASSERT(veh->GetBase()->GetTypeId() == TYPEID_UNIT);
+
+#ifdef ELUNA
+    sEluna->OnUninstall(veh);
+#endif
 
     GET_SCRIPT(VehicleScript, veh->GetBase()->ToCreature()->GetScriptId(), tmpscript);
     tmpscript->OnUninstall(veh);
@@ -1856,6 +1971,10 @@ void ScriptMgr::OnInstallAccessory(Vehicle* veh, Creature* accessory)
     ASSERT(veh->GetBase()->GetTypeId() == TYPEID_UNIT);
     ASSERT(accessory);
 
+#ifdef ELUNA
+    sEluna->OnInstallAccessory(veh, accessory);
+#endif
+
     GET_SCRIPT(VehicleScript, veh->GetBase()->ToCreature()->GetScriptId(), tmpscript);
     tmpscript->OnInstallAccessory(veh, accessory);
 }
@@ -1866,6 +1985,10 @@ void ScriptMgr::OnAddPassenger(Vehicle* veh, Unit* passenger, int8 seatId)
     ASSERT(veh->GetBase()->GetTypeId() == TYPEID_UNIT);
     ASSERT(passenger);
 
+#ifdef ELUNA
+    sEluna->OnAddPassenger(veh, passenger, seatId);
+#endif
+
     GET_SCRIPT(VehicleScript, veh->GetBase()->ToCreature()->GetScriptId(), tmpscript);
     tmpscript->OnAddPassenger(veh, passenger, seatId);
 }
@@ -1875,6 +1998,10 @@ void ScriptMgr::OnRemovePassenger(Vehicle* veh, Unit* passenger)
     ASSERT(veh);
     ASSERT(veh->GetBase()->GetTypeId() == TYPEID_UNIT);
     ASSERT(passenger);
+
+#ifdef ELUNA
+    sEluna->OnRemovePassenger(veh, passenger);
+#endif
 
     GET_SCRIPT(VehicleScript, veh->GetBase()->ToCreature()->GetScriptId(), tmpscript);
     tmpscript->OnRemovePassenger(veh, passenger);
@@ -1931,11 +2058,19 @@ void ScriptMgr::OnRelocate(Transport* transport, uint32 waypointId, uint32 mapId
 
 void ScriptMgr::OnStartup()
 {
+#ifdef ELUNA
+    sEluna->OnStartup();
+#endif
+
     FOREACH_SCRIPT(WorldScript)->OnStartup();
 }
 
 void ScriptMgr::OnShutdown()
 {
+#ifdef ELUNA
+    sEluna->OnShutdown();
+#endif
+
     FOREACH_SCRIPT(WorldScript)->OnShutdown();
 }
 
@@ -1951,36 +2086,64 @@ bool ScriptMgr::OnCriteriaCheck(uint32 scriptId, Player* source, Unit* target)
 // Player
 void ScriptMgr::OnPVPKill(Player* killer, Player* killed)
 {
+#ifdef ELUNA
+    sEluna->OnPVPKill(killer, killed);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnPVPKill(killer, killed);
 }
 
 void ScriptMgr::OnCreatureKill(Player* killer, Creature* killed)
 {
+#ifdef ELUNA
+    sEluna->OnCreatureKill(killer, killed);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnCreatureKill(killer, killed);
 }
 
 void ScriptMgr::OnPlayerKilledByCreature(Creature* killer, Player* killed)
 {
+#ifdef ELUNA
+    sEluna->OnPlayerKilledByCreature(killer, killed);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnPlayerKilledByCreature(killer, killed);
 }
 
 void ScriptMgr::OnPlayerLevelChanged(Player* player, uint8 oldLevel)
 {
+#ifdef ELUNA
+    sEluna->OnLevelChanged(player, oldLevel);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnLevelChanged(player, oldLevel);
 }
 
 void ScriptMgr::OnPlayerFreeTalentPointsChanged(Player* player, uint32 points)
 {
+#ifdef ELUNA
+    sEluna->OnFreeTalentPointsChanged(player, points);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnFreeTalentPointsChanged(player, points);
 }
 
 void ScriptMgr::OnPlayerTalentsReset(Player* player, bool noCost)
 {
+#ifdef ELUNA
+    sEluna->OnTalentsReset(player, noCost);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnTalentsReset(player, noCost);
 }
 
 void ScriptMgr::OnPlayerMoneyChanged(Player* player, int64& amount)
 {
+#ifdef ELUNA
+    sEluna->OnMoneyChanged(player, amount);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnMoneyChanged(player, amount);
 }
 
@@ -1991,11 +2154,19 @@ void ScriptMgr::OnPlayerMoneyLimit(Player* player, int64 amount)
 
 void ScriptMgr::OnGivePlayerXP(Player* player, uint32& amount, Unit* victim)
 {
+#ifdef ELUNA
+    sEluna->OnGiveXP(player, amount, victim);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnGiveXP(player, amount, victim);
 }
 
 void ScriptMgr::OnPlayerReputationChange(Player* player, uint32 factionID, int32& standing, bool incremental)
 {
+#ifdef ELUNA
+    sEluna->OnReputationChange(player, factionID, standing, incremental);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnReputationChange(player, factionID, standing, incremental);
 }
 
@@ -2006,42 +2177,74 @@ void ScriptMgr::OnPlayerLearnSpell(Player* player, uint32 spellID)
 
 void ScriptMgr::OnPlayerDuelRequest(Player* target, Player* challenger)
 {
+#ifdef ELUNA
+    sEluna->OnDuelRequest(target, challenger);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnDuelRequest(target, challenger);
 }
 
 void ScriptMgr::OnPlayerDuelStart(Player* player1, Player* player2)
 {
+#ifdef ELUNA
+    sEluna->OnDuelStart(player1, player2);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnDuelStart(player1, player2);
 }
 
 void ScriptMgr::OnPlayerDuelEnd(Player* winner, Player* loser, DuelCompleteType type)
 {
+#ifdef ELUNA
+    sEluna->OnDuelEnd(winner, loser, type);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnDuelEnd(winner, loser, type);
 }
 
 void ScriptMgr::OnPlayerChat(Player* player, uint32 type, uint32 lang, std::string& msg)
 {
     FOREACH_SCRIPT(PlayerScript)->OnChat(player, type, lang, msg);
+
+#ifdef ELUNA
+    if (!sEluna->OnChat(player, type, lang, msg)) return;
+#endif
 }
 
 void ScriptMgr::OnPlayerChat(Player* player, uint32 type, uint32 lang, std::string& msg, Player* receiver)
 {
     FOREACH_SCRIPT(PlayerScript)->OnChat(player, type, lang, msg, receiver);
+
+#ifdef ELUNA
+    if (!sEluna->OnChat(player, type, lang, msg, receiver)) return;
+#endif
 }
 
 void ScriptMgr::OnPlayerChat(Player* player, uint32 type, uint32 lang, std::string& msg, Group* group)
 {
     FOREACH_SCRIPT(PlayerScript)->OnChat(player, type, lang, msg, group);
+
+#ifdef ELUNA
+    if (!sEluna->OnChat(player, type, lang, msg, group)) return;
+#endif
 }
 
 void ScriptMgr::OnPlayerChat(Player* player, uint32 type, uint32 lang, std::string& msg, Guild* guild)
 {
     FOREACH_SCRIPT(PlayerScript)->OnChat(player, type, lang, msg, guild);
+
+#ifdef ELUNA
+    if (!sEluna->OnChat(player, type, lang, msg, guild)) return;
+#endif
 }
 
 void ScriptMgr::OnPlayerChat(Player* player, uint32 type, uint32 lang, std::string& msg, Channel* channel)
 {
     FOREACH_SCRIPT(PlayerScript)->OnChat(player, type, lang, msg, channel);
+
+#ifdef ELUNA
+    if (!sEluna->OnChat(player, type, lang, msg, channel)) return;
+#endif
 }
 
 void ScriptMgr::OnPlayerClearEmote(Player* player)
@@ -2051,31 +2254,56 @@ void ScriptMgr::OnPlayerClearEmote(Player* player)
 
 void ScriptMgr::OnPlayerTextEmote(Player* player, uint32 textEmote, uint32 emoteNum, ObjectGuid guid)
 {
+#ifdef ELUNA
+    sEluna->OnTextEmote(player, textEmote, emoteNum, guid);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnTextEmote(player, textEmote, emoteNum, guid);
 }
 
 void ScriptMgr::OnPlayerSpellCast(Player* player, Spell* spell, bool skipCheck)
 {
+#ifdef ELUNA
+    sEluna->OnSpellCast(player, spell, skipCheck);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnSpellCast(player, spell, skipCheck);
 }
 
 void ScriptMgr::OnPlayerLogin(Player* player, bool firstLogin)
 {
+#ifdef ELUNA
+    if (firstLogin) sEluna->OnFirstLogin(player);
+    sEluna->OnLogin(player);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnLogin(player, firstLogin);
 }
 
 void ScriptMgr::OnPlayerLogout(Player* player)
 {
+#ifdef ELUNA
+    sEluna->OnLogout(player);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnLogout(player);
 }
 
 void ScriptMgr::OnPlayerCreate(Player* player)
 {
+#ifdef ELUNA
+    sEluna->OnCreate(player);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnCreate(player);
 }
 
 void ScriptMgr::OnPlayerDelete(ObjectGuid guid, uint32 accountId)
 {
+#ifdef ELUNA
+    sEluna->OnDelete(guid.GetCounter());
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnDelete(guid, accountId);
 }
 
@@ -2086,17 +2314,47 @@ void ScriptMgr::OnPlayerFailedDelete(ObjectGuid guid, uint32 accountId)
 
 void ScriptMgr::OnPlayerSave(Player* player)
 {
+#ifdef ELUNA
+    sEluna->OnSave(player);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnSave(player);
 }
 
 void ScriptMgr::OnPlayerBindToInstance(Player* player, Difficulty difficulty, uint32 mapid, bool permanent, uint8 extendState)
 {
+#ifdef ELUNA
+    sEluna->OnBindToInstance(player, difficulty, mapid, permanent);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnBindToInstance(player, difficulty, mapid, permanent, extendState);
 }
 
 void ScriptMgr::OnPlayerUpdateZone(Player* player, uint32 newZone, uint32 newArea)
 {
+#ifdef ELUNA
+    sEluna->OnUpdateZone(player, newZone, newArea);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnUpdateZone(player, newZone, newArea);
+}
+
+void ScriptMgr::OnGossipSelect(Player* player, uint32 menu_id, uint32 sender, uint32 action)
+{
+#ifdef ELUNA
+    sEluna->HandleGossipSelectOption(player, menu_id, sender, action, "");
+#endif
+
+    FOREACH_SCRIPT(PlayerScript)->OnGossipSelect(player, menu_id, sender, action);
+}
+
+void ScriptMgr::OnGossipSelectCode(Player* player, uint32 menu_id, uint32 sender, uint32 action, const char* code)
+{
+#ifdef ELUNA
+    sEluna->HandleGossipSelectOption(player, menu_id, sender, action, code);
+#endif
+
+    FOREACH_SCRIPT(PlayerScript)->OnGossipSelectCode(player, menu_id, sender, action, code);
 }
 
 void ScriptMgr::OnQuestStatusChange(Player* player, uint32 questId)
@@ -2153,57 +2411,101 @@ void ScriptMgr::OnFailedPasswordChange(uint32 accountId)
 // Guild
 void ScriptMgr::OnGuildAddMember(Guild* guild, Player* player, uint8& plRank)
 {
+#ifdef ELUNA
+    sEluna->OnAddMember(guild, player, plRank);
+#endif
+
     FOREACH_SCRIPT(GuildScript)->OnAddMember(guild, player, plRank);
 }
 
 void ScriptMgr::OnGuildRemoveMember(Guild* guild, ObjectGuid guid, bool isDisbanding, bool isKicked)
 {
+#ifdef ELUNA
+    sEluna->OnRemoveMember(guild, guid, isDisbanding, isKicked);
+#endif
+
     FOREACH_SCRIPT(GuildScript)->OnRemoveMember(guild, guid, isDisbanding, isKicked);
 }
 
 void ScriptMgr::OnGuildMOTDChanged(Guild* guild, const std::string& newMotd)
 {
+#ifdef ELUNA
+    sEluna->OnMOTDChanged(guild, newMotd);
+#endif
+
     FOREACH_SCRIPT(GuildScript)->OnMOTDChanged(guild, newMotd);
 }
 
 void ScriptMgr::OnGuildInfoChanged(Guild* guild, const std::string& newInfo)
 {
+#ifdef ELUNA
+    sEluna->OnInfoChanged(guild, newInfo);
+#endif
+
     FOREACH_SCRIPT(GuildScript)->OnInfoChanged(guild, newInfo);
 }
 
 void ScriptMgr::OnGuildCreate(Guild* guild, Player* leader, const std::string& name)
 {
+#ifdef ELUNA
+    sEluna->OnCreate(guild, leader, name);
+#endif
+
     FOREACH_SCRIPT(GuildScript)->OnCreate(guild, leader, name);
 }
 
 void ScriptMgr::OnGuildDisband(Guild* guild)
 {
+#ifdef ELUNA
+    sEluna->OnDisband(guild);
+#endif
+
     FOREACH_SCRIPT(GuildScript)->OnDisband(guild);
 }
 
 void ScriptMgr::OnGuildMemberWitdrawMoney(Guild* guild, Player* player, uint64 &amount, bool isRepair)
 {
+#ifdef ELUNA
+    sEluna->OnMemberWitdrawMoney(guild, player, amount, isRepair);
+#endif
+
     FOREACH_SCRIPT(GuildScript)->OnMemberWitdrawMoney(guild, player, amount, isRepair);
 }
 
 void ScriptMgr::OnGuildMemberDepositMoney(Guild* guild, Player* player, uint64 &amount)
 {
+#ifdef ELUNA
+    sEluna->OnMemberDepositMoney(guild, player, amount);
+#endif
+
     FOREACH_SCRIPT(GuildScript)->OnMemberDepositMoney(guild, player, amount);
 }
 
 void ScriptMgr::OnGuildItemMove(Guild* guild, Player* player, Item* pItem, bool isSrcBank, uint8 srcContainer, uint8 srcSlotId,
             bool isDestBank, uint8 destContainer, uint8 destSlotId)
 {
+#ifdef ELUNA
+    sEluna->OnItemMove(guild, player, pItem, isSrcBank, srcContainer, srcSlotId, isDestBank, destContainer, destSlotId);
+#endif
+
     FOREACH_SCRIPT(GuildScript)->OnItemMove(guild, player, pItem, isSrcBank, srcContainer, srcSlotId, isDestBank, destContainer, destSlotId);
 }
 
 void ScriptMgr::OnGuildEvent(Guild* guild, uint8 eventType, ObjectGuid::LowType playerGuid1, ObjectGuid::LowType playerGuid2, uint8 newRank)
 {
+#ifdef ELUNA
+    sEluna->OnEvent(guild, eventType, playerGuid1, playerGuid2, newRank);
+#endif
+
     FOREACH_SCRIPT(GuildScript)->OnEvent(guild, eventType, playerGuid1, playerGuid2, newRank);
 }
 
 void ScriptMgr::OnGuildBankEvent(Guild* guild, uint8 eventType, uint8 tabId, ObjectGuid::LowType playerGuid, uint64 itemOrMoney, uint16 itemStackCount, uint8 destTabId)
 {
+#ifdef ELUNA
+    sEluna->OnBankEvent(guild, eventType, tabId, playerGuid, itemOrMoney, itemStackCount, destTabId);
+#endif
+
     FOREACH_SCRIPT(GuildScript)->OnBankEvent(guild, eventType, tabId, playerGuid, itemOrMoney, itemStackCount, destTabId);
 }
 
@@ -2211,30 +2513,55 @@ void ScriptMgr::OnGuildBankEvent(Guild* guild, uint8 eventType, uint8 tabId, Obj
 void ScriptMgr::OnGroupAddMember(Group* group, ObjectGuid guid)
 {
     ASSERT(group);
+
+#ifdef ELUNA
+    sEluna->OnAddMember(group, guid);
+#endif
+
     FOREACH_SCRIPT(GroupScript)->OnAddMember(group, guid);
 }
 
 void ScriptMgr::OnGroupInviteMember(Group* group, ObjectGuid guid)
 {
     ASSERT(group);
+
+#ifdef ELUNA
+    sEluna->OnInviteMember(group, guid);
+#endif
+
     FOREACH_SCRIPT(GroupScript)->OnInviteMember(group, guid);
 }
 
 void ScriptMgr::OnGroupRemoveMember(Group* group, ObjectGuid guid, RemoveMethod method, ObjectGuid kicker, char const* reason)
 {
     ASSERT(group);
+
+#ifdef ELUNA
+    sEluna->OnRemoveMember(group, guid, method);
+#endif
+
     FOREACH_SCRIPT(GroupScript)->OnRemoveMember(group, guid, method, kicker, reason);
 }
 
 void ScriptMgr::OnGroupChangeLeader(Group* group, ObjectGuid newLeaderGuid, ObjectGuid oldLeaderGuid)
 {
     ASSERT(group);
+
+#ifdef ELUNA
+    sEluna->OnChangeLeader(group, newLeaderGuid, oldLeaderGuid);
+#endif
+
     FOREACH_SCRIPT(GroupScript)->OnChangeLeader(group, newLeaderGuid, oldLeaderGuid);
 }
 
 void ScriptMgr::OnGroupDisband(Group* group)
 {
     ASSERT(group);
+
+#ifdef ELUNA
+    sEluna->OnDisband(group);
+#endif
+
     FOREACH_SCRIPT(GroupScript)->OnDisband(group);
 }
 

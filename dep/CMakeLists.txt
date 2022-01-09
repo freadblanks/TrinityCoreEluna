@@ -37,3 +37,7 @@ endif()
 if(TOOLS)
   add_subdirectory(CascLib)
 endif()
+
+if (ELUNA)
+  add_subdirectory(lualib)
+endif()

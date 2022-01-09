@@ -97,6 +97,9 @@
 #include "WardenCheckMgr.h"
 #include "WaypointManager.h"
 #include "WeatherMgr.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include "WhoListStorage.h"
 #include "WorldSession.h"
 #include "WorldSocket.h"
@@ -1731,6 +1734,11 @@ void World::SetInitialWorldSettings()
         exit(1);
     }
 
+#ifdef ELUNA
+    TC_LOG_INFO("server.loading", "Initializing Eluna Lua Engine...");
+    Eluna::Initialize();
+#endif
+
     ///- Initialize pool manager
     sPoolMgr->Initialize();
 
@@ -2467,6 +2475,13 @@ void World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Loading phase names...");
     sObjectMgr->LoadPhaseNames();
+
+#ifdef ELUNA
+    ///- Run eluna scripts.
+    // in multithread foreach: run scripts
+    sEluna->RunScripts();
+    sEluna->OnConfigLoad(false); // Must be done after Eluna is initialized and scripts have run.
+#endif
 
     // Preload all cells, if required for the base maps
     if (sWorld->getBoolConfig(CONFIG_BASEMAP_LOAD_GRIDS))

@@ -50,6 +50,9 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include <G3D/g3dmath.h>
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include <numeric>
 
 class Aura;
@@ -5169,6 +5172,12 @@ void AuraEffect::HandlePeriodicTriggerSpellAuraTick(Unit* target, Unit* caster) 
     {
         if (Unit* triggerCaster = triggeredSpellInfo->NeedsToBeTriggeredByCaster(m_spellInfo) ? caster : target)
         {
+#ifdef ELUNA
+            Creature* c = target->ToCreature();
+            if (c && caster)
+                sEluna->OnDummyEffect(triggerCaster, GetId(), SpellEffIndex(GetEffIndex()), c);
+#endif
+
             triggerCaster->CastSpell(target, triggerSpellId, this);
             TC_LOG_DEBUG("spells.aura.effect", "AuraEffect::HandlePeriodicTriggerSpellAuraTick: Spell %u Trigger %u", GetId(), triggeredSpellInfo->Id);
         }
