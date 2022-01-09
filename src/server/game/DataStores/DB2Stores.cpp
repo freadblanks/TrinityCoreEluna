@@ -2660,7 +2660,7 @@ uint32 DB2Manager::GetDefaultMapLight(uint32 mapId)
 
 uint32 DB2Manager::GetMapLightId(uint32 mapId)
 {
-    for (int32 i = 0; i <= sLightStore.GetNumRows(); ++i)
+    for (int32 i = sLightStore.GetNumRows(); i >= 0; --i)
     {
         LightEntry const* light = sLightStore.LookupEntry(uint32(i));
         if (!light)
@@ -2677,7 +2677,7 @@ std::vector<LightEntry const*> DB2Manager::GetMapLights(uint32 mapId)
 {
     std::vector<LightEntry const*> mapLights;
 
-    for (int32 i = 0; i <= sLightStore.GetNumRows(); ++i)
+    for (int32 i = sLightStore.GetNumRows(); i >= 0; --i)
     {
         LightEntry const* light = sLightStore.LookupEntry(uint32(i));
         if (!light)
