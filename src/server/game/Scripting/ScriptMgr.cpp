@@ -2409,7 +2409,7 @@ void ScriptMgr::OnFailedPasswordChange(uint32 accountId)
 }
 
 // Guild
-void ScriptMgr::OnGuildAddMember(Guild* guild, Player* player, uint8& plRank)
+void ScriptMgr::OnGuildAddMember(Guild* guild, Player* player, uint8 plRank)
 {
 #ifdef ELUNA
     sEluna->OnAddMember(guild, player, plRank);
