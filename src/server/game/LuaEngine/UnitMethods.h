@@ -2252,8 +2252,8 @@ namespace LuaUnit
         if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spell, target->GetMap()->GetDifficultyID()))
         {
             ObjectGuid castId = ObjectGuid::Create<HighGuid::Cast>(SPELL_CAST_SOURCE_NORMAL, target->GetMapId(), spell, target->GetMap()->GenerateLowGuid<HighGuid::Cast>());
-            AuraCreateInfo aura(castId, spellInfo, target->GetMap()->GetDifficultyID(), MAX_EFFECT_MASK, target);
-            Aura::TryRefreshStackOrCreate(aura);
+            AuraCreateInfo createinfo(castId, spellInfo, target->GetMap()->GetDifficultyID(), MAX_EFFECT_MASK, target);
+            aura = Aura::TryRefreshStackOrCreate(createinfo);
         }
 
         Eluna::Push(L, aura);

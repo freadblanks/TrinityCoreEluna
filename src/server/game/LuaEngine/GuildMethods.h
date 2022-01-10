@@ -160,7 +160,7 @@ namespace LuaGuild
     int SendPacketToRanked(lua_State* L, Guild* guild)
     {
         WorldPacket* data = Eluna::CHECKOBJ<WorldPacket>(L, 2);
-        uint8 ranked = Eluna::CHECKVAL<uint8>(L, 3);
+        GuildRankId ranked = *Eluna::CHECKOBJ<GuildRankId>(L, 3);
 
         guild->BroadcastPacketToRank(data, ranked);
         return 0;
@@ -186,7 +186,7 @@ namespace LuaGuild
     int AddMember(lua_State* L, Guild* guild)
     {
         Player* player = Eluna::CHECKOBJ<Player>(L, 2);
-        uint8 rankId = Eluna::CHECKVAL<uint8>(L, 3, GUILD_RANK_NONE);
+        GuildRankId rankId = *Eluna::CHECKOBJ<GuildRankId>(L, 3, GUILD_RANK_NONE);
 
         CharacterDatabaseTransaction trans(nullptr);
         guild->AddMember(trans, player->GET_GUID(), rankId);
@@ -218,7 +218,7 @@ namespace LuaGuild
     int SetMemberRank(lua_State* L, Guild* guild)
     {
         Player* player = Eluna::CHECKOBJ<Player>(L, 2);
-        uint8 newRank = Eluna::CHECKVAL<uint8>(L, 3);
+        GuildRankId newRank = *Eluna::CHECKOBJ<GuildRankId>(L, 3);
 
         CharacterDatabaseTransaction trans(nullptr);
         guild->ChangeMemberRank(trans, player->GET_GUID(), newRank);

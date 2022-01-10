@@ -3843,10 +3843,10 @@ struct LightParamsLoadInfo
     {
         static DB2FieldMeta const fields[] =
         {
+			{ false, FT_INT, "ID" },
             { false, FT_FLOAT, "OverrideCelestialSphere1" },
             { false, FT_FLOAT, "OverrideCelestialSphere2" },
             { false, FT_FLOAT, "OverrideCelestialSphere3" },
-            { false, FT_INT, "ID" },
             { false, FT_BYTE, "HighlightSky" },
             { false, FT_SHORT,"LightSkyboxID" },
             { false, FT_BYTE, "CloudTypeID" },
@@ -5247,7 +5247,7 @@ struct SoundKitEntryLoadInfo
             { false, FT_BYTE, "Frequency" },
             { false, FT_FLOAT, "Volume" },
         };
-        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SoundKitMeta::Instance(), HOTFIX_SEL_SOUND_KIT_ENTRY);
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SoundKitEntryMeta::Instance(), HOTFIX_SEL_SOUND_KIT_ENTRY);
         return &loadInfo;
     }
 };
