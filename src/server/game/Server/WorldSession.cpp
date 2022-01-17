@@ -23,7 +23,6 @@
 #include "QueryHolder.h"
 #include "AccountMgr.h"
 #include "AuthenticationPackets.h"
-#include "BattlePayMgr.h"
 #include "BattlePetMgr.h"
 #include "BattlegroundMgr.h"
 #include "BattlenetPackets.h"
@@ -54,9 +53,6 @@
 #include "WardenWin.h"
 #include "World.h"
 #include "WorldSocket.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 
 namespace {
 
@@ -157,8 +153,6 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
         ResetTimeOutTime(false);
         LoginDatabase.PExecute("UPDATE account SET online = 1 WHERE id = %u;", GetAccountId());     // One-time query
     }
-
-    _battlePayMgr = std::make_shared<BattlepayManager>(this);
 
     m_Socket[CONNECTION_TYPE_REALM] = sock;
     _instanceConnectKey.Raw = UI64LIT(0);
@@ -306,11 +300,6 @@ void WorldSession::SendPacket(WorldPacket const* packet, bool forced /*= false*/
 
     sScriptMgr->OnPacketSend(this, *packet);
 
-#ifdef ELUNA
-    if (!sEluna->OnPacketSend(this, *packet))
-        return;
-#endif
-
     TC_LOG_TRACE("network.opcode", "S->C: %s %s", GetPlayerInfo().c_str(), GetOpcodeNameForLogging(static_cast<OpcodeServer>(packet->GetOpcode())).c_str());
     m_Socket[conIdx]->SendPacket(*packet);
 }
@@ -381,12 +370,6 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                     else if (_player->IsInWorld() && AntiDOS.EvaluateOpcode(*packet, currentTime))
                     {
                         sScriptMgr->OnPacketReceive(this, *packet);
-
-#ifdef ELUNA
-                        if (!sEluna->OnPacketReceive(this, *packet))
-                            break;
-#endif  
-
                         opHandle->Call(this, *packet);
                     }
                     // lag can cause STATUS_LOGGEDIN opcodes to arrive after the player started a transfer
@@ -399,12 +382,6 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                     {
                         // not expected _player or must checked in packet hanlder
                         sScriptMgr->OnPacketReceive(this, *packet);
-
-#ifdef ELUNA
-                        if (!sEluna->OnPacketReceive(this, *packet))
-                            break;
-#endif
-
                         opHandle->Call(this, *packet);
                     }
                     break;
@@ -416,12 +393,6 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                     else if (AntiDOS.EvaluateOpcode(*packet, currentTime))
                     {
                         sScriptMgr->OnPacketReceive(this, *packet);
-
-#ifdef ELUNA
-                        if (!sEluna->OnPacketReceive(this, *packet))
-                            break;
-#endif
-
                         opHandle->Call(this, *packet);
                     }
                     break;
@@ -1015,26 +986,6 @@ void WorldSession::ProcessQueryCallbacks()
         HandleCharEnum(static_cast<CharacterDatabaseQueryHolder*>(_charEnumCallback.get()));
 }
 
-void WorldSession::RemoveAuthFlag(AuthFlags f)
-{
-    atAuthFlag = AuthFlags(atAuthFlag & ~f);
-    SaveAuthFlag();
-}
-
-void WorldSession::AddAuthFlag(AuthFlags f)
-{
-    atAuthFlag = AuthFlags(atAuthFlag | f);
-    SaveAuthFlag();
-}
-
-void WorldSession::SaveAuthFlag()
-{
-    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_AT_AUTH_FLAG);
-    stmt->setUInt16(0, atAuthFlag);
-    stmt->setUInt32(1, GetAccountId());
-    LoginDatabase.Execute(stmt);
-}
-
 TransactionCallback& WorldSession::AddTransactionCallback(TransactionCallback&& callback)
 {
     return _transactionCallbacks.AddCallback(std::move(callback));
@@ -1365,6 +1316,7 @@ uint32 WorldSession::DosProtection::GetMaxPacketCounterAllowed(uint16 opcode) co
         case CMSG_REQUEST_PARTY_MEMBER_STATS:           //   0               1.5
         case CMSG_QUEST_GIVER_COMPLETE_QUEST:           //   0               1.5
         case CMSG_SET_ACTION_BUTTON:                    //   0               1.5
+        case CMSG_SET_ACTION_BAR_TOGGLES:               // not profiled
         case CMSG_RESET_INSTANCES:                      //   0               1.5
         case CMSG_HEARTH_AND_RESURRECT:                 //   0               1.5
         case CMSG_TOGGLE_PVP:                           //   0               1.5

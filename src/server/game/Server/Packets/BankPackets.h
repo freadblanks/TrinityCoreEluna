@@ -68,8 +68,8 @@ namespace WorldPackets
             void Read() override;
 
             WorldPackets::Item::InvUpdate Inv;
-            uint8 Bag = 0;
             uint8 Slot = 0;
+            uint8 PackSlot = 0;
         };
 
         class AutoStoreBankReagent final : public ClientPacket
@@ -80,18 +80,20 @@ namespace WorldPackets
             void Read() override;
 
             WorldPackets::Item::InvUpdate Inv;
-            uint8 Bag = 0;
             uint8 Slot = 0;
+            uint8 PackSlot = 0;
         };
 
-        class DepositReagentBank final : public ClientPacket
+        // CMSG_BUY_REAGENT_BANK
+        // CMSG_REAGENT_BANK_DEPOSIT
+        class ReagentBank final : public ClientPacket
         {
         public:
-            DepositReagentBank(WorldPacket&& packet) : ClientPacket(CMSG_DEPOSIT_REAGENT_BANK, std::move(packet)) { }
+            ReagentBank(WorldPacket&& packet) : ClientPacket(std::move(packet)) { }
 
             void Read() override;
 
-            ObjectGuid Guid;
+            ObjectGuid Banker;
         };
     }
 }
