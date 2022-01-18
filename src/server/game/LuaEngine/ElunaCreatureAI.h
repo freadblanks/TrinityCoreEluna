@@ -153,21 +153,21 @@ struct ElunaCreatureAI : ScriptedAI
     }
 
     // Called when hit by a spell
-    void SpellHit(Unit* caster, SpellInfo const* spell) override
+    void SpellHit(WorldObject* caster, SpellInfo const* spell) override
     {
         if (!sEluna->SpellHit(me, caster, spell))
             ScriptedAI::SpellHit(caster, spell);
     }
 
     // Called when spell hits a target
-    void SpellHitTarget(Unit* target, SpellInfo const* spell) override
+    void SpellHitTarget(WorldObject* target, SpellInfo const* spell) override
     {
         if (!sEluna->SpellHitTarget(me, target, spell))
             ScriptedAI::SpellHitTarget(target, spell);
     }
 
     // Called when the creature is summoned successfully by other creature
-     void IsSummonedBy(Unit* summoner) override
+     void IsSummonedBy(WorldObject* summoner) override
      {
          if (!summoner->ToUnit() || !sEluna->OnSummoned(me, summoner->ToUnit()))
              ScriptedAI::IsSummonedBy(summoner);

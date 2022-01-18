@@ -573,11 +573,11 @@ class TC_GAME_API SpellInfo
         bool IsDifferentRankOf(SpellInfo const* spellInfo) const;
         bool IsHighRankOf(SpellInfo const* spellInfo) const;
 
-        uint32 GetSpellXSpellVisualId(WorldObject const* caster = nullptr) const;
-        uint32 GetSpellVisual(WorldObject const* caster = nullptr) const;
+        uint32 GetSpellXSpellVisualId(WorldObject const* caster = nullptr, WorldObject const* viewer = nullptr) const;
+        uint32 GetSpellVisual(WorldObject const* caster = nullptr, WorldObject const* viewer = nullptr) const;
 
         std::vector<SpellEffectInfo> const& GetEffects() const { return _effects; }
-        SpellEffectInfo const& GetEffect(SpellEffIndex index) const { ASSERT(index < _effects.size()); return _effects[index]; }
+        SpellEffectInfo const& GetEffect(SpellEffIndex index) const { return index < _effects.size() ? _effects[index] : nullptr; } // ASSERT causes crash when using eluna
 
         // spell diminishing returns
         DiminishingGroup GetDiminishingReturnsGroupForSpell() const;

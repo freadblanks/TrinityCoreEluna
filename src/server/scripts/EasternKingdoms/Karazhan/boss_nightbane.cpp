@@ -167,7 +167,7 @@ public:
         void SetupGroundPhase()
         {
             events.SetPhase(PHASE_GROUND);
-            events.ScheduleEvent(EVENT_CLEAVE, Seconds(0), Seconds(15), GROUP_GROUND);
+            events.ScheduleEvent(EVENT_CLEAVE, 0s, Seconds(15), GROUP_GROUND);
             events.ScheduleEvent(EVENT_TAIL_SWEEP, Seconds(4), Seconds(23), GROUP_GROUND);
             events.ScheduleEvent(EVENT_BELLOWING_ROAR, Seconds(48), GROUP_GROUND);
             events.ScheduleEvent(EVENT_CHARRED_EARTH, Seconds(12), Seconds(18), GROUP_GROUND);
@@ -181,9 +181,9 @@ public:
             instance->HandleGameObject(instance->GetGuidData(DATA_MASTERS_TERRACE_DOOR_2), open);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
             Talk(YELL_AGGRO);
             SetupGroundPhase();
         }
@@ -215,18 +215,18 @@ public:
                         events.ScheduleEvent(EVENT_START_INTRO_PATH, Milliseconds(1));
                         break;
                     case POINT_INTRO_END:
-                        events.ScheduleEvent(EVENT_END_INTRO, Seconds(2));
+                        events.ScheduleEvent(EVENT_END_INTRO, 2s);
                         break;
                     case POINT_INTRO_LANDING:
                         me->SetDisableGravity(false);
                         me->HandleEmoteCommand(EMOTE_ONESHOT_LAND);
-                        events.ScheduleEvent(EVENT_INTRO_LANDING, Seconds(3));
+                        events.ScheduleEvent(EVENT_INTRO_LANDING, 3s);
                         break;
                     case POINT_PHASE_TWO_LANDING:
                         events.SetPhase(PHASE_GROUND);
                         me->SetDisableGravity(false);
                         me->HandleEmoteCommand(EMOTE_ONESHOT_LAND);
-                        events.ScheduleEvent(EVENT_LANDED, Seconds(3));
+                        events.ScheduleEvent(EVENT_LANDED, 3s);
                         break;
                     case POINT_PHASE_TWO_END:
                         events.ScheduleEvent(EVENT_END_PHASE_TWO, Milliseconds(1));
@@ -276,7 +276,7 @@ public:
                     DoCastAOE(SPELL_BELLOWING_ROAR);
                     break;
                 case EVENT_CHARRED_EARTH:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                         DoCast(target, SPELL_CHARRED_EARTH);
                     events.Repeat(Seconds(18), Seconds(21));
                     break;
@@ -285,7 +285,7 @@ public:
                     events.Repeat(Seconds(6), Seconds(15));
                     break;
                 case EVENT_DISTRACTING_ASH:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                         DoCast(target, SPELL_DISTRACTING_ASH);
                     break;
                 case EVENT_EMOTE_BREATH:
@@ -323,7 +323,7 @@ public:
                     break;
                 case EVENT_RAIN_OF_BONES:
                     ResetThreatList();
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                     {
                         me->SetFacingToObject(target);
                         DoCast(target, SPELL_RAIN_OF_BONES);
@@ -334,17 +334,17 @@ public:
                     events.Repeat(Seconds(28), Seconds(40));
                     break;
                 case EVENT_SMOKING_BLAST:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                         DoCast(target, SPELL_SMOKING_BLAST);
                     events.Repeat(Milliseconds(1400));
                     break;
                 case EVENT_SMOKING_BLAST_T:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                         DoCast(target, SPELL_SMOKING_BLAST_T);
                     events.Repeat(Seconds(5), Seconds(7));
                     break;
                 case EVENT_TAIL_SWEEP:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                         if (!me->HasInArc(float(M_PI), target))
                             DoCast(target, SPELL_TAIL_SWEEP);
                     events.Repeat(Seconds(20), Seconds(30));

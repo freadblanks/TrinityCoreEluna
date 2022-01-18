@@ -643,7 +643,7 @@ struct npc_open_portal_target_toc : public ScriptedAI
         me->SetDisableGravity(true);
     }
 
-    void SpellHit(Unit* /*caster*/, SpellInfo const* spellInfo) override
+    void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo) override
     {
         if (spellInfo->Id == SPELL_OPEN_PORTAL)
         {
@@ -672,7 +672,7 @@ struct npc_fizzlebang_toc : public ScriptedAI
     {
         me->SetReactState(REACT_PASSIVE);
         _events.Reset();
-        _events.ScheduleEvent(EVENT_START_MOVE, Seconds(1));
+        _events.ScheduleEvent(EVENT_START_MOVE, 1s);
     }
 
     void MovementInform(uint32 type, uint32 pointId) override

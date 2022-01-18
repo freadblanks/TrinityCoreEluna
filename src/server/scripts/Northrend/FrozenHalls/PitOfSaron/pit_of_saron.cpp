@@ -72,8 +72,8 @@ class npc_ymirjar_flamebearer : public CreatureScript
 
             void JustEngagedWith(Unit* /*who*/) override
             {
-                _events.ScheduleEvent(EVENT_FIREBALL, 4000);
-                _events.ScheduleEvent(EVENT_TACTICAL_BLINK, 15000);
+                _events.ScheduleEvent(EVENT_FIREBALL, 4s);
+                _events.ScheduleEvent(EVENT_TACTICAL_BLINK, 15s);
             }
 
             void UpdateAI(uint32 diff) override
@@ -91,12 +91,12 @@ class npc_ymirjar_flamebearer : public CreatureScript
                     switch (eventId)
                     {
                         case EVENT_FIREBALL:
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                                 DoCast(target, SPELL_FIREBALL);
                             _events.RescheduleEvent(EVENT_FIREBALL, 5000);
                             break;
                         case EVENT_TACTICAL_BLINK:
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                                 DoCast(target, SPELL_TACTICAL_BLINK);
                             DoCast(me, SPELL_HELLFIRE);
                             _events.RescheduleEvent(EVENT_TACTICAL_BLINK, 12000);
@@ -212,7 +212,7 @@ class npc_geist_ambusher : public CreatureScript
 
                 if (_leapingFaceMaulCooldown < diff)
                 {
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 5.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 5.0f, true))
                         DoCast(target, SPELL_LEAPING_FACE_MAUL);
                     _leapingFaceMaulCooldown = urand(9000, 14000);
                 }
@@ -244,7 +244,7 @@ class npc_pit_of_saron_icicle : public CreatureScript
                 me->SetDisplayFromModel(0);
             }
 
-            void IsSummonedBy(Unit* summoner) override
+            void IsSummonedBy(WorldObject* summoner) override
             {
                 _summonerGUID = summoner->GetGUID();
 
@@ -318,11 +318,8 @@ class at_pit_cavern_entrance : public AreaTriggerScript
     public:
         at_pit_cavern_entrance() : AreaTriggerScript("at_pit_cavern_entrance") { }
 
-        bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool entered) override
+        bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/) override
         {
-            if (!entered)
-                return true;
-
             if (InstanceScript* instance = player->GetInstanceScript())
             {
                 if (instance->GetData(DATA_CAVERN_ACTIVE))
@@ -342,11 +339,8 @@ class at_pit_cavern_end : public AreaTriggerScript
 public:
     at_pit_cavern_end() : AreaTriggerScript("at_pit_cavern_end") { }
 
-    bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool entered) override
+    bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/) override
     {
-        if (!entered)
-            return true;
-
         if (InstanceScript* instance = player->GetInstanceScript())
         {
             instance->SetData(DATA_CAVERN_ACTIVE, 0);

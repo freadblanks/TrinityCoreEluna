@@ -71,11 +71,10 @@ class BlackMarketEntry
 {
 public:
 
-    void Update(time_t newTimeOfUpdate);
-    void Initialize(int32 marketId, uint32 duration)
+    void Initialize(int32 marketId, uint32 starttime)
     {
         _marketId = marketId;
-        _startTime = time(nullptr);
+        _startTime = starttime;
     }
 
     BlackMarketTemplate const* GetTemplate() const;

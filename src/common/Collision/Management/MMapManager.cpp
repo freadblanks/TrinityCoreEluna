@@ -28,8 +28,8 @@ namespace MMAP
     // ######################## MMapManager ########################
     MMapManager::~MMapManager()
     {
-        for (MMapDataSet::iterator i = loadedMMaps.begin(); i != loadedMMaps.end(); ++i)
-            delete i->second;
+        for (std::pair<uint32 const, MMapData*>& loadedMMap : loadedMMaps)
+            delete loadedMMap.second;
 
         // by now we should not have maps loaded
         // if we had, tiles in MMapData->mmapLoadedTiles, their actual data is lost!
@@ -70,7 +70,7 @@ namespace MMAP
         }
         else
         {
-            if (thread_safe_environment || mapId >= 5000)
+            if (thread_safe_environment)
                 itr = loadedMMaps.insert(MMapDataSet::value_type(mapId, nullptr)).first;
             else
                 ASSERT(false, "Invalid mapId %u passed to MMapManager after startup in thread unsafe environment", mapId);

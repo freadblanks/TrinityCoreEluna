@@ -52,9 +52,9 @@ public:
         return GetAQ40AI<boss_fankrissAI>(creature);
     }
 
-    struct boss_fankrissAI : public ScriptedAI
+    struct boss_fankrissAI : public BossAI
     {
-        boss_fankrissAI(Creature* creature) : ScriptedAI(creature)
+        boss_fankrissAI(Creature* creature) : BossAI(creature, DATA_FRANKRIS)
         {
             Initialize();
         }
@@ -73,6 +73,7 @@ public:
         void Reset() override
         {
             Initialize();
+            _Reset();
         }
 
         void SummonSpawn(Unit* victim)
@@ -102,10 +103,6 @@ public:
                 Spawn->AI()->AttackStart(victim);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
-        {
-        }
-
         void UpdateAI(uint32 diff) override
         {
             //Return since we have no target
@@ -125,16 +122,16 @@ public:
                 switch (urand(0, 2))
                 {
                     case 0:
-                        SummonSpawn(SelectTarget(SELECT_TARGET_RANDOM, 0));
+                        SummonSpawn(SelectTarget(SelectTargetMethod::Random, 0));
                         break;
                     case 1:
-                        SummonSpawn(SelectTarget(SELECT_TARGET_RANDOM, 0));
-                        SummonSpawn(SelectTarget(SELECT_TARGET_RANDOM, 0));
+                        SummonSpawn(SelectTarget(SelectTargetMethod::Random, 0));
+                        SummonSpawn(SelectTarget(SelectTargetMethod::Random, 0));
                         break;
                     case 2:
-                        SummonSpawn(SelectTarget(SELECT_TARGET_RANDOM, 0));
-                        SummonSpawn(SelectTarget(SELECT_TARGET_RANDOM, 0));
-                        SummonSpawn(SelectTarget(SELECT_TARGET_RANDOM, 0));
+                        SummonSpawn(SelectTarget(SelectTargetMethod::Random, 0));
+                        SummonSpawn(SelectTarget(SelectTargetMethod::Random, 0));
+                        SummonSpawn(SelectTarget(SelectTargetMethod::Random, 0));
                         break;
                 }
                 SpawnSpawns_Timer = urand(30000, 60000);
@@ -146,7 +143,7 @@ public:
             {
                 if (SpawnHatchlings_Timer <= diff)
                 {
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                     {
                         DoCast(target, SPELL_ROOT);
 

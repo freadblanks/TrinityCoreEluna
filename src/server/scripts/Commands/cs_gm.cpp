@@ -36,70 +36,6 @@ EndScriptData */
 #include <boost/thread/locks.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
-#include "AccountMgr.h"
-#include "ArenaTeamMgr.h"
-#include "CellImpl.h"
-#include "CharacterCache.h"
-#include "Chat.h"
-#include "DatabaseEnv.h"
-#include "DB2Stores.h"
-#include "DisableMgr.h"
-#include "GridNotifiers.h"
-#include "Group.h"
-#include "GroupMgr.h"
-#include "InstanceSaveMgr.h"
-#include "IpAddress.h"
-#include "IPLocation.h"
-#include "Item.h"
-#include "Language.h"
-#include "LFG.h"
-#include "Log.h"
-#include "MapManager.h"
-#include "MiscPackets.h"
-#include "MMapFactory.h"
-#include "MovementGenerator.h"
-#include "ObjectAccessor.h"
-#include "ObjectMgr.h"
-#include "Opcodes.h"
-#include "Pet.h"
-#include "PhasingHandler.h"
-#include "Player.h"
-#include "Realm.h"
-#include "ScriptMgr.h"
-#include "SpellAuras.h"
-#include "SpellHistory.h"
-#include "SpellMgr.h"
-#include "TargetedMovementGenerator.h"
-#include "Transport.h"
-#include "Weather.h"
-#include "WeatherMgr.h"
-#include "World.h"
-#include "WorldSession.h"
-#include <boost/asio/ip/address_v4.hpp>
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/locks.hpp>
-#include <G3D/Quat.h>
-#include "ItemTemplate.h"
-#include "HotfixPackets.h"
-#include "Position.h"
-#include "Object.h"
-#include "Bag.h"
-//
-#include "GossipDef.h"
-#include "Creature.h"
-#include "DB2Stores.h"
-#include "Log.h"
-#include "NPCPackets.h"
-#include "ObjectAccessor.h"
-#include "ObjectMgr.h"
-#include "Player.h"
-#include "QuestDef.h"
-#include "QuestPackets.h"
-#include "World.h"
-#include "WorldSession.h"
-#include "GameEventMgr.h"
-#include <regex>
-
 class gm_commandscript : public CommandScript
 {
 public:
@@ -164,7 +100,7 @@ public:
         if (!*args)
             return false;
 
-        Player* target =  handler->getSelectedPlayer();
+        Player* target = handler->getSelectedPlayer();
         if (!target)
             target = handler->GetSession()->GetPlayer();
 

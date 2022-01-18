@@ -110,6 +110,7 @@ luaL_Reg GlobalMethods[] =
     { "PrintError", &LuaGlobalFunctions::PrintError },
     { "PrintDebug", &LuaGlobalFunctions::PrintDebug },
     { "GetActiveGameEvents", &LuaGlobalFunctions::GetActiveGameEvents },
+    { "GetMountDisplay", &LuaGlobalFunctions::GetMountDisplay },
 
     // Boolean
     { "IsInventoryPos", &LuaGlobalFunctions::IsInventoryPos },
@@ -145,6 +146,7 @@ luaL_Reg GlobalMethods[] =
     { "CreateUint64", &LuaGlobalFunctions::CreateULongLong },
     { "StartGameEvent", &LuaGlobalFunctions::StartGameEvent },
     { "StopGameEvent", &LuaGlobalFunctions::StopGameEvent },
+    { "RestartServer", &LuaGlobalFunctions::RestartServer },
 
     { NULL, NULL }
 };
@@ -266,7 +268,7 @@ ElunaRegister<Unit> UnitMethods[] =
     { "GetCreatorGUID", &LuaUnit::GetCreatorGUID },
     { "GetMinionGUID", &LuaUnit::GetPetGUID },
     { "GetCharmerGUID", &LuaUnit::GetCharmerGUID },
-    { "GetCharmGUID", &LuaUnit::GetCharmGUID },
+    /*{ "GetCharmGUID", &LuaUnit::GetCharmGUID },*/
     { "GetPetGUID", &LuaUnit::GetPetGUID },
     { "GetCritterGUID", &LuaUnit::GetCritterGUID },
     { "GetControllerGUID", &LuaUnit::GetControllerGUID },
@@ -672,7 +674,7 @@ ElunaRegister<Creature> CreatureMethods[] =
     { "GetAggroRange", &LuaCreature::GetAggroRange },
     { "GetDefaultMovementType", &LuaCreature::GetDefaultMovementType },
     { "GetRespawnDelay", &LuaCreature::GetRespawnDelay },
-    { "GetWanderRadius", &LuaCreature::GetWanderRadius },
+    { "GetWanderDistance", &LuaCreature::GetWanderDistance },
     { "GetCurrentWaypointId", &LuaCreature::GetCurrentWaypointId },
     { "GetWaypointPath", &LuaCreature::GetWaypointPath },
     { "GetLootMode", &LuaCreature::GetLootMode },
@@ -690,7 +692,7 @@ ElunaRegister<Creature> CreatureMethods[] =
     { "SetNoSearchAssistance", &LuaCreature::SetNoSearchAssistance },
     { "SetDefaultMovementType", &LuaCreature::SetDefaultMovementType },
     { "SetRespawnDelay", &LuaCreature::SetRespawnDelay },
-    { "SetWanderRadius", &LuaCreature::SetWanderRadius },
+    { "SetWanderDistance", &LuaCreature::SetWanderDistance },
     { "SetInCombatWithZone", &LuaCreature::SetInCombatWithZone },
     { "SetDisableReputationGain", &LuaCreature::SetDisableReputationGain },
     { "SetLootMode", &LuaCreature::SetLootMode },
@@ -776,6 +778,8 @@ ElunaRegister<GameObject> GameObjectMethods[] =
     { "Despawn", &LuaGameObject::Despawn },
     { "Respawn", &LuaGameObject::Respawn },
     { "SaveToDB", &LuaGameObject::SaveToDB },
+    { "ChangePosition", &LuaGameObject::ChangePosition },
+    { "Turn", &LuaGameObject::Turn },
 
     { NULL, NULL }
 };
@@ -872,12 +876,14 @@ ElunaRegister<Spell> SpellMethods[] =
     { "GetPowerCost", &LuaSpell::GetPowerCost },
     { "GetTargetDest", &LuaSpell::GetTargetDest },
     { "GetTarget", &LuaSpell::GetTarget },
+    { "GetMountDisplay", &LuaSpell::GetMountDisplay },
 
     // Setters
     { "SetAutoRepeat", &LuaSpell::SetAutoRepeat },
 
     // Boolean
     { "IsAutoRepeat", &LuaSpell::IsAutoRepeat },
+    { "IsMountSummon", &LuaSpell::IsMountSummon },
 
     // Other
     { "Cancel", &LuaSpell::Cancel },

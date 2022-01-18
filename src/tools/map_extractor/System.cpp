@@ -502,6 +502,7 @@ bool ConvertADT(ChunkedFile& adt, std::string const& mapName, std::string const&
         // Set map height as grid height
         for (int y = 0; y <= ADT_CELL_SIZE; y++)
         {
+            // edge V9s are overlapping between cells (i * ADT_CELL_SIZE is correct, otherwise we would be missing a row/column of V8s between)
             int cy = mcnk->iy * ADT_CELL_SIZE + y;
             for (int x = 0; x <= ADT_CELL_SIZE; x++)
             {
@@ -527,6 +528,7 @@ bool ConvertADT(ChunkedFile& adt, std::string const& mapName, std::string const&
             // get V9 height map
             for (int y = 0; y <= ADT_CELL_SIZE; y++)
             {
+                // edge V9s are overlapping between cells (i * ADT_CELL_SIZE is correct, otherwise we would be missing a row/column of V8s between)
                 int cy = mcnk->iy * ADT_CELL_SIZE + y;
                 for (int x = 0; x <= ADT_CELL_SIZE; x++)
                 {
@@ -876,7 +878,10 @@ bool ConvertADT(ChunkedFile& adt, std::string const& mapName, std::string const&
                     if (minHeight > h) minHeight = h;
                 }
                 else
+                {
                     liquid_height[y][x] = CONF_use_minHeight;
+                    if (minHeight > CONF_use_minHeight) minHeight = CONF_use_minHeight;
+                }
             }
         }
         map.liquidMapOffset = map.heightMapOffset + map.heightMapSize;
@@ -1096,7 +1101,7 @@ void ExtractMaps(uint32 build)
         if (FILE* tileList = fopen(Trinity::StringFormat("%s/maps/%04u.tilelist", output_path.string().c_str(), map_ids[z].Id).c_str(), "wb"))
         {
             fwrite(MapMagic.data(), 1, MapMagic.size(), tileList);
-            fwrite(MapVersionMagic.data(), 1, MapVersionMagic.size(), tileList);
+            fwrite(&MapVersionMagic, 1, sizeof(MapVersionMagic), tileList);
             fwrite(&build, sizeof(build), 1, tileList);
             fwrite(existingTiles.to_string().c_str(), 1, existingTiles.size(), tileList);
             fclose(tileList);

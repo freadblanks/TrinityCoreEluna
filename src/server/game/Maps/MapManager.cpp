@@ -53,6 +53,7 @@ void MapManager::Initialize()
     Map::InitStateMachine();
 
     int num_threads(sWorld->getIntConfig(CONFIG_NUMTHREADS));
+
 #if ELUNA
     if (num_threads > 1)
     {
@@ -62,6 +63,7 @@ void MapManager::Initialize()
         num_threads = 1;
     }
 #endif
+
     // Start mtmaps if needed.
     if (num_threads > 0)
         m_updater.activate(num_threads);
@@ -186,6 +188,10 @@ Map::EnterState MapManager::PlayerCannotEnter(uint32 mapid, Player* player, bool
     if (player->IsGameMaster())
         return Map::CAN_ENTER;
 
+    //Other requirements
+    if (!player->Satisfy(sObjectMgr->GetAccessRequirement(mapid, targetDifficulty), mapid, true))
+        return Map::CANNOT_ENTER_UNSPECIFIED_REASON;
+
     char const* mapName = entry->MapName[sWorld->GetDefaultDbcLocale()];
 
     Group* group = player->GetGroup();
@@ -239,11 +245,7 @@ Map::EnterState MapManager::PlayerCannotEnter(uint32 mapid, Player* player, bool
             return Map::CANNOT_ENTER_TOO_MANY_INSTANCES;
     }
 
-    //Other requirements
-    if (player->Satisfy(sObjectMgr->GetAccessRequirement(mapid, targetDifficulty), mapid, true))
-        return Map::CAN_ENTER;
-    else
-        return Map::CANNOT_ENTER_UNSPECIFIED_REASON;
+    return Map::CAN_ENTER;
 }
 
 void MapManager::Update(uint32 diff)
@@ -383,7 +385,7 @@ uint32 MapManager::GenerateInstanceId()
     ASSERT(newInstanceId < _freeInstanceIds.size());
     _freeInstanceIds[newInstanceId] = false;
 
-    // Find the lowest available id starting from the current NextInstanceId (which should be the lowest according to the logic in FreeInstanceId()
+    // Find the lowest available id starting from the current NextInstanceId (which should be the lowest according to the logic in FreeInstanceId())
     size_t nextFreedId = _freeInstanceIds.find_next(_nextInstanceId++);
     if (nextFreedId == InstanceIds::npos)
     {
@@ -401,7 +403,7 @@ void MapManager::FreeInstanceId(uint32 instanceId)
     // If freed instance id is lower than the next id available for new instances, use the freed one instead
     _nextInstanceId = std::min(instanceId, _nextInstanceId);
     _freeInstanceIds[instanceId] = true;
-	
+
 #ifdef ELUNA
     sEluna->FreeInstanceId(instanceId);
 #endif

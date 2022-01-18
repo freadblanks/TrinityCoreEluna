@@ -53,12 +53,11 @@ public:
         return GetAQ40AI<boss_kriAI>(creature);
     }
 
-    struct boss_kriAI : public ScriptedAI
+    struct boss_kriAI : public BossAI
     {
-        boss_kriAI(Creature* creature) : ScriptedAI(creature)
+        boss_kriAI(Creature* creature) : BossAI(creature, DATA_BUG_TRIO)
         {
             Initialize();
-            instance = creature->GetInstanceScript();
         }
 
         void Initialize()
@@ -71,8 +70,6 @@ public:
             Death = false;
         }
 
-        InstanceScript* instance;
-
         uint32 Cleave_Timer;
         uint32 ToxicVolley_Timer;
         uint32 Check_Timer;
@@ -83,11 +80,9 @@ public:
         void Reset() override
         {
             Initialize();
+            _Reset();
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
-        {
-        }
 
         void JustDied(Unit* /*killer*/) override
         {
@@ -152,12 +147,11 @@ public:
         return GetAQ40AI<boss_vemAI>(creature);
     }
 
-    struct boss_vemAI : public ScriptedAI
+    struct boss_vemAI : public BossAI
     {
-        boss_vemAI(Creature* creature) : ScriptedAI(creature)
+        boss_vemAI(Creature* creature) : BossAI(creature, DATA_BUG_TRIO)
         {
             Initialize();
-            instance = creature->GetInstanceScript();
         }
 
         void Initialize()
@@ -169,8 +163,6 @@ public:
             Enraged = false;
         }
 
-        InstanceScript* instance;
-
         uint32 Charge_Timer;
         uint32 KnockBack_Timer;
         uint32 Enrage_Timer;
@@ -180,6 +172,7 @@ public:
         void Reset() override
         {
             Initialize();
+            _Reset();
         }
 
         void JustDied(Unit* /*killer*/) override
@@ -188,10 +181,6 @@ public:
             if (instance->GetData(DATA_BUG_TRIO_DEATH) < 2)// Unlootable if death
                 me->RemoveDynamicFlag(UNIT_DYNFLAG_LOOTABLE);
             instance->SetData(DATA_BUG_TRIO_DEATH, 1);
-        }
-
-        void JustEngagedWith(Unit* /*who*/) override
-        {
         }
 
         void UpdateAI(uint32 diff) override
@@ -203,7 +192,7 @@ public:
             //Charge_Timer
             if (Charge_Timer <= diff)
             {
-                if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                 {
                     DoCast(target, SPELL_CHARGE);
                     //me->SendMonsterMove(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(), 0, true, 1);
@@ -245,12 +234,11 @@ public:
         return GetAQ40AI<boss_yaujAI>(creature);
     }
 
-    struct boss_yaujAI : public ScriptedAI
+    struct boss_yaujAI : public BossAI
     {
-        boss_yaujAI(Creature* creature) : ScriptedAI(creature)
+        boss_yaujAI(Creature* creature) : BossAI(creature, DATA_BUG_TRIO)
         {
             Initialize();
-            instance = creature->GetInstanceScript();
         }
 
         void Initialize()
@@ -261,8 +249,6 @@ public:
 
             VemDead = false;
         }
-
-        InstanceScript* instance;
 
         uint32 Heal_Timer;
         uint32 Fear_Timer;
@@ -283,16 +269,12 @@ public:
 
             for (uint8 i = 0; i < 10; ++i)
             {
-                if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                 {
                     if (Creature* Summoned = me->SummonCreature(15621, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), 0, TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN, 90000))
                         Summoned->AI()->AttackStart(target);
                 }
             }
-        }
-
-        void JustEngagedWith(Unit* /*who*/) override
-        {
         }
 
         void UpdateAI(uint32 diff) override
@@ -315,11 +297,11 @@ public:
                 switch (urand(0, 2))
                 {
                     case 0:
-                        if (Creature* kri = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_KRI)))
+                        if (Creature* kri = instance->GetCreature(DATA_KRI))
                             DoCast(kri, SPELL_HEAL);
                         break;
                     case 1:
-                        if (Creature* vem = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_VEM)))
+                        if (Creature* vem = instance->GetCreature(DATA_VEM))
                             DoCast(vem, SPELL_HEAL);
                         break;
                     case 2:

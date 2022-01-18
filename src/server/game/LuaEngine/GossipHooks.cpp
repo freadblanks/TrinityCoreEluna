@@ -10,7 +10,7 @@
 #include "BindingMap.h"
 #include "ElunaIncludes.h"
 #include "ElunaTemplate.h"
-#include <LuaEngine\CreatureHooks.cpp>
+//#include <LuaEngine\CreatureHooks.cpp>
 
 using namespace Hooks;
 

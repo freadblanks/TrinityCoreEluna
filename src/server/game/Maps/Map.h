@@ -30,6 +30,7 @@
 #include "MPSCQueue.h"
 #include "ObjectGuid.h"
 #include "Optional.h"
+#include "PersonalPhaseTracker.h"
 #include "SharedDefines.h"
 #include "SpawnData.h"
 #include "Timer.h"
@@ -113,6 +114,7 @@ struct PositionFullTerrainStatus
         uint32 const mogpFlags;
     };
 
+    PositionFullTerrainStatus() : areaId(0), floorZ(0.0f), outdoors(true), liquidStatus(LIQUID_MAP_NO_WATER) { }
     uint32 areaId;
     float floorZ;
     bool outdoors;
@@ -199,11 +201,18 @@ struct ZoneDynamicInfo
     ZoneDynamicInfo();
 
     uint32 MusicId;
+
     std::unique_ptr<Weather> DefaultWeather;
     WeatherState WeatherId;
-    float WeatherGrade;
-    uint32 OverrideLightId;
-    uint32 LightFadeInTime;
+    float Intensity;
+
+    struct LightOverride
+    {
+        uint32 AreaLightId;
+        uint32 OverrideLightId;
+        uint32 TransitionMilliseconds;
+    };
+    std::vector<LightOverride> LightOverrides;
 };
 
 #pragma pack(pop)
@@ -231,7 +240,6 @@ struct RespawnInfo
     uint32 entry;
     time_t respawnTime;
     uint32 gridId;
-    uint32 zoneId;
     RespawnListHandle handle;
 };
 inline bool CompareRespawnInfo::operator()(RespawnInfo const* a, RespawnInfo const* b) const
@@ -306,6 +314,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         bool GetUnloadLock(GridCoord const& p) const { return getNGrid(p.x_coord, p.y_coord)->getUnloadLock(); }
         void SetUnloadLock(GridCoord const& p, bool on) { getNGrid(p.x_coord, p.y_coord)->setUnloadExplicitLock(on); }
         void LoadGrid(float x, float y);
+        void LoadGridForActiveObject(float x, float y, WorldObject const* object);
         void LoadAllCells();
         bool UnloadGrid(NGridType& ngrid, bool pForce);
         void GridMarkNoUnload(uint32 x, uint32 y);
@@ -439,7 +448,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         void UpdateIteratorBack(Player* player);
 
-        TempSummon* SummonCreature(uint32 entry, Position const& pos, SummonPropertiesEntry const* properties = nullptr, uint32 duration = 0, Unit* summoner = nullptr, uint32 spellId = 0, uint32 vehId = 0, ObjectGuid privateObjectOwner = ObjectGuid::Empty);
+        TempSummon* SummonCreature(uint32 entry, Position const& pos, SummonPropertiesEntry const* properties = nullptr, uint32 duration = 0, WorldObject* summoner = nullptr, uint32 spellId = 0, uint32 vehId = 0, ObjectGuid privateObjectOwner = ObjectGuid::Empty);
         void SummonCreatureGroup(uint8 group, std::list<TempSummon*>* list = nullptr);
         AreaTrigger* GetAreaTrigger(ObjectGuid const& guid);
         SceneObject* GetSceneObject(ObjectGuid const& guid);
@@ -453,7 +462,21 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         Transport* GetTransport(ObjectGuid const& guid);
         Creature* GetCreatureBySpawnId(ObjectGuid::LowType spawnId) const;
         GameObject* GetGameObjectBySpawnId(ObjectGuid::LowType spawnId) const;
-        WorldObject* GetWorldObjectBySpawnId(SpawnObjectType type, ObjectGuid::LowType spawnId) const { return (type == SPAWN_TYPE_GAMEOBJECT) ? reinterpret_cast<WorldObject*>(GetGameObjectBySpawnId(spawnId)) : reinterpret_cast<WorldObject*>(GetCreatureBySpawnId(spawnId)); }
+        AreaTrigger* GetAreaTriggerBySpawnId(ObjectGuid::LowType spawnId) const;
+        WorldObject* GetWorldObjectBySpawnId(SpawnObjectType type, ObjectGuid::LowType spawnId) const
+        {
+            switch (type)
+            {
+                case SPAWN_TYPE_CREATURE:
+                    return reinterpret_cast<WorldObject*>(GetCreatureBySpawnId(spawnId));
+                case SPAWN_TYPE_GAMEOBJECT:
+                    return reinterpret_cast<WorldObject*>(GetGameObjectBySpawnId(spawnId));
+                case SPAWN_TYPE_AREATRIGGER:
+                    return reinterpret_cast<WorldObject*>(GetAreaTriggerBySpawnId(spawnId));
+                default:
+                    return nullptr;
+            }
+        }
 
         MapStoredObjectTypesContainer& GetObjectsStore() { return _objectsStore; }
 
@@ -464,6 +487,10 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         typedef std::unordered_multimap<ObjectGuid::LowType, GameObject*> GameObjectBySpawnIdContainer;
         GameObjectBySpawnIdContainer& GetGameObjectBySpawnIdStore() { return _gameobjectBySpawnIdStore; }
         GameObjectBySpawnIdContainer const& GetGameObjectBySpawnIdStore() const { return _gameobjectBySpawnIdStore; }
+
+        typedef std::unordered_multimap<ObjectGuid::LowType, AreaTrigger*> AreaTriggerBySpawnIdContainer;
+        AreaTriggerBySpawnIdContainer& GetAreaTriggerBySpawnIdStore() { return _areaTriggerBySpawnIdStore; }
+        AreaTriggerBySpawnIdContainer const& GetAreaTriggerBySpawnIdStore() const { return _areaTriggerBySpawnIdStore; }
 
         std::unordered_set<Corpse*> const* GetCorpsesInCell(uint32 cellId) const
         {
@@ -494,6 +521,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         float GetWaterOrGroundLevel(PhaseShift const& phaseShift, float x, float y, float z, float* ground = nullptr, bool swim = false, float collisionHeight = 2.03128f); // DEFAULT_COLLISION_HEIGHT in Object.h
         float GetMinHeight(PhaseShift const& phaseShift, float x, float y);
+        float GetGridHeight(PhaseShift const& phaseShift, float x, float y);
         float GetStaticHeight(PhaseShift const& phaseShift, float x, float y, float z, bool checkVMap = true, float maxSearchDist = DEFAULT_HEIGHT_SEARCH);
         float GetStaticHeight(PhaseShift const& phaseShift, Position const& pos, bool checkVMap = true, float maxSearchDist = DEFAULT_HEIGHT_SEARCH) { return GetStaticHeight(phaseShift, pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), checkVMap, maxSearchDist); }
         float GetHeight(PhaseShift const& phaseShift, float x, float y, float z, bool vmap = true, float maxSearchDist = DEFAULT_HEIGHT_SEARCH) { return std::max<float>(GetStaticHeight(phaseShift, x, y, z, vmap, maxSearchDist), GetGameObjectFloor(phaseShift, x, y, z, maxSearchDist)); }
@@ -514,26 +542,25 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
             RESPAWN TIMES
         */
         time_t GetLinkedRespawnTime(ObjectGuid guid) const;
-        time_t GetCreatureRespawnTime(ObjectGuid::LowType dbGuid) const
+        time_t GetRespawnTime(SpawnObjectType type, ObjectGuid::LowType spawnId) const
         {
-            RespawnInfoMap::const_iterator itr = _creatureRespawnTimesBySpawnId.find(dbGuid);
-            return itr != _creatureRespawnTimesBySpawnId.end() ? itr->second->respawnTime : 0;
+            if (auto map = GetRespawnMapForType(type))
+            {
+                auto it = map->find(spawnId);
+                return (it == map->end()) ? 0 : it->second->respawnTime;
+            }
+            return 0;
         }
-
-        time_t GetGORespawnTime(ObjectGuid::LowType dbGuid) const
-        {
-            RespawnInfoMap::const_iterator itr = _gameObjectRespawnTimesBySpawnId.find(dbGuid);
-            return itr != _gameObjectRespawnTimesBySpawnId.end() ? itr->second->respawnTime : 0;
-        }
-
-        time_t GetRespawnTime(SpawnObjectType type, ObjectGuid::LowType spawnId) const { return (type == SPAWN_TYPE_GAMEOBJECT) ? GetGORespawnTime(spawnId) : GetCreatureRespawnTime(spawnId); }
+        time_t GetCreatureRespawnTime(ObjectGuid::LowType spawnId) const { return GetRespawnTime(SPAWN_TYPE_CREATURE, spawnId); }
+        time_t GetGORespawnTime(ObjectGuid::LowType spawnId) const { return GetRespawnTime(SPAWN_TYPE_GAMEOBJECT, spawnId); }
 
         void UpdatePlayerZoneStats(uint32 oldZone, uint32 newZone);
 
-        void SaveRespawnTime(SpawnObjectType type, ObjectGuid::LowType spawnId, uint32 entry, time_t respawnTime, uint32 zoneId, uint32 gridId = 0, bool writeDB = true, bool replace = false, CharacterDatabaseTransaction dbTrans = nullptr);
-        void SaveRespawnTimeDB(SpawnObjectType type, ObjectGuid::LowType spawnId, time_t respawnTime, CharacterDatabaseTransaction dbTrans = nullptr);
+        void SaveRespawnTime(SpawnObjectType type, ObjectGuid::LowType spawnId, uint32 entry, time_t respawnTime, uint32 gridId, CharacterDatabaseTransaction dbTrans = nullptr, bool startup = false);
+        void SaveRespawnInfoDB(RespawnInfo const& info, CharacterDatabaseTransaction dbTrans = nullptr);
         void LoadRespawnTimes();
-        void DeleteRespawnTimes() { DeleteRespawnInfo(); DeleteRespawnTimesInDB(GetId(), GetInstanceId()); }
+        void DeleteRespawnTimes() { UnloadAllRespawnInfos(); DeleteRespawnTimesInDB(GetId(), GetInstanceId()); }
+        static void DeleteRespawnTimesInDB(uint16 mapId, uint32 instanceId);
 
         void LoadCorpseData();
         void DeleteCorpseData();
@@ -541,8 +568,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void RemoveCorpse(Corpse* corpse);
         Corpse* ConvertCorpseToBones(ObjectGuid const& ownerGuid, bool insignia = false);
         void RemoveOldCorpses();
-
-        static void DeleteRespawnTimesInDB(uint16 mapId, uint32 instanceId);
 
         void SendInitTransports(Player* player);
         void SendRemoveTransports(Player* player);
@@ -554,8 +579,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void SetZoneMusic(uint32 zoneId, uint32 musicId);
         Weather* GetOrGenerateZoneDefaultWeather(uint32 zoneId);
         WeatherState GetZoneWeather(uint32 zoneId) const;
-        void SetZoneWeather(uint32 zoneId, WeatherState weatherId, float weatherGrade);
-        void SetZoneOverrideLight(uint32 zoneId, uint32 lightId, uint32 fadeInTime);
+        void SetZoneWeather(uint32 zoneId, WeatherState weatherId, float intensity);
+        void SetZoneOverrideLight(uint32 zoneId, uint32 areaLightId, uint32 overrideLightId, uint32 transitionMilliseconds);
 
         void UpdateAreaDependentAuras();
 
@@ -564,6 +589,13 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         {
             static_assert(ObjectGuidTraits<high>::SequenceSource.HasFlag(ObjectGuidSequenceSource::Map), "Only map specific guid can be generated in Map context");
             return GetGuidSequenceGenerator<high>().Generate();
+        }
+
+        template<HighGuid high>
+        inline ObjectGuid::LowType GetMaxLowGuid()
+        {
+            static_assert(ObjectGuidTraits<high>::SequenceSource.HasFlag(ObjectGuidSequenceSource::Map), "Only map specific guid can be retrieved in Map context");
+            return GetGuidSequenceGenerator<high>().GetNextAfterMaxUsed();
         }
 
         void AddUpdateObject(Object* obj)
@@ -575,6 +607,8 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         {
             _updateObjects.erase(obj);
         }
+
+        virtual std::string GetDebugInfo() const;
 
         std::set<ObjectGuid>& GetInfiniteGameObjects() { return m_infiniteGameObjects; };
 
@@ -629,13 +663,13 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void EnsureGridCreated(GridCoord const&);
         void EnsureGridCreated_i(GridCoord const&);
         bool EnsureGridLoaded(Cell const&);
-        void EnsureGridLoadedForActiveObject(Cell const&, WorldObject* object);
+        void EnsureGridLoadedForActiveObject(Cell const&, WorldObject const* object);
 
         void buildNGridLinkage(NGridType* pNGridType) { pNGridType->link(this); }
 
         NGridType* getNGrid(uint32 x, uint32 y) const
         {
-            ASSERT(x < MAX_NUMBER_OF_GRIDS && y < MAX_NUMBER_OF_GRIDS);
+            ASSERT(x < MAX_NUMBER_OF_GRIDS && y < MAX_NUMBER_OF_GRIDS, "x = %u, y = %u", x, y);
             return i_grids[x][y];
         }
 
@@ -681,6 +715,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
     private:
         Player* _GetScriptPlayerSourceOrTarget(Object* source, Object* target, ScriptInfo const* scriptInfo) const;
         Creature* _GetScriptCreatureSourceOrTarget(Object* source, Object* target, ScriptInfo const* scriptInfo, bool bReverse = false) const;
+        GameObject* _GetScriptGameObjectSourceOrTarget(Object* source, Object* target, ScriptInfo const* scriptInfo, bool bReverse = false) const;
         Unit* _GetScriptUnit(Object* obj, bool isSource, ScriptInfo const* scriptInfo) const;
         Player* _GetScriptPlayer(Object* obj, bool isSource, ScriptInfo const* scriptInfo) const;
         Creature* _GetScriptCreature(Object* obj, bool isSource, ScriptInfo const* scriptInfo) const;
@@ -724,52 +759,32 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         // if return value is false and info->respawnTime is nonzero, it is guaranteed to be greater than time(NULL)
         bool CheckRespawn(RespawnInfo* info);
         void DoRespawn(SpawnObjectType type, ObjectGuid::LowType spawnId, uint32 gridId);
-        void Respawn(RespawnInfo* info, bool force = false, CharacterDatabaseTransaction dbTrans = nullptr);
-        void Respawn(std::vector<RespawnInfo*>& respawnData, bool force = false, CharacterDatabaseTransaction dbTrans = nullptr);
-        void AddRespawnInfo(RespawnInfo& info, bool replace = false);
-        void DeleteRespawnInfo();
-        void DeleteRespawnInfo(RespawnInfo* info);
-        void DeleteRespawnInfo(std::vector<RespawnInfo*>& toDelete)
-        {
-            for (RespawnInfo* info : toDelete)
-                DeleteRespawnInfo(info);
-            toDelete.clear();
-        }
-        void DeleteRespawnInfo(SpawnObjectTypeMask types, uint32 zoneId = 0)
-        {
-            std::vector<RespawnInfo*> v;
-            GetRespawnInfo(v, types, zoneId);
-            if (!v.empty())
-                DeleteRespawnInfo(v);
-        }
-        void DeleteRespawnInfo(SpawnObjectType type, ObjectGuid::LowType spawnId)
-        {
-            if (RespawnInfo* info = GetRespawnInfo(type, spawnId))
-                DeleteRespawnInfo(info);
-        }
+        bool AddRespawnInfo(RespawnInfo const& info);
+        void UnloadAllRespawnInfos();
+        void DeleteRespawnInfo(RespawnInfo* info, CharacterDatabaseTransaction dbTrans = nullptr);
+        void DeleteRespawnInfoFromDB(SpawnObjectType type, ObjectGuid::LowType spawnId, CharacterDatabaseTransaction dbTrans = nullptr);
 
     public:
-        void GetRespawnInfo(std::vector<RespawnInfo*>& respawnData, SpawnObjectTypeMask types, uint32 zoneId = 0) const;
+        void GetRespawnInfo(std::vector<RespawnInfo*>& respawnData, SpawnObjectTypeMask types) const;
         RespawnInfo* GetRespawnInfo(SpawnObjectType type, ObjectGuid::LowType spawnId) const;
-        void ForceRespawn(SpawnObjectType type, ObjectGuid::LowType spawnId)
+        void Respawn(SpawnObjectType type, ObjectGuid::LowType spawnId, CharacterDatabaseTransaction dbTrans = nullptr)
         {
             if (RespawnInfo* info = GetRespawnInfo(type, spawnId))
-                Respawn(info, true);
+                Respawn(info, dbTrans);
         }
-        void RemoveRespawnTime(RespawnInfo* info, bool doRespawn = false, CharacterDatabaseTransaction dbTrans = nullptr);
-        void RemoveRespawnTime(std::vector<RespawnInfo*>& respawnData, bool doRespawn = false, CharacterDatabaseTransaction dbTrans = nullptr);
-        void RemoveRespawnTime(SpawnObjectTypeMask types = SPAWN_TYPEMASK_ALL, uint32 zoneId = 0, bool doRespawn = false, CharacterDatabaseTransaction dbTrans = nullptr)
-        {
-            std::vector<RespawnInfo*> v;
-            GetRespawnInfo(v, types, zoneId);
-            if (!v.empty())
-                RemoveRespawnTime(v, doRespawn, dbTrans);
-        }
-        void RemoveRespawnTime(SpawnObjectType type, ObjectGuid::LowType spawnId, bool doRespawn = false, CharacterDatabaseTransaction dbTrans = nullptr)
+        void Respawn(RespawnInfo* info, CharacterDatabaseTransaction dbTrans = nullptr);
+        void RemoveRespawnTime(SpawnObjectType type, ObjectGuid::LowType spawnId, CharacterDatabaseTransaction dbTrans = nullptr, bool alwaysDeleteFromDB = false)
         {
             if (RespawnInfo* info = GetRespawnInfo(type, spawnId))
-                RemoveRespawnTime(info, doRespawn, dbTrans);
+                DeleteRespawnInfo(info, dbTrans);
+            // Some callers might need to make sure the database doesn't contain any respawn time
+            else if (alwaysDeleteFromDB)
+                DeleteRespawnInfoFromDB(type, spawnId, dbTrans);
         }
+        size_t DespawnAll(SpawnObjectType type, ObjectGuid::LowType spawnId);
+
+        bool ShouldBeSpawnedOnGridLoad(SpawnObjectType type, ObjectGuid::LowType spawnId) const;
+        template <typename T> bool ShouldBeSpawnedOnGridLoad(ObjectGuid::LowType spawnId) const { return ShouldBeSpawnedOnGridLoad(SpawnData::TypeFor<T>, spawnId); }
 
         SpawnGroupTemplateData const* GetSpawnGroupData(uint32 groupId) const;
 
@@ -821,8 +836,34 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         RespawnListContainer _respawnTimes;
         RespawnInfoMap       _creatureRespawnTimesBySpawnId;
         RespawnInfoMap       _gameObjectRespawnTimesBySpawnId;
-        RespawnInfoMap& GetRespawnMapForType(SpawnObjectType type) { return (type == SPAWN_TYPE_GAMEOBJECT) ? _gameObjectRespawnTimesBySpawnId : _creatureRespawnTimesBySpawnId; }
-        RespawnInfoMap const& GetRespawnMapForType(SpawnObjectType type) const { return (type == SPAWN_TYPE_GAMEOBJECT) ? _gameObjectRespawnTimesBySpawnId : _creatureRespawnTimesBySpawnId; }
+        RespawnInfoMap* GetRespawnMapForType(SpawnObjectType type)
+        {
+            switch (type)
+            {
+                default:
+                    ASSERT(false);
+                case SPAWN_TYPE_CREATURE:
+                    return &_creatureRespawnTimesBySpawnId;
+                case SPAWN_TYPE_GAMEOBJECT:
+                    return &_gameObjectRespawnTimesBySpawnId;
+                case SPAWN_TYPE_AREATRIGGER:
+                    return nullptr;
+            }
+        }
+        RespawnInfoMap const* GetRespawnMapForType(SpawnObjectType type) const
+        {
+            switch (type)
+            {
+                default:
+                    ASSERT(false);
+                case SPAWN_TYPE_CREATURE:
+                    return &_creatureRespawnTimesBySpawnId;
+                case SPAWN_TYPE_GAMEOBJECT:
+                    return &_gameObjectRespawnTimesBySpawnId;
+                case SPAWN_TYPE_AREATRIGGER:
+                    return nullptr;
+            }
+        }
 
         void SetSpawnGroupActive(uint32 groupId, bool state);
         std::unordered_set<uint32> _toggledSpawnGroupIds;
@@ -832,7 +873,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         ZoneDynamicInfoMap _zoneDynamicInfo;
         IntervalTimer _weatherUpdateTimer;
-        uint32 _defaultLight;
 
         template<HighGuid high>
         inline ObjectGuidGeneratorBase& GetGuidSequenceGenerator()
@@ -848,6 +888,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         MapStoredObjectTypesContainer _objectsStore;
         CreatureBySpawnIdContainer _creatureBySpawnIdStore;
         GameObjectBySpawnIdContainer _gameobjectBySpawnIdStore;
+        AreaTriggerBySpawnIdContainer _areaTriggerBySpawnIdStore;
         std::unordered_map<uint32/*cellId*/, std::unordered_set<Corpse*>> _corpsesByCell;
         std::unordered_map<ObjectGuid, Corpse*> _corpsesByPlayer;
         std::unordered_set<Corpse*> _corpseBones;
@@ -855,6 +896,16 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         std::unordered_set<Object*> _updateObjects;
 
         MPSCQueue<FarSpellCallback> _farSpellCallbacks;
+
+        /*********************************************************/
+        /***                   Phasing                         ***/
+        /*********************************************************/
+    public:
+        MultiPersonalPhaseTracker& GetMultiPersonalPhaseTracker() { return _multiPersonalPhaseTracker; }
+        void UpdatePersonalPhasesForPlayer(Player const* player);
+
+    private:
+        MultiPersonalPhaseTracker _multiPersonalPhaseTracker;
 };
 
 enum InstanceResetMethod
@@ -897,6 +948,8 @@ class TC_GAME_API InstanceMap : public Map
         uint32 GetMaxResetDelay() const;
 
         virtual void InitVisibilityDistance() override;
+
+        std::string GetDebugInfo() const override;
     private:
         bool m_resetAfterUnload;
         bool m_unloadWhenEmpty;

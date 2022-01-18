@@ -185,9 +185,11 @@ void WorldSession::HandleGossipHelloOpcode(WorldPackets::NPC::Hello& packet)
     }
 
     _player->PlayerTalkClass->ClearMenus();
+
 #ifdef ELUNA
     if (!sEluna->OnGossipHello(_player, unit))
 #endif
+
     if (!unit->AI()->GossipHello(_player))
     {
 //        _player->TalkedToCreature(unit->GetEntry(), unit->GetGUID());
@@ -205,7 +207,7 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPackets::NPC::GossipSelec
     if (_player->PlayerTalkClass->GetInteractionData().SourceGuid != packet.GossipUnit)
         return;
 
-	Item* item = nullptr;
+    Item* item = nullptr;
     Creature* unit = nullptr;
     GameObject* go = nullptr;
     if (packet.GossipUnit.IsCreatureOrVehicle())
@@ -226,7 +228,7 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPackets::NPC::GossipSelec
             return;
         }
     }
-	else if (packet.GossipUnit.IsItem())
+    else if (packet.GossipUnit.IsItem())
     {
         item = _player->GetItemByGuid(packet.GossipUnit);
         if (!item || _player->IsBankPos(item->GetPos()))
@@ -286,7 +288,7 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPackets::NPC::GossipSelec
             if (!go->AI()->GossipSelectCode(_player, packet.GossipID, packet.GossipIndex, packet.PromotionCode.c_str()))
                 _player->OnGossipSelect(go, packet.GossipIndex, packet.GossipID);
         }
-		else if (item)
+        else if (item)
         {
             sScriptMgr->OnGossipSelectCode(_player, item, _player->PlayerTalkClass->GetGossipOptionSender(packet.GossipIndex), _player->PlayerTalkClass->GetGossipOptionAction(packet.GossipIndex), packet.PromotionCode.c_str());
         }
@@ -315,7 +317,7 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPackets::NPC::GossipSelec
             if (!go->AI()->GossipSelect(_player, packet.GossipID, packet.GossipIndex))
                 _player->OnGossipSelect(go, packet.GossipIndex, packet.GossipID);
         }
-		else if (item)
+        else if (item)
         {
             sScriptMgr->OnGossipSelect(_player, item, _player->PlayerTalkClass->GetGossipOptionSender(packet.GossipIndex), _player->PlayerTalkClass->GetGossipOptionAction(packet.GossipIndex));
         }
@@ -448,7 +450,7 @@ void WorldSession::SendStablePetCallback(ObjectGuid guid, PreparedQueryResult re
         stableEntry.PetNumber = pet->GetCharmInfo()->GetPetNumber();
         stableEntry.CreatureID = pet->GetEntry();
         stableEntry.DisplayID = pet->GetDisplayId();
-        stableEntry.ExperienceLevel = pet->getLevel();
+        stableEntry.ExperienceLevel = pet->GetLevel();
         stableEntry.PetFlags = PET_STABLE_ACTIVE;
         stableEntry.PetName = pet->GetName();
         ++petSlot;

@@ -71,7 +71,7 @@ class boss_moragg : public CreatureScript
 
                 scheduler.Schedule(Seconds(15), [this](TaskContext task)
                 {
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 50.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 50.0f, true))
                         DoCast(target, SPELL_OPTIC_LINK);
                     task.Repeat(Seconds(25));
                 });
@@ -103,10 +103,10 @@ class spell_moragg_ray : public SpellScriptLoader
             {
                 PreventDefaultAction();
 
-                if (!GetTarget()->IsAIEnabled)
+                if (!GetTarget()->GetAI())
                     return;
 
-                if (Unit* target = GetTarget()->GetAI()->SelectTarget(SELECT_TARGET_RANDOM, 0, 45.0f, true))
+                if (Unit* target = GetTarget()->GetAI()->SelectTarget(SelectTargetMethod::Random, 0, 45.0f, true))
                 {
                     uint32 triggerSpell = aurEff->GetSpellEffectInfo().TriggerSpell;
                     GetTarget()->CastSpell(target, triggerSpell, aurEff);

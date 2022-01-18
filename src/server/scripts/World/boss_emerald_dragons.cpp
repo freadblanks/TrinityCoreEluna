@@ -99,7 +99,7 @@ struct emerald_dragonAI : public WorldBossAI
         me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE));
         me->SetReactState(REACT_AGGRESSIVE);
         DoCast(me, SPELL_MARK_OF_NATURE_AURA, true);
-        events.ScheduleEvent(EVENT_TAIL_SWEEP, 4000);
+        events.ScheduleEvent(EVENT_TAIL_SWEEP, 4s);
         events.ScheduleEvent(EVENT_NOXIOUS_BREATH, urand(7500, 15000));
         events.ScheduleEvent(EVENT_SEEPING_FOG, urand(12500, 20000));
     }
@@ -131,7 +131,7 @@ struct emerald_dragonAI : public WorldBossAI
             case EVENT_TAIL_SWEEP:
                 // Tail Sweep is cast every two seconds, no matter what goes on in front of the dragon
                 DoCast(me, SPELL_TAIL_SWEEP);
-                events.ScheduleEvent(EVENT_TAIL_SWEEP, 2000);
+                events.ScheduleEvent(EVENT_TAIL_SWEEP, 2s);
                 break;
         }
     }
@@ -154,7 +154,7 @@ struct emerald_dragonAI : public WorldBossAI
                 return;
         }
 
-        if (Unit* target = SelectTarget(SELECT_TARGET_MAXTHREAT, 0, -50.0f, true))
+        if (Unit* target = SelectTarget(SelectTargetMethod::MaxThreat, 0, -50.0f, true))
             DoCast(target, SPELL_SUMMON_PLAYER);
 
         DoMeleeAttackIfReady();
@@ -195,7 +195,7 @@ class npc_dream_fog : public CreatureScript
                 if (!_roamTimer)
                 {
                     // Chase target, but don't attack - otherwise just roam around
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                     {
                         _roamTimer = urand(15000, 30000);
                         me->GetMotionMaster()->Clear();
@@ -269,7 +269,7 @@ class boss_ysondre : public CreatureScript
             {
                 Initialize();
                 emerald_dragonAI::Reset();
-                events.ScheduleEvent(EVENT_LIGHTNING_WAVE, 12000);
+                events.ScheduleEvent(EVENT_LIGHTNING_WAVE, 12s);
             }
 
             void JustEngagedWith(Unit* who) override
@@ -297,7 +297,7 @@ class boss_ysondre : public CreatureScript
                 {
                     case EVENT_LIGHTNING_WAVE:
                         DoCastVictim(SPELL_LIGHTNING_WAVE);
-                        events.ScheduleEvent(EVENT_LIGHTNING_WAVE, urand(10000, 20000));
+                        events.ScheduleEvent(EVENT_LIGHTNING_WAVE, 10s, 20s);
                         break;
                     default:
                         emerald_dragonAI::ExecuteEvent(eventId);
@@ -363,7 +363,7 @@ class boss_lethon : public CreatureScript
             {
                 Initialize();
                 emerald_dragonAI::Reset();
-                events.ScheduleEvent(EVENT_SHADOW_BOLT_WHIRL, 10000);
+                events.ScheduleEvent(EVENT_SHADOW_BOLT_WHIRL, 10s);
             }
 
             void JustEngagedWith(Unit* who) override
@@ -382,9 +382,9 @@ class boss_lethon : public CreatureScript
                 }
             }
 
-            void SpellHitTarget(Unit* target, SpellInfo const* spell) override
+            void SpellHitTarget(WorldObject* target, SpellInfo const* spellInfo) override
             {
-                if (spell->Id == SPELL_DRAW_SPIRIT && target->GetTypeId() == TYPEID_PLAYER)
+                if (spellInfo->Id == SPELL_DRAW_SPIRIT && target->GetTypeId() == TYPEID_PLAYER)
                 {
                     Position targetPos = target->GetPosition();
                     me->SummonCreature(NPC_SPIRIT_SHADE, targetPos, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 50000);
@@ -397,7 +397,7 @@ class boss_lethon : public CreatureScript
                 {
                     case EVENT_SHADOW_BOLT_WHIRL:
                         me->CastSpell(nullptr, SPELL_SHADOW_BOLT_WHIRL, false);
-                        events.ScheduleEvent(EVENT_SHADOW_BOLT_WHIRL, urand(15000, 30000));
+                        events.ScheduleEvent(EVENT_SHADOW_BOLT_WHIRL, 15s, 30s);
                         break;
                     default:
                         emerald_dragonAI::ExecuteEvent(eventId);
@@ -426,8 +426,12 @@ class npc_spirit_shade : public CreatureScript
             {
             }
 
-            void IsSummonedBy(Unit* summoner) override
+            void IsSummonedBy(WorldObject* summonerWO) override
             {
+                Unit* summoner = summonerWO->ToUnit();
+                if (!summoner)
+                    return;
+
                 _summonerGuid = summoner->GetGUID();
                 me->GetMotionMaster()->MoveFollow(summoner, 0.0f, 0.0f);
             }
@@ -491,7 +495,7 @@ class boss_emeriss : public CreatureScript
             {
                 Initialize();
                 emerald_dragonAI::Reset();
-                events.ScheduleEvent(EVENT_VOLATILE_INFECTION, 12000);
+                events.ScheduleEvent(EVENT_VOLATILE_INFECTION, 12s);
             }
 
             void KilledUnit(Unit* who) override
@@ -595,8 +599,8 @@ class boss_taerar : public CreatureScript
                 Initialize();
 
                 emerald_dragonAI::Reset();
-                events.ScheduleEvent(EVENT_ARCANE_BLAST, 12000);
-                events.ScheduleEvent(EVENT_BELLOWING_ROAR, 30000);
+                events.ScheduleEvent(EVENT_ARCANE_BLAST, 12s);
+                events.ScheduleEvent(EVENT_BELLOWING_ROAR, 30s);
             }
 
             void JustEngagedWith(Unit* who) override
@@ -643,11 +647,11 @@ class boss_taerar : public CreatureScript
                 {
                     case EVENT_ARCANE_BLAST:
                         DoCast(SPELL_ARCANE_BLAST);
-                        events.ScheduleEvent(EVENT_ARCANE_BLAST, urand(7000, 12000));
+                        events.ScheduleEvent(EVENT_ARCANE_BLAST, 7s, 12s);
                         break;
                     case EVENT_BELLOWING_ROAR:
                         DoCast(SPELL_BELLOWING_ROAR);
-                        events.ScheduleEvent(EVENT_BELLOWING_ROAR, urand(20000, 30000));
+                        events.ScheduleEvent(EVENT_BELLOWING_ROAR, 20s, 30s);
                         break;
                     default:
                         emerald_dragonAI::ExecuteEvent(eventId);

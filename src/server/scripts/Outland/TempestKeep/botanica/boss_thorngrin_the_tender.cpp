@@ -68,13 +68,13 @@ class boss_thorngrin_the_tender : public CreatureScript
                 Initialize();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void JustEngagedWith(Unit* who) override
             {
-                _JustEngagedWith();
+                BossAI::JustEngagedWith(who);
                 Talk(SAY_AGGRO);
-                events.ScheduleEvent(EVENT_SACRIFICE, 5700);
+                events.ScheduleEvent(EVENT_SACRIFICE, 5700ms);
                 events.ScheduleEvent(EVENT_HELLFIRE, IsHeroic() ? urand(17400, 19300) : 18000);
-                events.ScheduleEvent(EVENT_ENRAGE, 12000);
+                events.ScheduleEvent(EVENT_ENRAGE, 12s);
             }
 
             void KilledUnit(Unit* /*victim*/) override
@@ -117,7 +117,7 @@ class boss_thorngrin_the_tender : public CreatureScript
                     switch (eventId)
                     {
                         case EVENT_SACRIFICE:
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 1, 0.0f, true))
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 1, 0.0f, true))
                             {
                                 Talk(SAY_CAST_SACRIFICE);
                                 DoCast(target, SPELL_SACRIFICE, true);
@@ -132,7 +132,7 @@ class boss_thorngrin_the_tender : public CreatureScript
                         case EVENT_ENRAGE:
                             Talk(EMOTE_ENRAGE);
                             DoCast(me, SPELL_ENRAGE);
-                            events.ScheduleEvent(EVENT_ENRAGE, 33000);
+                            events.ScheduleEvent(EVENT_ENRAGE, 33s);
                             break;
                         default:
                             break;

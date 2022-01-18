@@ -170,9 +170,9 @@ class boss_svala : public CreatureScript
                 instance->SetGuidData(DATA_SACRIFICED_PLAYER, ObjectGuid::Empty);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void JustEngagedWith(Unit* who) override
             {
-                _JustEngagedWith();
+                BossAI::JustEngagedWith(who);
                 Talk(SAY_AGGRO);
             }
 
@@ -201,7 +201,7 @@ class boss_svala : public CreatureScript
                         arthas->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
                         _arthasGUID = arthas->GetGUID();
                     }
-                    events.ScheduleEvent(EVENT_INTRO_SVALA_TALK_0, 1 * IN_MILLISECONDS, 0, INTRO);
+                    events.ScheduleEvent(EVENT_INTRO_SVALA_TALK_0, 1s, 0, INTRO);
                 }
             }
 
@@ -220,7 +220,7 @@ class boss_svala : public CreatureScript
                 Talk(SAY_DEATH);
             }
 
-            void SpellHitTarget(Unit* /*target*/, SpellInfo const* spellInfo) override
+            void SpellHitTarget(WorldObject* /*target*/, SpellInfo const* spellInfo) override
             {
                 if (spellInfo->Id == SPELL_RITUAL_STRIKE_EFF_1 && !events.IsInPhase(NORMAL) && !events.IsInPhase(SVALADEAD))
                 {
@@ -229,7 +229,7 @@ class boss_svala : public CreatureScript
                     events.ScheduleEvent(EVENT_CALL_FLAMES, urand(10 * IN_MILLISECONDS, 20 * IN_MILLISECONDS), 0, NORMAL);
                     SetCombatMovement(true);
 
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 300.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 300.0f, true))
                         me->GetMotionMaster()->MoveChase(target);
                 }
             }
@@ -349,15 +349,15 @@ class boss_svala : public CreatureScript
                             break;
                         case EVENT_SINISTER_STRIKE:
                             DoCastVictim(SPELL_SINSTER_STRIKE);
-                            events.ScheduleEvent(EVENT_SINISTER_STRIKE, urand(5 * IN_MILLISECONDS, 9 * IN_MILLISECONDS), 0, NORMAL);
+                            events.ScheduleEvent(EVENT_SINISTER_STRIKE, 5s, 9s, 0, NORMAL);
                             break;
                         case EVENT_CALL_FLAMES:
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true))
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
                                 DoCast(target, SPELL_CALL_FLAMES);
                             events.ScheduleEvent(EVENT_CALL_FLAMES, urand(10 * IN_MILLISECONDS, 20 * IN_MILLISECONDS), 0, NORMAL);
                             break;
                         case EVENT_RITUAL_PREPARATION:
-                            if (Unit* sacrificeTarget = SelectTarget(SELECT_TARGET_RANDOM, 0, 80.0f, true))
+                            if (Unit* sacrificeTarget = SelectTarget(SelectTargetMethod::Random, 0, 80.0f, true))
                             {
                                 instance->SetGuidData(DATA_SACRIFICED_PLAYER, sacrificeTarget->GetGUID());
                                 Talk(SAY_SACRIFICE_PLAYER);
@@ -606,7 +606,7 @@ class achievement_incredible_hulk : public AchievementCriteriaScript
 
         bool OnCheck(Player* /*player*/, Unit* target) override
         {
-            return target && target->IsAIEnabled && target->GetAI()->GetData(DATA_INCREDIBLE_HULK);
+            return target && target->GetAI() && target->GetAI()->GetData(DATA_INCREDIBLE_HULK);
         }
 };
 

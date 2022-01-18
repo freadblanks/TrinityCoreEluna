@@ -1494,7 +1494,7 @@ namespace LuaPlayer
     {
         uint8 race = Eluna::CHECKVAL<uint8>(L, 2);
 
-        player->setFactionForRace(race);
+        player->SetFactionForRace(race);
         return 0;
     }
 
@@ -2947,7 +2947,7 @@ namespace LuaPlayer
     */
     int KickPlayer(lua_State* /*L*/, Player* player)
     {
-        player->GetSession()->KickPlayer();
+        player->GetSession()->KickPlayer(" ");
         return 0;
     }
 
@@ -3046,7 +3046,7 @@ namespace LuaPlayer
      */
     int GossipMenuAddItem(lua_State* L, Player* player)
     {
-        uint32 _icon = Eluna::CHECKVAL<uint32>(L, 2);
+        GossipOptionIcon _icon = *Eluna::CHECKOBJ<GossipOptionIcon>(L, 2);
         const char* msg = Eluna::CHECKVAL<const char*>(L, 3);
         uint32 _sender = Eluna::CHECKVAL<uint32>(L, 4);
         uint32 _intid = Eluna::CHECKVAL<uint32>(L, 5);

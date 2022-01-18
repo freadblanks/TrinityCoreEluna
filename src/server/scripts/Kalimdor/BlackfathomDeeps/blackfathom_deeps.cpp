@@ -128,7 +128,7 @@ public:
             Initialize();
         }
 
-        void IsSummonedBy(Unit*) override
+        void IsSummonedBy(WorldObject*) override
         {
             DoZoneInCombat();
         }
@@ -163,7 +163,7 @@ public:
                 {
                     if (frostBoltVolleyTimer <= diff)
                     {
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                             DoCast(target, SPELL_FROST_BOLT_VOLLEY);
                         frostBoltVolleyTimer = urand(5000, 8000);
                     }
@@ -203,7 +203,9 @@ public:
 
     struct npc_morriduneAI : public EscortAI
     {
-        npc_morriduneAI(Creature* creature) : EscortAI(creature)
+        npc_morriduneAI(Creature* creature) : EscortAI(creature) { }
+
+        void Reset() override
         {
             Talk(SAY_MORRIDUNE_1);
             me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);

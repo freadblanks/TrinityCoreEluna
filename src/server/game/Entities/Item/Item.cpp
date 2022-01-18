@@ -60,7 +60,7 @@ Item* NewItemOrBag(ItemTemplate const* proto)
     return new Item();
 }
 
-void AddItemsSetItem(Player* player, Item* item)
+void AddItemsSetItem(Player* player, Item const* item)
 {
     ItemTemplate const* proto = item->GetTemplate();
     uint32 setid = proto->GetItemSet();
@@ -79,6 +79,21 @@ void AddItemsSetItem(Player* player, Item* item)
     if (set->SetFlags & ITEM_SET_FLAG_LEGACY_INACTIVE)
         return;
 
+    // Check player level for heirlooms
+    if (sDB2Manager.GetHeirloomByItemId(item->GetEntry()))
+    {
+        if (item->GetBonus()->PlayerLevelToItemLevelCurveId)
+        {
+            uint32 maxLevel = sDB2Manager.GetCurveXAxisRange(item->GetBonus()->PlayerLevelToItemLevelCurveId).second;
+
+            if (Optional<ContentTuningLevels> contentTuning = sDB2Manager.GetContentTuningData(item->GetBonus()->ContentTuningId, player->m_playerData->CtrOptions->ContentTuningConditionMask, true))
+                maxLevel = std::min<uint32>(maxLevel, contentTuning->MaxLevel);
+
+            if (player->GetLevel() > maxLevel)
+                return;
+        }
+    }
+
     ItemSetEffect* eff = nullptr;
 
     for (size_t x = 0; x < player->ItemSetEff.size(); ++x)
@@ -94,7 +109,6 @@ void AddItemsSetItem(Player* player, Item* item)
     {
         eff = new ItemSetEffect();
         eff->ItemSetID = setid;
-        eff->EquippedItemCount = 0;
 
         size_t x = 0;
         for (; x < player->ItemSetEff.size(); ++x)
@@ -107,14 +121,14 @@ void AddItemsSetItem(Player* player, Item* item)
             player->ItemSetEff.push_back(eff);
     }
 
-    ++eff->EquippedItemCount;
+    eff->EquippedItems.insert(item);
 
     if (std::vector<ItemSetSpellEntry const*> const* itemSetSpells = sDB2Manager.GetItemSetSpells(setid))
     {
         for (ItemSetSpellEntry const* itemSetSpell : *itemSetSpells)
         {
             //not enough for  spell
-            if (itemSetSpell->Threshold > eff->EquippedItemCount)
+            if (itemSetSpell->Threshold > eff->EquippedItems.size())
                 continue;
 
             if (eff->SetBonuses.count(itemSetSpell))
@@ -135,15 +149,15 @@ void AddItemsSetItem(Player* player, Item* item)
     }
 }
 
-void RemoveItemsSetItem(Player* player, ItemTemplate const* proto)
+void RemoveItemsSetItem(Player* player, Item const* item)
 {
-    uint32 setid = proto->GetItemSet();
+    uint32 setid = item->GetTemplate()->GetItemSet();
 
     ItemSetEntry const* set = sItemSetStore.LookupEntry(setid);
 
     if (!set)
     {
-        TC_LOG_ERROR("sql.sql", "Item set #%u for item #%u not found, mods not removed.", setid, proto->GetId());
+        TC_LOG_ERROR("sql.sql", "Item set #%u for item #%u not found, mods not removed.", setid, item->GetEntry());
         return;
     }
 
@@ -162,14 +176,14 @@ void RemoveItemsSetItem(Player* player, ItemTemplate const* proto)
     if (!eff)
         return;
 
-    --eff->EquippedItemCount;
+    eff->EquippedItems.erase(item);
 
     if (std::vector<ItemSetSpellEntry const*> const* itemSetSpells = sDB2Manager.GetItemSetSpells(setid))
     {
         for (ItemSetSpellEntry const* itemSetSpell : *itemSetSpells)
         {
             // enough for spell
-            if (itemSetSpell->Threshold <= eff->EquippedItemCount)
+            if (itemSetSpell->Threshold <= eff->EquippedItems.size())
                 continue;
 
             if (!eff->SetBonuses.count(itemSetSpell))
@@ -180,7 +194,7 @@ void RemoveItemsSetItem(Player* player, ItemTemplate const* proto)
         }
     }
 
-    if (!eff->EquippedItemCount)                                    //all items of a set were removed
+    if (eff->EquippedItems.empty())                                 //all items of a set were removed
     {
         ASSERT(eff == player->ItemSetEff[setindex]);
         delete eff;
@@ -566,9 +580,17 @@ void Item::SaveToDB(CharacterDatabaseTransaction& trans)
             std::ostringstream ssEnchants;
             for (uint8 i = 0; i < MAX_ENCHANTMENT_SLOT; ++i)
             {
-                ssEnchants << GetEnchantmentId(EnchantmentSlot(i)) << ' ';
-                ssEnchants << GetEnchantmentDuration(EnchantmentSlot(i)) << ' ';
-                ssEnchants << GetEnchantmentCharges(EnchantmentSlot(i)) << ' ';
+                if (SpellItemEnchantmentEntry const* enchantment = sSpellItemEnchantmentStore.LookupEntry(GetEnchantmentId(EnchantmentSlot(i)));
+                    enchantment && !enchantment->GetFlags().HasFlag(SpellItemEnchantmentFlags::DoNotSaveToDB))
+                {
+                    ssEnchants << GetEnchantmentId(EnchantmentSlot(i)) << ' ';
+                    ssEnchants << GetEnchantmentDuration(EnchantmentSlot(i)) << ' ';
+                    ssEnchants << GetEnchantmentCharges(EnchantmentSlot(i)) << ' ';
+                }
+                else
+                {
+                    ssEnchants << "0 0 0 ";
+                }
             }
             stmt->setString(++index, ssEnchants.str());
 
@@ -591,7 +613,7 @@ void Item::SaveToDB(CharacterDatabaseTransaction& trans)
 
             trans->Append(stmt);
 
-            if ((uState == ITEM_CHANGED) && HasItemFlag(ITEM_FIELD_FLAG_WRAPPED))
+            if ((uState == ITEM_CHANGED) && IsWrapped())
             {
                 stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_GIFT_OWNER);
                 stmt->setUInt64(0, GetOwnerGUID().GetCounter());
@@ -768,7 +790,7 @@ void Item::SaveToDB(CharacterDatabaseTransaction& trans)
             stmt->setUInt64(0, GetGUID().GetCounter());
             trans->Append(stmt);
 
-            if (HasItemFlag(ITEM_FIELD_FLAG_WRAPPED))
+            if (IsWrapped())
             {
                 stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_GIFT);
                 stmt->setUInt64(0, GetGUID().GetCounter());
@@ -862,7 +884,7 @@ bool Item::LoadFromDB(ObjectGuid::LowType guid, ObjectGuid ownerGuid, Field* fie
     SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::MaxDurability), proto->MaxDurability);
 
     // do not overwrite durability for wrapped items
-    if (durability > proto->MaxDurability && !HasItemFlag(ITEM_FIELD_FLAG_WRAPPED))
+    if (durability > proto->MaxDurability && !IsWrapped())
     {
         SetDurability(proto->MaxDurability);
         need_save = true;
@@ -1217,7 +1239,7 @@ bool Item::CanBeTraded(bool mail, bool trade) const
     if (m_lootGenerated)
         return false;
 
-    if ((!mail || !IsBoundAccountWide()) && (IsSoulBound() && (!HasItemFlag(ITEM_FIELD_FLAG_BOP_TRADEABLE) || !trade)))
+    if ((!mail || !IsBoundAccountWide()) && (IsSoulBound() && (!IsBOPTradeable() || !trade)))
         return false;
 
     if (IsBag() && (Player::IsBagPos(GetPos()) || !ToBag()->IsEmpty()))
@@ -1264,7 +1286,7 @@ bool Item::HasEnchantRequiredSkill(Player const* player) const
                     return false;
     }
 
-  return true;
+    return true;
 }
 
 uint32 Item::GetEnchantRequiredLevel() const
@@ -1289,7 +1311,7 @@ bool Item::IsBoundByEnchant() const
     for (uint32 enchant_slot = PERM_ENCHANTMENT_SLOT; enchant_slot < MAX_ENCHANTMENT_SLOT; ++enchant_slot)
         if (uint32 enchant_id = GetEnchantmentId(EnchantmentSlot(enchant_slot)))
             if (SpellItemEnchantmentEntry const* enchantEntry = sSpellItemEnchantmentStore.LookupEntry(enchant_id))
-                if (enchantEntry->Flags & ENCHANTMENT_CAN_SOULBOUND)
+                if (enchantEntry->GetFlags().HasFlag(SpellItemEnchantmentFlags::Soulbound))
                     return true;
 
     return false;
@@ -1319,7 +1341,7 @@ bool Item::IsFitToSpellRequirements(SpellInfo const* spellInfo) const
     bool isEnchantSpell = spellInfo->HasEffect(SPELL_EFFECT_ENCHANT_ITEM) || spellInfo->HasEffect(SPELL_EFFECT_ENCHANT_ITEM_TEMPORARY) || spellInfo->HasEffect(SPELL_EFFECT_ENCHANT_ITEM_PRISMATIC);
     if (spellInfo->EquippedItemClass != -1)                 // -1 == any item class
     {
-        if (isEnchantSpell && proto->GetFlags3() & ITEM_FLAG3_CAN_STORE_ENCHANTS)
+        if (isEnchantSpell && proto->HasFlag(ITEM_FLAG3_CAN_STORE_ENCHANTS))
             return true;
 
         if (spellInfo->EquippedItemClass != int32(proto->GetClass()))
@@ -1355,11 +1377,13 @@ void Item::SetEnchantment(EnchantmentSlot slot, uint32 id, uint32 duration, uint
     Player* owner = GetOwner();
     if (slot < MAX_INSPECTED_ENCHANTMENT_SLOT)
     {
-        if (uint32 oldEnchant = GetEnchantmentId(slot))
-            owner->GetSession()->SendEnchantmentLog(GetOwnerGUID(), ObjectGuid::Empty, GetGUID(), GetEntry(), oldEnchant, slot);
+        if (SpellItemEnchantmentEntry const* oldEnchant = sSpellItemEnchantmentStore.LookupEntry(GetEnchantmentId(slot)))
+            if (!oldEnchant->GetFlags().HasFlag(SpellItemEnchantmentFlags::DoNotLog))
+                owner->GetSession()->SendEnchantmentLog(GetOwnerGUID(), ObjectGuid::Empty, GetGUID(), GetEntry(), oldEnchant->ID, slot);
 
-        if (id)
-            owner->GetSession()->SendEnchantmentLog(GetOwnerGUID(), caster, GetGUID(), GetEntry(), id, slot);
+        if (SpellItemEnchantmentEntry const* newEnchant = sSpellItemEnchantmentStore.LookupEntry(id))
+            if (!newEnchant->GetFlags().HasFlag(SpellItemEnchantmentFlags::DoNotLog))
+                owner->GetSession()->SendEnchantmentLog(GetOwnerGUID(), caster, GetGUID(), GetEntry(), id, slot);
     }
 
     ApplyArtifactPowerEnchantmentBonuses(slot, GetEnchantmentId(slot), false, owner);
@@ -1554,7 +1578,7 @@ Item* Item::CreateItem(uint32 itemEntry, uint32 count, ItemContext context, Play
         if (count > proto->GetMaxStackSize())
             count = proto->GetMaxStackSize();
 
-        ASSERT(count != 0, "proto->Stackable == 0 but checked at loading already");
+        ASSERT_NODEBUGINFO(count != 0, "proto->Stackable == 0 but checked at loading already");
 
         Item* item = NewItemOrBag(proto);
         if (item->Create(sObjectMgr->GetGenerator<HighGuid::Item>().Generate(), itemEntry, context, player))
@@ -1596,7 +1620,7 @@ bool Item::IsBindedNotWith(Player const* player) const
     if (GetOwnerGUID() == player->GetGUID())
         return false;
 
-    if (HasItemFlag(ITEM_FIELD_FLAG_BOP_TRADEABLE))
+    if (IsBOPTradeable())
         if (allowedGUIDs.find(player->GetGUID()) != allowedGUIDs.end())
             return false;
 
@@ -1700,10 +1724,15 @@ void Item::ClearUpdateMask(bool remove)
     Object::ClearUpdateMask(remove);
 }
 
-void Item::AddToObjectUpdate()
+bool Item::AddToObjectUpdate()
 {
     if (Player* owner = GetOwner())
+    {
         owner->GetMap()->AddUpdateObject(this);
+        return true;
+    }
+
+    return false;
 }
 
 void Item::RemoveFromObjectUpdate()
@@ -1743,7 +1772,7 @@ void Item::DeleteRefundDataFromDB(CharacterDatabaseTransaction* trans)
 
 void Item::SetNotRefundable(Player* owner, bool changestate /*= true*/, CharacterDatabaseTransaction* trans /*= nullptr*/, bool addToCollection /*= true*/)
 {
-    if (!HasItemFlag(ITEM_FIELD_FLAG_REFUNDABLE))
+    if (!IsRefundable())
         return;
 
     WorldPackets::Item::ItemExpirePurchaseRefund itemExpirePurchaseRefund;
@@ -1850,7 +1879,7 @@ bool Item::IsValidTransmogrificationTarget() const
     if (proto->GetClass() == ITEM_CLASS_WEAPON && proto->GetSubClass() == ITEM_SUBCLASS_WEAPON_FISHING_POLE)
         return false;
 
-    if (proto->GetFlags2() & ITEM_FLAG2_NO_ALTER_ITEM_VISUAL)
+    if (proto->HasFlag(ITEM_FLAG2_NO_ALTER_ITEM_VISUAL))
         return false;
 
     if (!HasStats())
@@ -2016,7 +2045,7 @@ uint32 Item::GetBuyPrice(ItemTemplate const* proto, uint32 quality, uint32 itemL
 {
     standardPrice = false;
 
-    if (proto->GetFlags2() & ITEM_FLAG2_OVERRIDE_GOLD_COST)
+    if (proto->HasFlag(ITEM_FLAG2_OVERRIDE_GOLD_COST))
         return proto->GetBuyPrice();
 
     ImportPriceQualityEntry const* qualityPrice = sImportPriceQualityStore.LookupEntry(quality + 1);
@@ -2147,7 +2176,7 @@ uint32 Item::GetSellPrice(Player const* owner) const
 
 uint32 Item::GetSellPrice(ItemTemplate const* proto, uint32 quality, uint32 itemLevel)
 {
-    if (proto->GetFlags2() & ITEM_FLAG2_OVERRIDE_GOLD_COST)
+    if (proto->HasFlag(ITEM_FLAG2_OVERRIDE_GOLD_COST))
         return proto->GetSellPrice();
     else
     {
@@ -2176,12 +2205,12 @@ uint32 Item::GetItemLevel(Player const* owner) const
     ItemTemplate const* itemTemplate = GetTemplate();
     uint32 minItemLevel = owner->m_unitData->MinItemLevel;
     uint32 minItemLevelCutoff = owner->m_unitData->MinItemLevelCutoff;
-    uint32 maxItemLevel = itemTemplate->GetFlags3() & ITEM_FLAG3_IGNORE_ITEM_LEVEL_CAP_IN_PVP ? 0 : owner->m_unitData->MaxItemLevel;
+    uint32 maxItemLevel = itemTemplate->HasFlag(ITEM_FLAG3_IGNORE_ITEM_LEVEL_CAP_IN_PVP) ? 0 : owner->m_unitData->MaxItemLevel;
     bool pvpBonus = owner->IsUsingPvpItemLevels();
     uint32 azeriteLevel = 0;
     if (AzeriteItem const* azeriteItem = ToAzeriteItem())
         azeriteLevel = azeriteItem->GetEffectiveLevel();
-    return Item::GetItemLevel(itemTemplate, _bonusData, owner->getLevel(), GetModifier(ITEM_MODIFIER_TIMEWALKER_LEVEL),
+    return Item::GetItemLevel(itemTemplate, _bonusData, owner->GetLevel(), GetModifier(ITEM_MODIFIER_TIMEWALKER_LEVEL),
         minItemLevel, minItemLevelCutoff, maxItemLevel, pvpBonus, azeriteLevel);
 }
 
@@ -2262,7 +2291,7 @@ ItemDisenchantLootEntry const* Item::GetDisenchantLoot(Player const* owner) cons
 
 ItemDisenchantLootEntry const* Item::GetDisenchantLoot(ItemTemplate const* itemTemplate, uint32 quality, uint32 itemLevel)
 {
-    if (itemTemplate->GetFlags() & (ITEM_FLAG_CONJURED | ITEM_FLAG_NO_DISENCHANT) || itemTemplate->GetBonding() == BIND_QUEST)
+    if (itemTemplate->HasFlag(ITEM_FLAG_CONJURED) || itemTemplate->HasFlag(ITEM_FLAG_NO_DISENCHANT) || itemTemplate->GetBonding() == BIND_QUEST)
         return nullptr;
 
     if (itemTemplate->GetArea(0) || itemTemplate->GetArea(1) || itemTemplate->GetMap() || itemTemplate->GetMaxStackSize() > 1)
@@ -2694,6 +2723,16 @@ int32 Item::GetRequiredLevel() const
     return _bonusData.RequiredLevel;
 }
 
+std::string Item::GetDebugInfo() const
+{
+    std::stringstream sstr;
+    sstr << Object::GetDebugInfo() << "\n"
+        << std::boolalpha
+        << "Owner: " << GetOwnerGUID().ToString() << " Count: " << GetCount()
+        << " BagSlot: " << std::to_string(GetBagSlot()) << " Slot: " << std::to_string(GetSlot()) << " Equipped: " << IsEquipped();
+    return sstr.str();
+}
+
 void BonusData::Initialize(ItemTemplate const* proto)
 {
     Quality = proto->GetQuality();
@@ -2739,8 +2778,8 @@ void BonusData::Initialize(ItemTemplate const* proto)
     for (std::size_t i = EffectCount; i < Effects.size(); ++i)
         Effects[i] = nullptr;
 
-    CanDisenchant = (proto->GetFlags() & ITEM_FLAG_NO_DISENCHANT) == 0;
-    CanScrap = (proto->GetFlags4() & ITEM_FLAG4_SCRAPABLE) != 0;
+    CanDisenchant = !proto->HasFlag(ITEM_FLAG_NO_DISENCHANT);
+    CanScrap = proto->HasFlag(ITEM_FLAG4_SCRAPABLE);
 
     _state.SuffixPriority = std::numeric_limits<int32>::max();
     _state.AppearanceModPriority = std::numeric_limits<int32>::max();

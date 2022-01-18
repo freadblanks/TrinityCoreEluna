@@ -31,18 +31,17 @@ EndScriptData */
 #include "CharacterTemplateDataStore.h"
 #include "Chat.h"
 #include "ConversationDataStore.h"
-#include "Creature.h"
-#include "CreatureOutfit.h"
 #include "CreatureTextMgr.h"
 #include "DatabaseEnv.h"
 #include "DisableMgr.h"
 #include "ItemEnchantmentMgr.h"
-#include "LFGMgr.h"
 #include "Language.h"
+#include "LFGMgr.h"
 #include "Log.h"
 #include "LootMgr.h"
 #include "MapManager.h"
 #include "ObjectMgr.h"
+#include "ScriptMgr.h"
 #include "SkillDiscovery.h"
 #include "SkillExtraItems.h"
 #include "SmartAI.h"
@@ -126,8 +125,6 @@ public:
             { "creature_onkill_reputation",    rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_ONKILL_REPUTATION,       true,  &HandleReloadOnKillReputationCommand,           "" },
             { "creature_queststarter",         rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_QUESTSTARTER,            true,  &HandleReloadCreatureQuestStarterCommand,       "" },
             { "creature_summon_groups",        rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_SUMMON_GROUPS,           true,  &HandleReloadCreatureSummonGroupsCommand,       "" },
-            { "creature_template_outfits",     rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_TEMPLATE,                true,  &HandleReloadCreatureTemplateOutfitsCommand,    "" },
-            { "creature_template_all",         rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_TEMPLATE,                true,  &HandleReloadCreatureTemplateAllCommand,        "" },
             { "creature_template",             rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_TEMPLATE,                true,  &HandleReloadCreatureTemplateCommand,           "" },
             { "criteria_data",                 rbac::RBAC_PERM_COMMAND_RELOAD_CRITERIA_DATA,                    true,  &HandleReloadCriteriaDataCommand,               "" },
             { "disables",                      rbac::RBAC_PERM_COMMAND_RELOAD_DISABLES,                         true,  &HandleReloadDisablesCommand,                   "" },
@@ -183,8 +180,8 @@ public:
             { "spell_linked_spell",            rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_LINKED_SPELL,               true,  &HandleReloadSpellLinkedSpellCommand,           "" },
             { "spell_pet_auras",               rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_PET_AURAS,                  true,  &HandleReloadSpellPetAurasCommand,              "" },
             { "spell_proc",                    rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_PROC,                       true,  &HandleReloadSpellProcsCommand,                 "" },
-            { "spell_script_names",            rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_SCRIPTS,                    true,  &HandleReloadScriptNamesCommand,                "" },
             { "spell_scripts",                 rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_SCRIPTS,                    true,  &HandleReloadSpellScriptsCommand,               "" },
+            { "spell_script_names",            rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_SCRIPT_NAMES,               true,  &HandleReloadSpellScriptNamesCommand,           "" },
             { "spell_target_position",         rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_TARGET_POSITION,            true,  &HandleReloadSpellTargetPositionCommand,        "" },
             { "spell_threats",                 rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_THREATS,                    true,  &HandleReloadSpellThreatsCommand,               "" },
             { "spell_group_stack_rules",       rbac::RBAC_PERM_COMMAND_RELOAD_SPELL_GROUP_STACK_RULES,          true,  &HandleReloadSpellGroupStackRulesCommand,       "" },
@@ -202,6 +199,7 @@ public:
             { "gameobject_template",		   rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadGameObjectTemplateCommand,		   "" },
             { "creature_template_addons",      rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadCreatureTemplateAddCommand,		   "" },
             { "creature_addons",			   rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadCreatureAddonsCommand,			   "" },
+            { "creature_template_all",         rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_TEMPLATE,                true,  &HandleReloadCreatureTemplateAllCommand,        "" },
         };
         static std::vector<ChatCommand> commandTable =
         {
@@ -244,7 +242,6 @@ public:
 
         HandleReloadCreatureMovementOverrideCommand(handler, "");
         HandleReloadCreatureSummonGroupsCommand(handler, "");
-        HandleReloadCreatureTemplateOutfitsCommand(handler, "");
 
         HandleReloadVehicleAccessoryCommand(handler, "");
         HandleReloadVehicleTemplateAccessoryCommand(handler, "");
@@ -315,6 +312,7 @@ public:
         TC_LOG_INFO("misc", "Re-Loading Scripts...");
         HandleReloadEventScriptsCommand(handler, "a");
         HandleReloadSpellScriptsCommand(handler, "a");
+        HandleReloadSpellScriptNamesCommand(handler, "a");
         handler->SendGlobalGMSysMessage("DB tables `*_scripts` reloaded.");
         HandleReloadWpScriptsCommand(handler, "a");
         HandleReloadWpCommand(handler, "a");
@@ -335,6 +333,7 @@ public:
         HandleReloadSpellThreatsCommand(handler, "a");
         HandleReloadSpellGroupStackRulesCommand(handler, "a");
         HandleReloadSpellPetAurasCommand(handler, "a");
+        HandleReloadSpellScriptNamesCommand(handler, "a");
         return true;
     }
 
@@ -388,6 +387,7 @@ public:
     {
         TC_LOG_INFO("misc", "Re-Loading Additional Criteria Data...");
         sCriteriaMgr->LoadCriteriaData();
+        sScriptMgr->NotifyScriptIDUpdate();
         handler->SendGlobalGMSysMessage("DB table `criteria_data` reloaded.");
         return true;
     }
@@ -428,6 +428,7 @@ public:
     {
         TC_LOG_INFO("misc", "Re-Loading Battleground Templates...");
         sBattlegroundMgr->LoadBattlegroundTemplates();
+        sScriptMgr->NotifyScriptIDUpdate();
         handler->SendGlobalGMSysMessage("DB table `battleground_template` reloaded.");
         return true;
     }
@@ -460,16 +461,6 @@ public:
         TC_LOG_INFO("misc", "Reloading creature summon groups...");
         sObjectMgr->LoadTempSummons();
         handler->SendGlobalGMSysMessage("DB table `creature_summon_groups` reloaded.");
-        return true;
-    }
-
-    static bool HandleReloadCreatureTemplateAllCommand(ChatHandler* handler, const char* /*args*/)
-    {
-        TC_LOG_INFO("misc", "Reloading creature template...");
-        sObjectMgr->LoadCreatureTemplates();
-        handler->SendGlobalGMSysMessage("DB table `creature_template` reloaded.");
-        TC_LOG_INFO("server.loading", "Initialize query data...");
-        sObjectMgr->InitializeQueriesData(QUERY_DATA_CREATURES);
         return true;
     }
 
@@ -510,25 +501,8 @@ public:
         }
 
         sObjectMgr->InitializeQueriesData(QUERY_DATA_CREATURES);
+        sScriptMgr->NotifyScriptIDUpdate();
         handler->SendGlobalGMSysMessage("Creature template reloaded.");
-        return true;
-    }
-
-    static bool HandleReloadCreatureTemplateOutfitsCommand(ChatHandler* handler, const char* /*args*/)
-    {
-        TC_LOG_INFO("misc", "Loading Creature Outfits... (`creature_template_outfits`)");
-        sObjectMgr->LoadCreatureOutfits();
-        sMapMgr->DoForAllMaps([](Map* map)
-        {
-            for (auto e : map->GetCreatureBySpawnIdStore())
-            {
-                auto const& outfit = e.second->GetOutfit();
-                if (outfit && outfit->GetId())
-                    e.second->SetDisplayId(outfit->GetId());
-            }
-        });
-
-        handler->SendGlobalGMSysMessage("DB table `creature_template_outfits` reloaded.");
         return true;
     }
 
@@ -617,6 +591,8 @@ public:
         TC_LOG_INFO("misc", "Re-Loading GameObjects for quests...");
         sObjectMgr->LoadGameObjectForQuests();
         handler->SendGlobalGMSysMessage("Data GameObjects for quests reloaded.");
+        sScriptMgr->NotifyScriptIDUpdate();
+
         return true;
     }
 
@@ -1041,6 +1017,16 @@ public:
         return true;
     }
 
+    static bool HandleReloadSpellScriptNamesCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        TC_LOG_INFO("misc", "Reloading spell_script_names table...");
+        sObjectMgr->LoadSpellScriptNames();
+        sScriptMgr->NotifyScriptIDUpdate();
+        sObjectMgr->ValidateSpellScripts();
+        handler->SendGlobalGMSysMessage("Spell scripts reloaded.");
+        return true;
+    }
+
     static bool HandleReloadGameGraveyardZoneCommand(ChatHandler* handler, char const* /*args*/)
     {
         TC_LOG_INFO("misc", "Re-Loading Graveyard-zone links...");
@@ -1174,6 +1160,7 @@ public:
     {
         TC_LOG_INFO("misc", "Re-Loading Conditions...");
         sConditionMgr->LoadConditions(true);
+        sScriptMgr->NotifyScriptIDUpdate();
         handler->SendGlobalGMSysMessage("Conditions reloaded.");
         return true;
     }
@@ -1222,7 +1209,8 @@ public:
     {
         TC_LOG_INFO("misc", "Reloading areatrigger_template table...");
         sAreaTriggerDataStore->LoadAreaTriggerTemplates();
-        handler->SendGlobalGMSysMessage("AreaTrigger templates reloaded. Already spawned AT won't be affected. New scriptname need a reboot.");
+        sScriptMgr->NotifyScriptIDUpdate();
+        handler->SendGlobalGMSysMessage("AreaTrigger templates reloaded.");
         return true;
     }
 
@@ -1230,7 +1218,8 @@ public:
     {
         TC_LOG_INFO("misc", "Reloading scene_template table...");
         sObjectMgr->LoadSceneTemplates();
-        handler->SendGlobalGMSysMessage("Scenes templates reloaded. New scriptname need a reboot.");
+        sScriptMgr->NotifyScriptIDUpdate();
+        handler->SendGlobalGMSysMessage("Scenes templates reloaded.");
         return true;
     }
 
@@ -1238,6 +1227,7 @@ public:
     {
         TC_LOG_INFO("misc", "Reloading conversation_* tables...");
         sConversationDataStore->LoadConversationTemplates();
+        sScriptMgr->NotifyScriptIDUpdate();
         handler->SendGlobalGMSysMessage("Conversation templates reloaded.");
         return true;
     }
@@ -1311,7 +1301,7 @@ public:
         sItemSetStore.LoadFromDB();
         sItemSetSpellStore.LoadFromDB();
         sItemSparseStore.LoadFromDB();
-        sItemSparseStore.LoadStringsFromDB(LocaleConstant::LOCALE_ruRU); // locale frFR
+        sItemSparseStore.LoadStringsFromDB(LocaleConstant::LOCALE_ruRU); // locale ruRU
         sItemSpecStore.LoadFromDB();
         sItemSpecOverrideStore.LoadFromDB();
         sMapStore.LoadFromDB();
@@ -1412,12 +1402,13 @@ public:
         return true;
     }
 
-    static bool HandleReloadScriptNamesCommand(ChatHandler* handler, const char* args)
+    static bool HandleReloadCreatureTemplateAllCommand(ChatHandler* handler, const char* /*args*/)
     {
-        TC_LOG_INFO("misc", "Reloading spell_script_names...");
-        sObjectMgr->LoadSpellScriptNames();
-        sObjectMgr->ValidateSpellScripts();
-        handler->SendGlobalGMSysMessage("spell_script_names reloaded.");
+        TC_LOG_INFO("misc", "Reloading creature template...");
+        sObjectMgr->LoadCreatureTemplates();
+        handler->SendGlobalGMSysMessage("DB table `creature_template` reloaded.");
+        TC_LOG_INFO("server.loading", "Initialize query data...");
+        sObjectMgr->InitializeQueriesData(QUERY_DATA_CREATURES);
         return true;
     }
 };

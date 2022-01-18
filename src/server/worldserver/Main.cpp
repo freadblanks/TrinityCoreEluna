@@ -45,6 +45,8 @@
 #include "ScriptLoader.h"
 #include "ScriptMgr.h"
 #include "ScriptReloadMgr.h"
+#include "SecretMgr.h"
+#include "SharedDefines.h"
 #include "TCSoap.h"
 #include "World.h"
 #include "WorldSocket.h"
@@ -70,7 +72,7 @@ namespace fs = boost::filesystem;
     #define _TRINITY_CORE_CONFIG  "worldserver.conf"
 #endif
 
-#define WORLD_SLEEP_CONST 50
+#define WORLD_SLEEP_CONST 1
 
 #ifdef _WIN32
 #include "ServiceWin32.h"
@@ -84,6 +86,9 @@ char serviceDescription[] = "TrinityCore World of Warcraft emulator world servic
  *  2 - paused
  */
 int m_ServiceStatus = -1;
+
+#include <boost/dll/shared_library.hpp>
+#include <timeapi.h>
 #endif
 
 class FreezeDetector
@@ -141,6 +146,44 @@ extern int main(int argc, char** argv)
         return WinServiceUninstall() ? 0 : 1;
     else if (configService.compare("run") == 0)
         return WinServiceRun() ? 0 : 0;
+
+    Optional<UINT> newTimerResolution;
+    boost::system::error_code dllError;
+    std::shared_ptr<boost::dll::shared_library> winmm(new boost::dll::shared_library("winmm.dll", dllError, boost::dll::load_mode::search_system_folders), [&](boost::dll::shared_library* lib)
+    {
+        try
+        {
+            if (newTimerResolution)
+                lib->get<decltype(timeEndPeriod)>("timeEndPeriod")(*newTimerResolution);
+        }
+        catch (std::exception const&)
+        {
+            // ignore
+        }
+
+        delete lib;
+    });
+
+    if (winmm->is_loaded())
+    {
+        try
+        {
+            auto timeGetDevCapsPtr = winmm->get<decltype(timeGetDevCaps)>("timeGetDevCaps");
+            // setup timer resolution
+            TIMECAPS timeResolutionLimits;
+            if (timeGetDevCapsPtr(&timeResolutionLimits, sizeof(TIMECAPS)) == TIMERR_NOERROR)
+            {
+                auto timeBeginPeriodPtr = winmm->get<decltype(timeBeginPeriod)>("timeBeginPeriod");
+                newTimerResolution = std::min(std::max(timeResolutionLimits.wPeriodMin, 1u), timeResolutionLimits.wPeriodMax);
+                timeBeginPeriodPtr(*newTimerResolution);
+            }
+        }
+        catch (std::exception const& e)
+        {
+            printf("Failed to initialize timer resolution: %s\n", e.what());
+        }
+    }
+
 #endif
 
     std::string configError;
@@ -224,10 +267,10 @@ extern int main(int argc, char** argv)
     if (!StartDB())
         return 1;
 
+    std::shared_ptr<void> dbHandle(nullptr, [](void*) { StopDB(); });
+
     if (vm.count("update-databases-only"))
         return 0;
-
-    std::shared_ptr<void> dbHandle(nullptr, [](void*) { StopDB(); });
 
     // Set server offline (not connectable)
     LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag | %u WHERE id = '%d'", REALM_FLAG_OFFLINE, realm.Id.Realm);
@@ -259,6 +302,7 @@ extern int main(int argc, char** argv)
     });
 
     // Initialize the World
+    sSecretMgr->Initialize(SECRET_OWNER_WORLDSERVER);
     sWorld->SetInitialWorldSettings();
 
     std::shared_ptr<void> mapManagementHandle(nullptr, [](void*)
@@ -269,6 +313,7 @@ extern int main(int argc, char** argv)
         sInstanceSaveMgr->Unload();
         sOutdoorPvPMgr->Die();                    // unload it before MapManager
         sMapMgr->UnloadAll();                     // unload all grids (including locked in memory)
+
 #ifdef ELUNA
         Eluna::Uninitialize();
 #endif
@@ -301,12 +346,14 @@ extern int main(int argc, char** argv)
     if (networkThreads <= 0)
     {
         TC_LOG_ERROR("server.worldserver", "Network.Threads must be greater than 0");
+        World::StopNow(ERROR_EXIT_CODE);
         return 1;
     }
 
     if (!sWorldSocketMgr.StartWorldNetwork(*ioContext, worldListener, worldPort, instancePort, networkThreads))
     {
         TC_LOG_ERROR("server.worldserver", "Failed to initialize network");
+        World::StopNow(ERROR_EXIT_CODE);
         return 1;
     }
 
@@ -321,6 +368,24 @@ extern int main(int argc, char** argv)
         ClearOnlineAccounts();
     });
 
+    // Set server online (allow connecting now)
+    LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag & ~%u, population = 0 WHERE id = '%u'", REALM_FLAG_OFFLINE, realm.Id.Realm);
+    realm.PopulationLevel = 0.0f;
+    realm.Flags = RealmFlags(realm.Flags & ~uint32(REALM_FLAG_OFFLINE));
+
+    // Start the freeze check callback cycle in 5 seconds (cycle itself is 1 sec)
+    std::shared_ptr<FreezeDetector> freezeDetector;
+    if (int coreStuckTime = sConfigMgr->GetIntDefault("MaxCoreStuckTime", 60))
+    {
+        freezeDetector = std::make_shared<FreezeDetector>(*ioContext, coreStuckTime * 1000);
+        FreezeDetector::Start(freezeDetector);
+        TC_LOG_INFO("server.worldserver", "Starting up anti-freeze thread (%u seconds max stuck time)...", coreStuckTime);
+    }
+
+    sScriptMgr->OnStartup();
+
+    TC_LOG_INFO("server.worldserver", "%s (worldserver-daemon) ready...", GitRevision::GetFullVersion());
+
     // Launch CliRunnable thread
     std::shared_ptr<std::thread> cliThread;
 #ifdef _WIN32
@@ -331,24 +396,6 @@ extern int main(int argc, char** argv)
     {
         cliThread.reset(new std::thread(CliThread), &ShutdownCLIThread);
     }
-
-    // Set server online (allow connecting now)
-    LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag & ~%u, population = 0 WHERE id = '%u'", REALM_FLAG_OFFLINE, realm.Id.Realm);
-    realm.PopulationLevel = 0.0f;
-    realm.Flags = RealmFlags(realm.Flags & ~uint32(REALM_FLAG_OFFLINE));
-
-    // Start the freeze check callback cycle in 5 seconds (cycle itself is 1 sec)
-    std::shared_ptr<FreezeDetector> freezeDetector;
-    if (int coreStuckTime = sConfigMgr->GetIntDefault("MaxCoreStuckTime", 0))
-    {
-        freezeDetector = std::make_shared<FreezeDetector>(*ioContext, coreStuckTime * 1000);
-        FreezeDetector::Start(freezeDetector);
-        TC_LOG_INFO("server.worldserver", "Starting up anti-freeze thread (%u seconds max stuck time)...", coreStuckTime);
-    }
-
-    sScriptMgr->OnStartup();
-
-    TC_LOG_INFO("server.worldserver", "%s (worldserver-daemon) ready...", GitRevision::GetFullVersion());
 
     WorldUpdateLoop();
 
@@ -448,15 +495,15 @@ void WorldUpdateLoop()
         realCurrTime = getMSTime();
 
         uint32 diff = getMSTimeDiff(realPrevTime, realCurrTime);
+        if (!diff)
+        {
+            // sleep until enough time passes that we can update all timers
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            continue;
+        }
 
         sWorld->Update(diff);
         realPrevTime = realCurrTime;
-
-        uint32 executionTimeDiff = getMSTimeDiff(realCurrTime, getMSTime());
-
-        // we know exactly how long it took to update the world, if the update took less than WORLD_SLEEP_CONST, sleep for WORLD_SLEEP_CONST - world update time
-        if (executionTimeDiff < WORLD_SLEEP_CONST)
-            std::this_thread::sleep_for(std::chrono::milliseconds(WORLD_SLEEP_CONST - executionTimeDiff));
 
 #ifdef _WIN32
         if (m_ServiceStatus == 0)

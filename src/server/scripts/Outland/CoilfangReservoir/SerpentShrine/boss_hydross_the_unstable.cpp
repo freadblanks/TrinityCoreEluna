@@ -61,7 +61,7 @@ enum HydrossTheUnstable
     SPELL_ENRAGE                = 27680,                   //this spell need verification
     SPELL_SUMMON_WATER_ELEMENT  = 36459,                   //not in use yet(in use ever?)
     SPELL_ELEMENTAL_SPAWNIN     = 25035,
-    SPELL_BLUE_BEAM             = 40227,                   //channeled Hydross Beam Helper (not in use yet)
+    SPELL_BLUE_BEAM             = 38015,
 
     ENTRY_PURE_SPAWN            = 22035,
     ENTRY_TAINTED_SPAWN         = 22036,
@@ -276,7 +276,7 @@ public:
                 //VileSludge_Timer
                 if (VileSludge_Timer <= diff)
                 {
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                         DoCast(target, SPELL_VILE_SLUDGE);
 
                     VileSludge_Timer = 15000;
@@ -359,7 +359,7 @@ public:
                 //WaterTomb_Timer
                 if (WaterTomb_Timer <= diff)
                 {
-                    Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true);
+                    Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100, true);
                     if (target)
                         DoCast(target, SPELL_WATER_TOMB);
 

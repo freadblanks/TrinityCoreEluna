@@ -219,13 +219,13 @@ public:
                 _orb = summon->GetGUID();
         }
 
-        void JustEngagedWith (Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
             Talk(SAY_AGGRO);
-            events.ScheduleEvent(EVENT_ARCING_SMASH, Seconds(7));
-            events.ScheduleEvent(EVENT_IMPALE, Seconds(11));
-            events.ScheduleEvent(EVENT_WITHERING_ROAR, Seconds(12));
+            events.ScheduleEvent(EVENT_ARCING_SMASH, 7s);
+            events.ScheduleEvent(EVENT_IMPALE, 11s);
+            events.ScheduleEvent(EVENT_WITHERING_ROAR, 12s);
             instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me);
         }
 
@@ -238,7 +238,7 @@ public:
                     events.Repeat(Seconds(7));
                     break;
                 case EVENT_IMPALE:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                         DoCast(target, SPELL_IMPALE);
                     events.Repeat(Seconds(10), Seconds(15));
                     break;
@@ -374,9 +374,9 @@ public:
 
         void ScheduleTasks() override
         {
-            events.ScheduleEvent(EVENT_CRAZED, Seconds(10));
-            events.ScheduleEvent(EVENT_CHAIN_LIGHTNING, Seconds(12));
-            events.ScheduleEvent(EVENT_TERRIFYING_ROAR, Seconds(22));
+            events.ScheduleEvent(EVENT_CRAZED, 10s);
+            events.ScheduleEvent(EVENT_CHAIN_LIGHTNING, 12s);
+            events.ScheduleEvent(EVENT_TERRIFYING_ROAR, 22s);
         }
 
         void ExecuteEvent(uint32 eventId) override
@@ -418,8 +418,8 @@ public:
 
         void ScheduleTasks() override
         {
-            events.ScheduleEvent(EVENT_MORTAL_WOUND, Seconds(6));
-            events.ScheduleEvent(EVENT_ENRAGE, Seconds(16));
+            events.ScheduleEvent(EVENT_MORTAL_WOUND, 6s);
+            events.ScheduleEvent(EVENT_ENRAGE, 16s);
             events.ScheduleEvent(EVENT_ENRAGE_2, Minutes(1) + Seconds(30));
         }
 
@@ -461,9 +461,9 @@ public:
 
         void ScheduleTasks() override
         {
-            events.ScheduleEvent(EVENT_GORE, Seconds(10));
-            events.ScheduleEvent(EVENT_GRIEVOUS_WOUND, Seconds(12));
-            events.ScheduleEvent(EVENT_STOMP, Seconds(5));
+            events.ScheduleEvent(EVENT_GORE, 10s);
+            events.ScheduleEvent(EVENT_GRIEVOUS_WOUND, 12s);
+            events.ScheduleEvent(EVENT_STOMP, 5s);
         }
 
         void ExecuteEvent(uint32 eventId) override
@@ -475,7 +475,7 @@ public:
                     events.Repeat(Seconds(19));
                     break;
                 case EVENT_GRIEVOUS_WOUND:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 1))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 1))
                         DoCast(target, SPELL_GRIEVOUS_WOUND);
                     events.Repeat(Seconds(18));
                     break;
@@ -506,9 +506,9 @@ public:
 
         void ScheduleTasks() override
         {
-            events.ScheduleEvent(EVENT_ACID_SPIT, Seconds(6));
-            events.ScheduleEvent(EVENT_ACID_SPLATTER, Seconds(16));
-            events.ScheduleEvent(EVENT_POISON_BREATH, Seconds(13));
+            events.ScheduleEvent(EVENT_ACID_SPIT, 6s);
+            events.ScheduleEvent(EVENT_ACID_SPLATTER, 16s);
+            events.ScheduleEvent(EVENT_POISON_BREATH, 13s);
         }
 
         void JustSummoned(Creature* summon) override
@@ -533,7 +533,7 @@ public:
                     events.Repeat(Seconds(16));
                     break;
                 case EVENT_POISON_BREATH:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                         DoCast(target, SPELL_POISON_BREATH);
                     events.Repeat(Seconds(14));
                     break;

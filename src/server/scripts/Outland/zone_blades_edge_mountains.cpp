@@ -124,9 +124,13 @@ public:
                 me->DespawnOrUnsummon(1);
         }
 
-        void SpellHit(Unit* caster, SpellInfo const* spell) override
+        void SpellHit(WorldObject* caster, SpellInfo const* spellInfo) override
         {
-            if (spell->Id == SPELL_T_PHASE_MODULATOR && caster->GetTypeId() == TYPEID_PLAYER)
+            Player* playerCaster = caster->ToPlayer();
+            if (!playerCaster)
+                return;
+
+            if (spellInfo->Id == SPELL_T_PHASE_MODULATOR)
             {
                 const uint32 entry_list[4] = {ENTRY_PROTO, ENTRY_ADOLE, ENTRY_MATUR, ENTRY_NIHIL};
                 int cid = rand32() % (4 - 1);
@@ -151,7 +155,7 @@ public:
                         IsNihil = true;
                     }
                     else
-                        AttackStart(caster);
+                        AttackStart(playerCaster);
                 }
             }
         }
@@ -458,18 +462,18 @@ class npc_simon_bunny : public CreatureScript
                         if (!CheckPlayer())
                             ResetNode();
                         else
-                            _events.ScheduleEvent(EVENT_SIMON_PERIODIC_PLAYER_CHECK, 2000);
+                            _events.ScheduleEvent(EVENT_SIMON_PERIODIC_PLAYER_CHECK, 2s);
                         break;
                     case EVENT_SIMON_SETUP_PRE_GAME:
                         SetUpPreGame();
                         _events.CancelEvent(EVENT_SIMON_GAME_TICK);
-                        _events.ScheduleEvent(EVENT_SIMON_PLAY_SEQUENCE, 1000);
+                        _events.ScheduleEvent(EVENT_SIMON_PLAY_SEQUENCE, 1s);
                         break;
                     case EVENT_SIMON_PLAY_SEQUENCE:
                         if (!playableSequence.empty())
                         {
                             PlayNextColor();
-                            _events.ScheduleEvent(EVENT_SIMON_PLAY_SEQUENCE, 1500);
+                            _events.ScheduleEvent(EVENT_SIMON_PLAY_SEQUENCE, 1500ms);
                         }
                         else
                         {
@@ -478,16 +482,16 @@ class npc_simon_bunny : public CreatureScript
                             playerSequence.clear();
                             PrepareClusters();
                             gameTicks = 0;
-                            _events.ScheduleEvent(EVENT_SIMON_GAME_TICK, 3000);
+                            _events.ScheduleEvent(EVENT_SIMON_GAME_TICK, 3s);
                         }
                         break;
                     case EVENT_SIMON_GAME_TICK:
                         DoCast(SPELL_AUDIBLE_GAME_TICK);
 
                         if (gameTicks > gameLevel)
-                            _events.ScheduleEvent(EVENT_SIMON_TOO_LONG_TIME, 500);
+                            _events.ScheduleEvent(EVENT_SIMON_TOO_LONG_TIME, 500ms);
                         else
-                            _events.ScheduleEvent(EVENT_SIMON_GAME_TICK, 3000);
+                            _events.ScheduleEvent(EVENT_SIMON_GAME_TICK, 3s);
                         gameTicks++;
                         break;
                     case EVENT_SIMON_RESET_CLUSTERS:
@@ -514,7 +518,7 @@ class npc_simon_bunny : public CreatureScript
                         if (gameLevel == 10)
                             ResetNode();
                         else
-                            _events.ScheduleEvent(EVENT_SIMON_SETUP_PRE_GAME, 1000);
+                            _events.ScheduleEvent(EVENT_SIMON_SETUP_PRE_GAME, 1s);
                         break;
                     case ACTION_SIMON_CORRECT_FULL_SEQUENCE:
                         gameLevel++;
@@ -546,7 +550,7 @@ class npc_simon_bunny : public CreatureScript
 
                 PlayColor(pressedColor);
                 playerSequence.push_back(pressedColor);
-                _events.ScheduleEvent(EVENT_SIMON_RESET_CLUSTERS, 500);
+                _events.ScheduleEvent(EVENT_SIMON_RESET_CLUSTERS, 500ms);
                 CheckPlayerSequence();
             }
 
@@ -633,8 +637,8 @@ class npc_simon_bunny : public CreatureScript
                 }
 
                 _events.Reset();
-                _events.ScheduleEvent(EVENT_SIMON_ROUND_FINISHED, 1000);
-                _events.ScheduleEvent(EVENT_SIMON_PERIODIC_PLAYER_CHECK, 2000);
+                _events.ScheduleEvent(EVENT_SIMON_ROUND_FINISHED, 1s);
+                _events.ScheduleEvent(EVENT_SIMON_PERIODIC_PLAYER_CHECK, 2s);
 
                 if (GameObject* relic = me->FindNearestGameObject(large ? GO_APEXIS_MONUMENT : GO_APEXIS_RELIC, searchDistance))
                     relic->AddFlag(GO_FLAG_NOT_SELECTABLE);
@@ -841,15 +845,19 @@ class npc_simon_bunny : public CreatureScript
                 }
             }
 
-            void SpellHitTarget(Unit* target, SpellInfo const* spell) override
+            void SpellHitTarget(WorldObject* target, SpellInfo const* spellInfo) override
             {
+                Unit* unitTarget = target->ToUnit();
+                if (!unitTarget)
+                    return;
+
                 // Cast SPELL_BAD_PRESS_DAMAGE with scaled basepoints when the visual hits the target.
                 // Need Fix: When SPELL_BAD_PRESS_TRIGGER hits target it triggers spell SPELL_BAD_PRESS_DAMAGE by itself
                 // so player gets damage equal to calculated damage  dbc basepoints for SPELL_BAD_PRESS_DAMAGE (~50)
-                if (spell->Id == SPELL_BAD_PRESS_TRIGGER)
+                if (spellInfo->Id == SPELL_BAD_PRESS_TRIGGER)
                 {
-                    int32 bp = (int32)((float)(fails)*0.33f*target->GetMaxHealth());
-                    target->CastSpell(target, SPELL_BAD_PRESS_DAMAGE, CastSpellExtraArgs(TRIGGERED_FULL_MASK).AddSpellBP0(bp));
+                    int32 bp = (int32)((float)(fails) * 0.33f * unitTarget->GetMaxHealth());
+                    unitTarget->CastSpell(unitTarget, SPELL_BAD_PRESS_DAMAGE, CastSpellExtraArgs(TRIGGERED_FULL_MASK).AddSpellBP0(bp));
                 }
             }
 
@@ -993,7 +1001,7 @@ public:
             timer = 500;
         }
 
-        void IsSummonedBy(Unit* summoner) override
+        void IsSummonedBy(WorldObject* summoner) override
         {
             if (summoner->isType(TYPEMASK_PLAYER))
                 playerGuid = summoner->GetGUID();

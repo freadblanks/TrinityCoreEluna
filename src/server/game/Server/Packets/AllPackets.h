@@ -48,7 +48,6 @@
 #include "EquipmentSetPackets.h"
 #include "GameObjectPackets.h"
 #include "GarrisonPackets.h"
-#include "GuildFinderPackets.h"
 #include "GuildPackets.h"
 #include "HotfixPackets.h"
 #include "InspectPackets.h"

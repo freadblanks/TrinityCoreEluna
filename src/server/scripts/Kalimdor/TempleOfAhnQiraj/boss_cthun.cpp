@@ -230,7 +230,7 @@ public:
         void SpawnEyeTentacle(float x, float y)
         {
             if (Creature* Spawned = DoSpawnCreature(NPC_EYE_TENTACLE, x, y, 0, 0, TEMPSUMMON_CORPSE_DESPAWN, 500))
-                if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                     if (Spawned->AI())
                         Spawned->AI()->AttackStart(target);
         }
@@ -269,7 +269,7 @@ public:
                     if (BeamTimer <= diff)
                     {
                         //SPELL_GREEN_BEAM
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                         {
                             me->InterruptNonMeleeSpells(false);
                             DoCast(target, SPELL_GREEN_BEAM);
@@ -285,7 +285,7 @@ public:
                     //ClawTentacleTimer
                     if (ClawTentacleTimer <= diff)
                     {
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                         {
                             Creature* Spawned = nullptr;
 
@@ -313,7 +313,7 @@ public:
                         me->SetTarget(ObjectGuid::Empty);
 
                         //Select random target for dark beam to start on
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                         {
                             //Face our target
                             DarkGlareAngle = me->GetAbsoluteAngle(target);
@@ -459,14 +459,12 @@ public:
         return GetAQ40AI<cthunAI>(creature);
     }
 
-    struct cthunAI : public ScriptedAI
+    struct cthunAI : public BossAI
     {
-        cthunAI(Creature* creature) : ScriptedAI(creature)
+        cthunAI(Creature* creature) : BossAI(creature, DATA_CTHUN)
         {
             Initialize();
             SetCombatMovement(false);
-
-            instance = creature->GetInstanceScript();
         }
 
         void Initialize()
@@ -490,8 +488,6 @@ public:
             StomachEnterVisTimer = 0;                           //Always 3.5 seconds after Stomach Enter Timer
             StomachEnterTarget.Clear();                         //Target to be teleported to stomach
         }
-
-        InstanceScript* instance;
 
         //Out of combat whisper timer
         uint32 WisperTimer;
@@ -520,6 +516,7 @@ public:
         void Reset() override
         {
             Initialize();
+            _Reset();
 
             //Clear players in stomach and outside
             Stomach_Map.clear();
@@ -530,11 +527,6 @@ public:
             me->SetVisible(false);
 
             instance->SetData(DATA_CTHUN_PHASE, PHASE_NOT_STARTED);
-        }
-
-        void JustEngagedWith(Unit* /*who*/) override
-        {
-            DoZoneInCombat();
         }
 
         void SpawnEyeTentacle(float x, float y)
@@ -954,7 +946,7 @@ public:
             //MindflayTimer
             if (MindflayTimer <= diff)
             {
-                Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0);
+                Unit* target = SelectTarget(SelectTargetMethod::Random, 0);
                 if (target && !target->HasAura(SPELL_DIGESTIVE_ACID))
                     DoCast(target, SPELL_MIND_FLAY);
 
@@ -1034,7 +1026,7 @@ public:
                     //Dissapear and reappear at new position
                     me->SetVisible(false);
 
-                    Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0);
+                    Unit* target = SelectTarget(SelectTargetMethod::Random, 0);
                     if (!target)
                     {
                         me->KillSelf();
@@ -1151,7 +1143,7 @@ public:
                     //Dissapear and reappear at new position
                     me->SetVisible(false);
 
-                    Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0);
+                    Unit* target = SelectTarget(SelectTargetMethod::Random, 0);
                     if (!target)
                     {
                         me->KillSelf();
@@ -1258,7 +1250,7 @@ public:
             //BeamTimer
             if (BeamTimer <= diff)
             {
-                Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0);
+                Unit* target = SelectTarget(SelectTargetMethod::Random, 0);
                 if (target && !target->HasAura(SPELL_DIGESTIVE_ACID))
                     DoCast(target, SPELL_GREEN_BEAM);
 
@@ -1290,8 +1282,8 @@ public:
         void JustDied(Unit* /*killer*/) override
         {
             if (TempSummon* summon = me->ToTempSummon())
-                if (Unit* summoner = summon->GetSummoner())
-                    if (summoner->IsAIEnabled)
+                if (Unit* summoner = summon->GetSummonerUnit())
+                    if (summoner->IsAIEnabled())
                         summoner->GetAI()->DoAction(ACTION_FLESH_TENTACLE_KILLED);
         }
     };

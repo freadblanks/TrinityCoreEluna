@@ -159,13 +159,13 @@ struct boss_jedoga_shadowseeker : public BossAI
         events.ScheduleEvent(EVENT_INTRO_SAY, Minutes(2), 0, PHASE_INTRO);
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void JustEngagedWith(Unit* who) override
     {
         me->RemoveAurasDueToSpell(SPELL_SPHERE_VISUAL);
         me->RemoveAurasDueToSpell(SPELL_RANDOM_LIGHTNING_VISUAL);
         me->SummonCreatureGroup(SUMMON_GROUP_WORSHIPPERS);
 
-        _JustEngagedWith();
+        BossAI::JustEngagedWith(who);
         Talk(SAY_AGGRO);
         events.SetPhase(PHASE_ONE);
 
@@ -212,7 +212,7 @@ struct boss_jedoga_shadowseeker : public BossAI
         {
             events.Reset();
             events.SetPhase(PHASE_TWO);
-            events.ScheduleEvent(EVENT_START_PHASE_TWO, Seconds(1));
+            events.ScheduleEvent(EVENT_START_PHASE_TWO, 1s);
         }
     }
 
@@ -222,7 +222,7 @@ struct boss_jedoga_shadowseeker : public BossAI
         {
             Talk(SAY_SACRIFICE);
             DoCastAOE(SPELL_SACRIFICE_BEAM);
-            events.ScheduleEvent(EVENT_END_PHASE_TWO, Seconds(3));
+            events.ScheduleEvent(EVENT_END_PHASE_TWO, 3s);
             events.RescheduleEvent(EVENT_SUMMON_VOLUNTEER, Seconds(15));
         }
     }
@@ -277,15 +277,15 @@ struct boss_jedoga_shadowseeker : public BossAI
                 me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                 me->SetReactState(REACT_AGGRESSIVE);
                 DoZoneInCombat();
-                events.ScheduleEvent(EVENT_CYCLONE_STRIKE, Seconds(3));
-                events.ScheduleEvent(EVENT_LIGHTNING_BOLT, Seconds(7));
-                events.ScheduleEvent(EVENT_THUNDERSHOCK, Seconds(12));
+                events.ScheduleEvent(EVENT_CYCLONE_STRIKE, 3s);
+                events.ScheduleEvent(EVENT_LIGHTNING_BOLT, 7s);
+                events.ScheduleEvent(EVENT_THUNDERSHOCK, 12s);
                 break;
             case POINT_PHASE_TWO:
-                events.ScheduleEvent(EVENT_FLY_DELAY, Seconds(2));
+                events.ScheduleEvent(EVENT_FLY_DELAY, 2s);
                 break;
             case POINT_PHASE_TWO_FLY:
-                events.ScheduleEvent(EVENT_CHOOSE_VOLUNTEER, Seconds(2));
+                events.ScheduleEvent(EVENT_CHOOSE_VOLUNTEER, 2s);
                 break;
             default:
                 break;
@@ -372,12 +372,12 @@ struct boss_jedoga_shadowseeker : public BossAI
                     events.Repeat(Seconds(15), Seconds(30));
                     break;
                 case EVENT_LIGHTNING_BOLT:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
                         DoCast(target, SPELL_LIGHTNING_BOLT);
                     events.Repeat(Seconds(15), Seconds(30));
                     break;
                 case EVENT_THUNDERSHOCK:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
                         DoCast(target, SPELL_THUNDERSHOCK);
                     events.Repeat(Seconds(15), Seconds(30));
                     break;

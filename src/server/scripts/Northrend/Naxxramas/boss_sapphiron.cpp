@@ -155,7 +155,7 @@ class boss_sapphiron : public CreatureScript
             {
                 if (events.IsInPhase(PHASE_FLIGHT))
                 {
-                    instance->DoRemoveAurasDueToSpellOnPlayers(SPELL_ICEBOLT);
+                    instance->DoRemoveAurasDueToSpellOnPlayers(SPELL_ICEBOLT, true, true);
                     me->SetReactState(REACT_AGGRESSIVE);
                     if (me->IsHovering())
                     {
@@ -175,24 +175,28 @@ class boss_sapphiron : public CreatureScript
                 damage = me->GetHealth()-1; // don't die during air phase
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void JustEngagedWith(Unit* who) override
             {
-                _JustEngagedWith();
+                BossAI::JustEngagedWith(who);
 
                 me->CastSpell(me, SPELL_FROST_AURA, true);
 
                 events.SetPhase(PHASE_GROUND);
-                events.ScheduleEvent(EVENT_CHECK_RESISTS, Seconds(0));
-                events.ScheduleEvent(EVENT_BERSERK, Minutes(15));
+                events.ScheduleEvent(EVENT_CHECK_RESISTS, 0s);
+                events.ScheduleEvent(EVENT_BERSERK, 15min);
                 EnterPhaseGround(true);
             }
 
-            void SpellHitTarget(Unit* target, SpellInfo const* spell) override
+            void SpellHitTarget(WorldObject* target, SpellInfo const* spellInfo) override
             {
-                switch(spell->Id)
+                Unit* unitTarget = target->ToUnit();
+                if (!unitTarget)
+                    return;
+
+                switch(spellInfo->Id)
                 {
                     case SPELL_CHECK_RESISTS:
-                        if (target && target->GetResistance(SPELL_SCHOOL_MASK_FROST) > MAX_FROST_RESISTANCE)
+                        if (unitTarget->GetResistance(SPELL_SCHOOL_FROST) > MAX_FROST_RESISTANCE)
                             _canTheHundredClub = false;
                         break;
                 }
@@ -207,7 +211,7 @@ class boss_sapphiron : public CreatureScript
             void MovementInform(uint32 /*type*/, uint32 id) override
             {
                 if (id == 1)
-                    events.ScheduleEvent(EVENT_LIFTOFF, Seconds(0), 0, PHASE_FLIGHT);
+                    events.ScheduleEvent(EVENT_LIFTOFF, 0s, 0, PHASE_FLIGHT);
             }
 
             void DoAction(int32 param) override
@@ -215,7 +219,7 @@ class boss_sapphiron : public CreatureScript
                 if (param == ACTION_BIRTH)
                 {
                     events.SetPhase(PHASE_BIRTH);
-                    events.ScheduleEvent(EVENT_BIRTH, Seconds(23));
+                    events.ScheduleEvent(EVENT_BIRTH, 23s);
                 }
             }
 
@@ -259,7 +263,7 @@ class boss_sapphiron : public CreatureScript
                             if (Unit* temp = ObjectAccessor::GetUnit(*me, summonGuid))
                                 blizzards.push_back(temp);
 
-                    if (Unit* newTarget = me->AI()->SelectTarget(SELECT_TARGET_RANDOM, 1, BlizzardTargetSelector(blizzards)))
+                    if (Unit* newTarget = me->AI()->SelectTarget(SelectTargetMethod::Random, 1, BlizzardTargetSelector(blizzards)))
                         return newTarget->GetGUID();
                 }
 
@@ -344,7 +348,7 @@ class boss_sapphiron : public CreatureScript
 
                                 _iceboltTargets.clear();
                                 std::list<Unit*> targets;
-                                SelectTargetList(targets, RAID_MODE(2, 3), SELECT_TARGET_RANDOM, 0, 200.0f, true);
+                                SelectTargetList(targets, RAID_MODE(2, 3), SelectTargetMethod::Random, 0, 200.0f, true);
                                 for (Unit* target : targets)
                                     _iceboltTargets.push_back(target->GetGUID());
                                 return;
@@ -378,7 +382,7 @@ class boss_sapphiron : public CreatureScript
                             case EVENT_EXPLOSION:
                                 DoCastAOE(SPELL_FROST_BREATH);
                                 DoCastAOE(SPELL_FROST_BREATH_ANTICHEAT);
-                                instance->DoRemoveAurasDueToSpellOnPlayers(SPELL_ICEBOLT);
+                                instance->DoRemoveAurasDueToSpellOnPlayers(SPELL_ICEBOLT, true, true);
                                 events.ScheduleEvent(EVENT_LAND, Seconds(3) + Milliseconds(500), 0, PHASE_FLIGHT);
                                 return;
                             case EVENT_LAND:
@@ -386,7 +390,7 @@ class boss_sapphiron : public CreatureScript
                                     CastDrain();
                                 if (Creature* cBuffet = ObjectAccessor::GetCreature(*me, _buffet))
                                 {
-                                    cBuffet->DespawnOrUnsummon(1 * IN_MILLISECONDS);
+                                    cBuffet->DespawnOrUnsummon(1s);
                                     _buffet.Clear();
                                 }
                                 me->HandleEmoteCommand(EMOTE_ONESHOT_LAND);

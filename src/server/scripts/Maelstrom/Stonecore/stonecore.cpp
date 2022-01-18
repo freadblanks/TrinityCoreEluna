@@ -173,7 +173,7 @@ class npc_sc_millhouse_manastorm : public CreatureScript
 
                 me->RemoveAllAuras();
                 me->CombatStop(true);
-                me->GetThreatManager().ClearAllThreat();
+                EngagementOver();
 
                 switch (pointId)
                 {
@@ -226,12 +226,12 @@ class npc_sc_millhouse_manastorm : public CreatureScript
                             events.ScheduleEvent(EVENT_FROSTBOLT_VOLLEY, 7000);
                             break;
                         case EVENT_SHADOWFURY:
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                                 DoCast(target, SPELL_SHADOWFURY);
                             events.ScheduleEvent(EVENT_SHADOWFURY, 7000);
                             break;
                         case EVENT_FEAR:
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                                 DoCast(target, SPELL_FEAR);
                             events.ScheduleEvent(EVENT_FEAR, 18000);
                             break;
@@ -402,7 +402,7 @@ class at_sc_corborus_intro : public AreaTriggerScript
 public:
     at_sc_corborus_intro() : AreaTriggerScript("at_sc_corborus_intro") { }
 
-    bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool /*entered*/) override
+    bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/) override
     {
         if (InstanceScript* instance = player->GetInstanceScript())
             if (Creature* corborus = instance->GetCreature(DATA_CORBORUS))
@@ -416,7 +416,7 @@ class at_sc_slabhide_intro : public AreaTriggerScript
 public:
     at_sc_slabhide_intro() : AreaTriggerScript("at_sc_slabhide_intro") { }
 
-    bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/, bool /*entered*/) override
+    bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/) override
     {
         if (InstanceScript* instance = player->GetInstanceScript())
             if (Creature* slabhide = instance->GetCreature(DATA_SLABHIDE))

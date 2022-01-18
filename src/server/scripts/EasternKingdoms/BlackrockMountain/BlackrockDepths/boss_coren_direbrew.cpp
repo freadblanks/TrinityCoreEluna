@@ -174,8 +174,8 @@ struct boss_coren_direbrew : public BossAI
             EntryCheckPredicate pred(NPC_ANTAGONIST);
             summons.DoAction(ACTION_ANTAGONIST_HOSTILE, pred);
 
-            events.ScheduleEvent(EVENT_SUMMON_MOLE_MACHINE, Seconds(15));
-            events.ScheduleEvent(EVENT_DIREBREW_DISARM, Seconds(20));
+            events.ScheduleEvent(EVENT_SUMMON_MOLE_MACHINE, 15s);
+            events.ScheduleEvent(EVENT_DIREBREW_DISARM, 20s);
         }
     }
 
@@ -196,9 +196,9 @@ struct boss_coren_direbrew : public BossAI
     void SummonedCreatureDies(Creature* summon, Unit* /*killer*/) override
     {
         if (summon->GetEntry() == NPC_ILSA_DIREBREW)
-            events.ScheduleEvent(EVENT_RESPAWN_ILSA, Seconds(1));
+            events.ScheduleEvent(EVENT_RESPAWN_ILSA, 1s);
         else if (summon->GetEntry() == NPC_URSULA_DIREBREW)
-            events.ScheduleEvent(EVENT_RESPAWN_URSULA, Seconds(1));
+            events.ScheduleEvent(EVENT_RESPAWN_URSULA, 1s);
     }
 
     void JustDied(Unit* /*killer*/) override
@@ -317,7 +317,7 @@ struct npc_coren_direbrew_sisters : public ScriptedAI
         })
             .Schedule(Seconds(2), [this](TaskContext mugChuck)
         {
-            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, false, true, -SPELL_HAS_DARK_BREWMAIDENS_BREW))
+            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, false, true, -SPELL_HAS_DARK_BREWMAIDENS_BREW))
                 DoCast(target, SPELL_CHUCK_MUG);
             mugChuck.Repeat(Seconds(4));
         });
@@ -346,7 +346,7 @@ struct npc_direbrew_minion : public ScriptedAI
         DoZoneInCombat();
     }
 
-    void IsSummonedBy(Unit* /*summoner*/) override
+    void IsSummonedBy(WorldObject* /*summoner*/) override
     {
         if (Creature* coren = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_COREN)))
             coren->AI()->JustSummoned(me);

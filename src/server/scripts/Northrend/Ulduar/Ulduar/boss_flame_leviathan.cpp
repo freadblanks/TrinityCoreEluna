@@ -274,16 +274,16 @@ class boss_flame_leviathan : public CreatureScript
                 me->SetReactState(REACT_DEFENSIVE);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void JustEngagedWith(Unit* who) override
             {
-                _JustEngagedWith();
+                BossAI::JustEngagedWith(who);
                 me->SetReactState(REACT_PASSIVE);
                 events.ScheduleEvent(EVENT_PURSUE, 1);
                 events.ScheduleEvent(EVENT_MISSILE, urand(1500, 4*IN_MILLISECONDS));
-                events.ScheduleEvent(EVENT_VENT, 20*IN_MILLISECONDS);
-                events.ScheduleEvent(EVENT_SHUTDOWN, 150*IN_MILLISECONDS);
-                events.ScheduleEvent(EVENT_SPEED, 15*IN_MILLISECONDS);
-                events.ScheduleEvent(EVENT_SUMMON, 1*IN_MILLISECONDS);
+                events.ScheduleEvent(EVENT_VENT, 20s);
+                events.ScheduleEvent(EVENT_SHUTDOWN, 150s);
+                events.ScheduleEvent(EVENT_SPEED, 15s);
+                events.ScheduleEvent(EVENT_SUMMON, 1s);
                 ActiveTower(); //void ActiveTower
             }
 
@@ -294,25 +294,25 @@ class boss_flame_leviathan : public CreatureScript
                     if (towerOfStorms)
                     {
                         me->AddAura(SPELL_BUFF_TOWER_OF_STORMS, me);
-                        events.ScheduleEvent(EVENT_THORIM_S_HAMMER, 35*IN_MILLISECONDS);
+                        events.ScheduleEvent(EVENT_THORIM_S_HAMMER, 35s);
                     }
 
                     if (towerOfFlames)
                     {
                         me->AddAura(SPELL_BUFF_TOWER_OF_FLAMES, me);
-                        events.ScheduleEvent(EVENT_MIMIRON_S_INFERNO, 70*IN_MILLISECONDS);
+                        events.ScheduleEvent(EVENT_MIMIRON_S_INFERNO, 70s);
                     }
 
                     if (towerOfFrost)
                     {
                         me->AddAura(SPELL_BUFF_TOWER_OF_FR0ST, me);
-                        events.ScheduleEvent(EVENT_HODIR_S_FURY, 105*IN_MILLISECONDS);
+                        events.ScheduleEvent(EVENT_HODIR_S_FURY, 105s);
                     }
 
                     if (towerOfLife)
                     {
                         me->AddAura(SPELL_BUFF_TOWER_OF_LIFE, me);
-                        events.ScheduleEvent(EVENT_FREYA_S_WARD, 140*IN_MILLISECONDS);
+                        events.ScheduleEvent(EVENT_FREYA_S_WARD, 140s);
                     }
 
                     if (!towerOfLife && !towerOfFrost && !towerOfFlames && !towerOfStorms)
@@ -333,16 +333,16 @@ class boss_flame_leviathan : public CreatureScript
                 Talk(SAY_DEATH);
             }
 
-            void SpellHit(Unit* /*caster*/, SpellInfo const* spell) override
+            void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo) override
             {
-                if (spell->Id == SPELL_START_THE_ENGINE)
+                if (spellInfo->Id == SPELL_START_THE_ENGINE)
                     if (Vehicle* vehicleKit = me->GetVehicleKit())
                         vehicleKit->InstallAllAccessories(false);
 
-                if (spell->Id == SPELL_ELECTROSHOCK)
+                if (spellInfo->Id == SPELL_ELECTROSHOCK)
                     me->InterruptSpell(CURRENT_CHANNELED_SPELL);
 
-                if (spell->Id == SPELL_OVERLOAD_CIRCUIT)
+                if (spellInfo->Id == SPELL_OVERLOAD_CIRCUIT)
                     ++Shutdown;
             }
 
@@ -386,7 +386,7 @@ class boss_flame_leviathan : public CreatureScript
                 if (Shutdown == RAID_MODE(TWO_SEATS, FOUR_SEATS))
                 {
                     Shutdown = 0;
-                    events.ScheduleEvent(EVENT_SHUTDOWN, 4000);
+                    events.ScheduleEvent(EVENT_SHUTDOWN, 4s);
                     me->RemoveAurasDueToSpell(SPELL_OVERLOAD_CIRCUIT);
                     me->InterruptNonMeleeSpells(true);
                     return;
@@ -402,25 +402,25 @@ class boss_flame_leviathan : public CreatureScript
                         case EVENT_PURSUE:
                             Talk(SAY_TARGET);
                             DoCast(SPELL_PURSUED);  // Will select target in spellscript
-                            events.ScheduleEvent(EVENT_PURSUE, 35*IN_MILLISECONDS);
+                            events.ScheduleEvent(EVENT_PURSUE, 35s);
                             break;
                         case EVENT_MISSILE:
                             DoCast(me, SPELL_MISSILE_BARRAGE, true);
-                            events.ScheduleEvent(EVENT_MISSILE, 2*IN_MILLISECONDS);
+                            events.ScheduleEvent(EVENT_MISSILE, 2s);
                             break;
                         case EVENT_VENT:
                             DoCastAOE(SPELL_FLAME_VENTS);
-                            events.ScheduleEvent(EVENT_VENT, 20*IN_MILLISECONDS);
+                            events.ScheduleEvent(EVENT_VENT, 20s);
                             break;
                         case EVENT_SPEED:
                             DoCastAOE(SPELL_GATHERING_SPEED);
-                            events.ScheduleEvent(EVENT_SPEED, 15*IN_MILLISECONDS);
+                            events.ScheduleEvent(EVENT_SPEED, 15s);
                             break;
                         case EVENT_SUMMON:
                             if (summons.size() < 15)
                                 if (Creature* lift = DoSummonFlyer(NPC_MECHANOLIFT, me, 30.0f, 50.0f, 0))
                                     lift->GetMotionMaster()->MoveRandom(100);
-                            events.ScheduleEvent(EVENT_SUMMON, 2*IN_MILLISECONDS);
+                            events.ScheduleEvent(EVENT_SUMMON, 2s);
                             break;
                         case EVENT_SHUTDOWN:
                             Talk(SAY_OVERLOAD);
@@ -428,13 +428,13 @@ class boss_flame_leviathan : public CreatureScript
                             me->CastSpell(me, SPELL_SYSTEMS_SHUTDOWN, true);
                             if (Shutout)
                                 Shutout = false;
-                            events.ScheduleEvent(EVENT_REPAIR, 4000);
+                            events.ScheduleEvent(EVENT_REPAIR, 4s);
                             events.DelayEvents(20 * IN_MILLISECONDS, 0);
                             break;
                         case EVENT_REPAIR:
                             Talk(EMOTE_REPAIR);
                             me->ClearUnitState(UNIT_STATE_STUNNED | UNIT_STATE_ROOT);
-                            events.ScheduleEvent(EVENT_SHUTDOWN, 150*IN_MILLISECONDS);
+                            events.ScheduleEvent(EVENT_SHUTDOWN, 150s);
                             events.CancelEvent(EVENT_REPAIR);
                             break;
                         case EVENT_THORIM_S_HAMMER: // Tower of Storms
@@ -465,7 +465,7 @@ class boss_flame_leviathan : public CreatureScript
                             for (int32 i = 0; i < 4; ++i)
                                 me->SummonCreature(NPC_FREYA_BEACON, FreyaBeacons[i]);
 
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM))
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random))
                                 DoCast(target, SPELL_FREYA_S_WARD);
                             events.CancelEvent(EVENT_FREYA_S_WARD);
                             break;
@@ -478,16 +478,19 @@ class boss_flame_leviathan : public CreatureScript
                 DoBatteringRamIfReady();
             }
 
-            void SpellHitTarget(Unit* target, SpellInfo const* spell) override
+            void SpellHitTarget(WorldObject* target, SpellInfo const* spellInfo) override
             {
-                if (spell->Id != SPELL_PURSUED)
+                Unit* unitTarget = target->ToUnit();
+                if (!unitTarget)
                     return;
 
-                _pursueTarget = target->GetGUID();
-                me->GetMotionMaster()->Clear();
-                me->GetMotionMaster()->MoveChase(target);
+                if (spellInfo->Id != SPELL_PURSUED)
+                    return;
 
-                for (SeatMap::const_iterator itr = target->GetVehicleKit()->Seats.begin(); itr != target->GetVehicleKit()->Seats.end(); ++itr)
+                _pursueTarget = unitTarget->GetGUID();
+                AttackStart(unitTarget);
+
+                for (SeatMap::const_iterator itr = unitTarget->GetVehicleKit()->Seats.begin(); itr != unitTarget->GetVehicleKit()->Seats.end(); ++itr)
                 {
                     if (Player* passenger = ObjectAccessor::GetPlayer(*me, itr->second.Passenger.Guid))
                     {
@@ -700,7 +703,7 @@ class boss_flame_leviathan_defense_cannon : public CreatureScript
 
                 if (NapalmTimer <= diff)
                 {
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                         if (CanAIAttack(target))
                             DoCast(target, SPELL_NAPALM, true);
 
@@ -777,7 +780,7 @@ class boss_flame_leviathan_overload_device : public CreatureScript
                     if (Unit* player = me->GetVehicle()->GetPassenger(SEAT_PLAYER))
                     {
                         me->GetVehicleBase()->CastSpell(player, SPELL_SMOKE_TRAIL, true);
-                        player->GetMotionMaster()->MoveKnockbackFrom(me->GetVehicleBase()->GetPositionX(), me->GetVehicleBase()->GetPositionY(), 30, 30);
+                        player->GetMotionMaster()->MoveKnockbackFrom(me->GetVehicleBase()->GetPosition(), 30, 30);
                         player->ExitVehicle();
                     }
                 }
@@ -909,9 +912,9 @@ class npc_pool_of_tar : public CreatureScript
                 damage = 0;
             }
 
-            void SpellHit(Unit* /*caster*/, SpellInfo const* spell) override
+            void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo) override
             {
-                if (spell->SchoolMask & SPELL_SCHOOL_MASK_FIRE && !me->HasAura(SPELL_BLAZE))
+                if (spellInfo->SchoolMask & SPELL_SCHOOL_MASK_FIRE && !me->HasAura(SPELL_BLAZE))
                     me->CastSpell(me, SPELL_BLAZE, true);
             }
 
@@ -1310,21 +1313,21 @@ class go_ulduar_tower : public GameObjectScript
 
             InstanceScript* instance;
 
-            void Destroyed(WorldObject* /*attacker*/, uint32 /*eventId*/) override
+            void Destroyed(WorldObject* attacker, uint32 /*eventId*/) override
             {
                 switch (me->GetEntry())
                 {
                     case GO_TOWER_OF_STORMS:
-                        instance->ProcessEvent(me, EVENT_TOWER_OF_STORM_DESTROYED);
+                        instance->ProcessEvent(me, EVENT_TOWER_OF_STORM_DESTROYED, attacker);
                         break;
                     case GO_TOWER_OF_FLAMES:
-                        instance->ProcessEvent(me, EVENT_TOWER_OF_FLAMES_DESTROYED);
+                        instance->ProcessEvent(me, EVENT_TOWER_OF_FLAMES_DESTROYED, attacker);
                         break;
                     case GO_TOWER_OF_FROST:
-                        instance->ProcessEvent(me, EVENT_TOWER_OF_FROST_DESTROYED);
+                        instance->ProcessEvent(me, EVENT_TOWER_OF_FROST_DESTROYED, attacker);
                         break;
                     case GO_TOWER_OF_LIFE:
-                        instance->ProcessEvent(me, EVENT_TOWER_OF_LIFE_DESTROYED);
+                        instance->ProcessEvent(me, EVENT_TOWER_OF_LIFE_DESTROYED, attacker);
                         break;
                 }
 

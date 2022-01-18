@@ -471,6 +471,29 @@ namespace LuaGlobalFunctions
         return 1;
     }
 
+    int GetMountDisplay(lua_State* L)
+    {
+        uint32 spellId = Eluna::CHECKVAL<uint32>(L, 1);
+
+        SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId, DIFFICULTY_NONE);
+
+        for (SpellEffectInfo const& effect : spellInfo->GetEffects())
+            if (!spellInfo || spellInfo->GetEffectMechanic(effect.EffectIndex) != MECHANIC_MOUNT)
+            return 1;
+
+        MountEntry const* mountEntry = sDB2Manager.GetMount(spellId);
+        uint32 displayId = 0;
+        if (!mountEntry->IsSelfMount())
+        {
+            DB2Manager::MountXDisplayContainer const* mountDisplays = sDB2Manager.GetMountDisplays(mountEntry->ID);
+            DB2Manager::MountXDisplayContainer usableDisplays;
+            std::copy(mountDisplays->begin(), mountDisplays->end(), std::back_inserter(usableDisplays));
+            displayId = Trinity::Containers::SelectRandomContainerElement(usableDisplays)->CreatureDisplayInfoID;
+        }
+        Eluna::Push(L, displayId);
+        return 1;
+    }
+
     static int RegisterEntryHelper(lua_State* L, int regtype)
     {
         uint32 id = Eluna::CHECKVAL<uint32>(L, 1);
@@ -1453,7 +1476,7 @@ namespace LuaGlobalFunctions
                     return 1;
                 }
 
-                eObjectMgr->AddCreatureToGrid(db_guid, eObjectMgr->GetCreatureData(db_guid));
+                eObjectMgr->AddCreatureToGrid(sObjectMgr->GetCreatureData(db_guid));
                 Eluna::Push(L, creature);
             }
             else
@@ -1516,7 +1539,7 @@ namespace LuaGlobalFunctions
                     Eluna::Push(L);
                     return 1;
                 }
-                eObjectMgr->AddGameobjectToGrid(guidLow, object->GetGameObjectData());
+                eObjectMgr->AddGameobjectToGrid(sObjectMgr->GetGameObjectData(guidLow));
             }
             else
                 map->AddToMap(object);
@@ -1621,11 +1644,14 @@ namespace LuaGlobalFunctions
      * Kicks a [Player] from the server.
      *
      * @param [Player] player : [Player] to kick
+     * @param [Text] reason to kick
      */
     int Kick(lua_State* L)
     {
+        int i = 0;
         Player* player = Eluna::CHECKOBJ<Player>(L, 1);
-        player->GetSession()->KickPlayer();
+        std::string text = Eluna::CHECKVAL<std::string>(L, ++i);
+        player->GetSession()->KickPlayer(text);
         return 0;
     }
 
@@ -2819,6 +2845,15 @@ namespace LuaGlobalFunctions
         sObjectMgr->LoadCreatureTemplates();
         TC_LOG_INFO("server.loading", "Initialize query data...");
         sObjectMgr->InitializeQueriesData(QUERY_DATA_CREATURES);
+        return 0;
+    }
+
+    int RestartServer(lua_State* L)
+    {
+        uint32 delay = Eluna::CHECKVAL<uint32>(L, 1, 30);
+        std::string reason = Eluna::CHECKVAL<std::string>(L, 2, "Restart started from lua script.");
+
+        sWorld->ShutdownServ(delay, SHUTDOWN_MASK_FORCE | SHUTDOWN_MASK_RESTART, RESTART_EXIT_CODE, reason);
         return 0;
     }
 }

@@ -382,9 +382,9 @@ namespace LuaCreature
      *
      * @return float wanderRadius
      */
-    int GetWanderRadius(lua_State* L, Creature* creature)
+    int GetWanderDistance(lua_State* L, Creature* creature)
     {
-        Eluna::Push(L, creature->GetRespawnRadius());
+        Eluna::Push(L, creature->GetWanderDistance());
         return 1;
     }
 
@@ -762,7 +762,7 @@ namespace LuaCreature
      */
     int GetDBTableGUIDLow(lua_State* L, Creature* creature)
     {
-        Eluna::Push(L, creature->GetSpawnId());
+        Eluna::Push(L, (uint32)creature->GetSpawnId());
         return 1;
     }
 
@@ -896,7 +896,7 @@ namespace LuaCreature
      */
     int SetInCombatWithZone(lua_State* /*L*/, Creature* creature)
     {
-        if (creature->IsAIEnabled)
+        if (creature->AI())
             creature->AI()->DoZoneInCombat();
         return 0;
     }
@@ -906,11 +906,11 @@ namespace LuaCreature
      *
      * @param float distance
      */
-    int SetWanderRadius(lua_State* L, Creature* creature)
+    int SetWanderDistance(lua_State* L, Creature* creature)
     {
         float dist = Eluna::CHECKVAL<float>(L, 2);
 
-        creature->SetRespawnRadius(dist);
+        creature->SetWanderDistance(dist);
         return 0;
     }
 

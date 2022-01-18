@@ -72,7 +72,7 @@ class boss_golemagg : public CreatureScript
             void JustEngagedWith(Unit* victim) override
             {
                 BossAI::JustEngagedWith(victim);
-                events.ScheduleEvent(EVENT_PYROBLAST, 7000);
+                events.ScheduleEvent(EVENT_PYROBLAST, 7s);
             }
 
             void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/) override
@@ -81,7 +81,7 @@ class boss_golemagg : public CreatureScript
                     return;
 
                 DoCast(me, SPELL_ENRAGE, true);
-                events.ScheduleEvent(EVENT_EARTHQUAKE, 3000);
+                events.ScheduleEvent(EVENT_EARTHQUAKE, 3s);
             }
 
             void UpdateAI(uint32 diff) override
@@ -99,13 +99,13 @@ class boss_golemagg : public CreatureScript
                     switch (eventId)
                     {
                         case EVENT_PYROBLAST:
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                                 DoCast(target, SPELL_PYROBLAST);
-                            events.ScheduleEvent(EVENT_PYROBLAST, 7000);
+                            events.ScheduleEvent(EVENT_PYROBLAST, 7s);
                             break;
                         case EVENT_EARTHQUAKE:
                             DoCastVictim(SPELL_EARTHQUAKE);
-                            events.ScheduleEvent(EVENT_EARTHQUAKE, 3000);
+                            events.ScheduleEvent(EVENT_EARTHQUAKE, 3s);
                             break;
                         default:
                             break;

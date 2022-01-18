@@ -126,6 +126,13 @@ void BlackMarketMgr::LoadAuctions()
             continue;
         }
 
+        if (auction->IsCompleted())
+        {
+            auction->DeleteFromDB(trans);
+            delete auction;
+            continue;
+        }
+
         AddAuction(auction);
     } while (result->NextRow());
 
@@ -142,18 +149,14 @@ void BlackMarketMgr::Update(bool updateTime)
     {
         BlackMarketEntry* auction = itr->second;
 
-        if (!auction->IsCompleted())
+        if (auction->IsCompleted())
         {
-            ++itr;
-            continue;
+            if (auction->GetBidder())
+            {
+                SendAuctionWonMail(auction, trans);
+                auction->DeleteFromDB(trans);
+            }
         }
-
-        if (auction->GetBidder())
-            SendAuctionWonMail(auction, trans);
-
-        auction->DeleteFromDB(trans);
-        itr = _auctions.erase(itr);
-        delete auction;
     }
 
     if (updateTime)
@@ -164,13 +167,24 @@ void BlackMarketMgr::Update(bool updateTime)
 
 void BlackMarketMgr::RefreshAuctions()
 {
-    int32 const auctionDiff = sWorld->getIntConfig(CONFIG_BLACKMARKET_MAXAUCTIONS) - _auctions.size();
-
-    // We are already at max auctions, do nothing
-    if (auctionDiff <= 0)
-        return;
-
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+    // Delete completed auctions
+    for (BlackMarketEntryMap::iterator itr = _auctions.begin(); itr != _auctions.end();)
+    {
+        BlackMarketEntry* entry = itr->second;
+        if (!entry->IsCompleted())
+        {
+            ++itr;
+            continue;
+        }
+
+        entry->DeleteFromDB(trans);
+        itr = _auctions.erase(itr);
+        delete entry;
+    }
+
+    CharacterDatabase.CommitTransaction(trans);
+    trans = CharacterDatabase.BeginTransaction();
 
     std::list<BlackMarketTemplate const*> templates;
     for (auto const& pair : _templates)
@@ -183,14 +197,18 @@ void BlackMarketMgr::RefreshAuctions()
         templates.push_back(pair.second);
     }
 
-    Trinity::Containers::RandomResize(templates, auctionDiff);
+    Trinity::Containers::RandomResize(templates, sWorld->getIntConfig(CONFIG_BLACKMARKET_MAXAUCTIONS));
 
     for (BlackMarketTemplate const* templat : templates)
     {
         BlackMarketEntry* entry = new BlackMarketEntry();
-        entry->Initialize(templat->MarketID, templat->Duration);
-        entry->SaveToDB(trans);
-        AddAuction(entry);
+        int32 timed = time(nullptr) + templat->Duration;
+        if (timed > 0)
+        {
+            entry->Initialize(templat->MarketID, timed);
+            entry->SaveToDB(trans);
+            AddAuction(entry);
+        }
     }
 
     CharacterDatabase.CommitTransaction(trans);
@@ -390,12 +408,12 @@ BlackMarketTemplate const* BlackMarketEntry::GetTemplate() const
 
 uint32 BlackMarketEntry::GetSecondsRemaining() const
 {
-    return std::max(0, int32(GetExpirationTime()) - int32(time(nullptr)));
+    return _startTime - time(nullptr);
 }
 
 time_t BlackMarketEntry::GetExpirationTime() const
 {
-    return _startTime + GetTemplate()->Duration;
+    return time(nullptr) + GetSecondsRemaining();
 }
 
 bool BlackMarketEntry::IsCompleted() const
@@ -416,16 +434,12 @@ bool BlackMarketEntry::LoadFromDB(Field* fields)
     }
 
     _currentBid = fields[1].GetUInt64();
-    _startTime = static_cast<time_t>(fields[2].GetInt64());
+    int32 secondsRemaining = fields[2].GetInt32();
+    if (secondsRemaining < 0) // bag
+        secondsRemaining = time(nullptr) + 7200;
+    _startTime = secondsRemaining;
     _numBids = fields[3].GetInt32();
     _bidder = fields[4].GetUInt64();
-
-    // Either no bidder or existing player
-    if (_bidder && !sCharacterCache->GetCharacterAccountIdByGuid(ObjectGuid::Create<HighGuid::Player>(_bidder))) // Probably a better way to check if player exists
-    {
-        TC_LOG_ERROR("misc", "Black market auction %i does not have a valid bidder (GUID: " UI64FMTD " ).", _marketId, _bidder);
-        return false;
-    }
 
     return true;
 }

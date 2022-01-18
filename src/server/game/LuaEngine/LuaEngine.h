@@ -170,6 +170,7 @@ private:
     // These just call the correct static version with the main thread's Lua state.
     void Push()                                 { Push(L); ++push_counter; }
     void Push(const long long value)            { Push(L, value); ++push_counter; }
+    void Push(Milliseconds value)               { Push(L, value); ++push_counter; }
     void Push(const unsigned long long value)   { Push(L, value); ++push_counter; }
     void Push(const long value)                 { Push(L, value); ++push_counter; }
     void Push(const unsigned long value)        { Push(L, value); ++push_counter; }
@@ -230,6 +231,7 @@ public:
     // Static pushes, can be used by anything, including methods.
     static void Push(lua_State* luastate); // nil
     static void Push(lua_State* luastate, const long long);
+    static void Push(lua_State* luastate, Milliseconds);
     static void Push(lua_State* luastate, const unsigned long long);
     static void Push(lua_State* luastate, const long);
     static void Push(lua_State* luastate, const unsigned long);
@@ -240,7 +242,7 @@ public:
     static void Push(lua_State* luastate, const double);
     static void Push(lua_State* luastate, const std::string&);
     static void Push(lua_State* luastate, const char*);
-    static void Push(lua_State* luastate, ObjectGuid const guid, int type = 1);
+    static void Push(lua_State* luastate, ObjectGuid const guid);
     static void Push(lua_State* luastate, Object const* obj);
     static void Push(lua_State* luastate, WorldObject const* obj);
     static void Push(lua_State* luastate, Unit const* unit);
@@ -351,8 +353,8 @@ public:
     bool ReceiveEmote(Creature* me, Player* player, uint32 emoteId);
     bool CorpseRemoved(Creature* me, uint32& respawnDelay);
     bool MoveInLineOfSight(Creature* me, Unit* who);
-    bool SpellHit(Creature* me, Unit* caster, SpellInfo const* spell);
-    bool SpellHitTarget(Creature* me, Unit* target, SpellInfo const* spell);
+    bool SpellHit(Creature* me, WorldObject* caster, SpellInfo const* spell);
+    bool SpellHitTarget(Creature* me, WorldObject* target, SpellInfo const* spell);
     bool SummonedCreatureDies(Creature* me, Creature* summon, Unit* killer);
     bool OwnerAttackedBy(Creature* me, Unit* attacker);
     bool OwnerAttacked(Creature* me, Unit* target);

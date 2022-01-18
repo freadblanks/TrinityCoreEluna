@@ -97,7 +97,7 @@ public:
             {
                 summoned->CastSpell(summoned, SPELL_FOCUS_FIRE_VISUAL, false);
                 summoned->SetFaction(me->GetFaction());
-                summoned->SetLevel(me->getLevel());
+                summoned->SetLevel(me->GetLevel());
                 summoned->AddUnitState(UNIT_STATE_ROOT);
 
                 if (Unit* pFocusedTarget = ObjectAccessor::GetUnit(*me, FocusedTargetGUID))
@@ -151,7 +151,7 @@ public:
             if (FocusFire_Timer <= diff)
             {
                 // Summon Focus Fire & Emote
-                Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 1);
+                Unit* target = SelectTarget(SelectTargetMethod::Random, 1);
                 if (target && target->GetTypeId() == TYPEID_PLAYER && target->IsAlive())
                 {
                     FocusedTargetGUID = target->GetGUID();

@@ -177,11 +177,11 @@ public:
             }
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
             instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me, 1);
             Talk(SAY_AGGRO);
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
         }
 
         void JustDied(Unit* /*killer*/) override
@@ -222,7 +222,7 @@ public:
                         events.ScheduleEvent(EVENT_FLAME_BOLT, 15000, 0, PHASE_NORMAL);
                         break;
                     case EVENT_EARTH_SPIKE:
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
                             DoCast(target, SPELL_EARTH_SPIKE_WARN);
                         events.ScheduleEvent(EVENT_EARTH_SPIKE, urand(16000, 21000), 0, PHASE_NORMAL);
                         break;
@@ -231,7 +231,7 @@ public:
                         break;
                     case EVENT_QUICKSAND:
                         // Spell not in DBC, it is not cast either, according to sniffs
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
                             if (Creature* quicksand = me->SummonCreature(NPC_QUICKSAND, *target))
                                 quicksand->SetCreatedBySpell(SPELL_SUMMON_QUICKSAND);
                         events.ScheduleEvent(EVENT_QUICKSAND, 10000, 0, PHASE_DISPERSE);
@@ -293,7 +293,7 @@ public:
         {
             if (Unit* ptah = GetCaster())
             {
-                ptah->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_UNK_29 | UNIT_FLAG_UNK_31));
+                ptah->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_UNK_29));
                 ptah->AddUnitFlag2(UNIT_FLAG2_FEIGN_DEATH);
             }
         }
@@ -302,7 +302,7 @@ public:
         {
             if (Unit* ptah = GetCaster())
             {
-                ptah->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_UNK_29 | UNIT_FLAG_UNK_31));
+                ptah->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_UNK_29));
                 ptah->RemoveUnitFlag2(UNIT_FLAG2_FEIGN_DEATH);
             }
         }

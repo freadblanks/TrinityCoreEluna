@@ -97,8 +97,6 @@ public:
                 DoCast(me, SPELL_CHANNEL, true);
             else if (me->HasAura(SPELL_CHANNEL))
                 me->RemoveAura(SPELL_CHANNEL);
-
-            DoCast(me, SPELL_PORTAL_RUNE, true);
         }
 
         void MoveInLineOfSight(Unit* who) override
@@ -142,21 +140,21 @@ public:
 
         void JustEngagedWith(Unit* /*who*/) override { }
 
-        void SpellHit(Unit* /*caster*/, SpellInfo const* spell) override
+        void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo) override
         {
             if (SpellCorrupt_Timer)
                 return;
 
-            if (spell->Id == SPELL_CORRUPT_AEONUS)
+            if (spellInfo->Id == SPELL_CORRUPT_AEONUS)
                 SpellCorrupt_Timer = 1000;
 
-            if (spell->Id == SPELL_CORRUPT)
+            if (spellInfo->Id == SPELL_CORRUPT)
                 SpellCorrupt_Timer = 3000;
         }
 
         void JustDied(Unit* killer) override
         {
-            if (killer->GetEntry() == me->GetEntry())
+            if (killer && killer->GetEntry() == me->GetEntry())
                 return;
 
             Talk(SAY_DEATH);

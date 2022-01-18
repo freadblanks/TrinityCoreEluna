@@ -22,5 +22,5 @@ nbproject/*
 .vscode
 cmake-build-*/
 .vs
-src/server/scripts/Custom/custom_commandscrip.cpp
-src/server/scripts/Custom/CastXPNPC.cpp
+*.user
+src/server/scripts/Custom/custom_script_loader.cpp

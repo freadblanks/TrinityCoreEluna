@@ -30,6 +30,7 @@ class Corpse;
 class GameObject;
 class Item;
 class Player;
+class Spell;
 class Unit;
 class WorldObject;
 enum Difficulty : uint8;
@@ -112,12 +113,12 @@ enum class SpellAuraInterruptFlags2 : uint32
 {
     None                        = 0,
     Falling                     = 0x00000001, // NYI
-    Swimming                    = 0x00000002, // NYI
+    Swimming                    = 0x00000002,
     NotMoving                   = 0x00000004, // NYI
-    Ground                      = 0x00000008, // NYI
+    Ground                      = 0x00000008,
     Transform                   = 0x00000010, // NYI
     Jump                        = 0x00000020,
-    ChangeSpec                  = 0x00000040, // NYI
+    ChangeSpec                  = 0x00000040,
     AbandonVehicle              = 0x00000080, // NYI
     StartOfEncounter            = 0x00000100, // NYI
     EndOfEncounter              = 0x00000200, // NYI
@@ -125,8 +126,8 @@ enum class SpellAuraInterruptFlags2 : uint32
     EnteringInstance            = 0x00000800, // NYI
     DuelEnd                     = 0x00001000, // NYI
     LeaveArenaOrBattleground    = 0x00002000, // NYI
-    ChangeTalent                = 0x00004000, // NYI
-    ChangeGlyph                 = 0x00008000, // NYI
+    ChangeTalent                = 0x00004000,
+    ChangeGlyph                 = 0x00008000,
     SeamlessTransfer            = 0x00010000, // NYI
     WarModeLeave                = 0x00020000, // NYI
     TouchingGround              = 0x00040000, // NYI
@@ -303,6 +304,7 @@ struct TC_GAME_API SpellDestination
     SpellDestination();
     SpellDestination(float x, float y, float z, float orientation = 0.0f, uint32 mapId = MAPID_INVALID);
     SpellDestination(Position const& pos);
+    SpellDestination(WorldLocation const& loc);
     SpellDestination(WorldObject const& wObj);
 
     void Relocate(Position const& pos);
@@ -436,12 +438,14 @@ struct TC_GAME_API CastSpellExtraArgs
     CastSpellExtraArgs(bool triggered) : TriggerFlags(triggered ? TRIGGERED_FULL_MASK : TRIGGERED_NONE) {}
     CastSpellExtraArgs(TriggerCastFlags trigger) : TriggerFlags(trigger) {}
     CastSpellExtraArgs(Item* item) : TriggerFlags(TRIGGERED_FULL_MASK), CastItem(item) {}
+    CastSpellExtraArgs(Spell const* triggeringSpell) : TriggerFlags(TRIGGERED_FULL_MASK) { SetTriggeringSpell(triggeringSpell); }
     CastSpellExtraArgs(AuraEffect const* eff) : TriggerFlags(TRIGGERED_FULL_MASK) { SetTriggeringAura(eff); }
     CastSpellExtraArgs(Difficulty castDifficulty) : CastDifficulty(castDifficulty) {}
     CastSpellExtraArgs(SpellValueMod mod, int32 val) { SpellValueOverrides.AddMod(mod, val); }
 
     CastSpellExtraArgs& SetTriggerFlags(TriggerCastFlags flag) { TriggerFlags = flag; return *this; }
     CastSpellExtraArgs& SetCastItem(Item* item) { CastItem = item; return *this; }
+    CastSpellExtraArgs& SetTriggeringSpell(Spell const* triggeringSpell);
     CastSpellExtraArgs& SetTriggeringAura(AuraEffect const* triggeringAura);
     CastSpellExtraArgs& SetOriginalCaster(ObjectGuid const& guid) { OriginalCaster = guid; return *this; }
     CastSpellExtraArgs& SetCastDifficulty(Difficulty castDifficulty) { CastDifficulty = castDifficulty; return *this; }

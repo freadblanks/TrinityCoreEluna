@@ -551,6 +551,11 @@ void Eluna::Push(lua_State* luastate, const long long l)
     ElunaTemplate<long long>::Push(luastate, new long long(l));
 }
 
+void Eluna::Push(lua_State* luastate, Milliseconds l)
+{
+    ElunaTemplate<Milliseconds>::Push(luastate, new Milliseconds(l));
+}
+
 void Eluna::Push(lua_State* luastate, const unsigned long long l)
 {
     ElunaTemplate<unsigned long long>::Push(luastate, new unsigned long long(l));
@@ -605,8 +610,11 @@ void Eluna::Push(lua_State* luastate, const char* str)
  *  - Global
  *  - MapSpecific
  */
-void Eluna::Push(lua_State* luastate, ObjectGuid const guid, int type /*= 1*/)
+void Eluna::Push(lua_State* luastate, ObjectGuid const guid)
 {
+    std::string str = std::to_string(guid.GetRawValue(0)) + "-" + std::to_string(guid.GetRawValue(1));
+    lua_pushstring(luastate, str.c_str());
+    /* Doesn't work, always returns 32768 in case of a NPC
     char errorBuffer[64];
 
     uint64 objectGuid = uint64(type) << 4;
@@ -626,6 +634,7 @@ void Eluna::Push(lua_State* luastate, ObjectGuid const guid, int type /*= 1*/)
             snprintf(errorBuffer, 64, "incorrect typeId");
             break;
     }
+    */
 }
 
 void Eluna::Push(lua_State* luastate, Pet const* pet)
@@ -813,40 +822,14 @@ template<> unsigned long Eluna::CHECKVAL<unsigned long>(lua_State* luastate, int
 }
 template<> ObjectGuid Eluna::CHECKVAL<ObjectGuid>(lua_State* luastate, int narg)
 {
-    uint64 guid = CHECKVAL<uint64>(luastate, narg);
-
-    uint32 type = guid >> 4;
-    HighGuid high = HighGuid(guid >> 8);
-    uint64 low = guid >> 12;
-
-    if (type == 1) // Global & RealmSpecific
-    {
-        switch (high)
-        {
-            case HIGHGUID_PLAYER:
-                return ObjectGuid::Create<HIGHGUID_PLAYER>(low);
-            case HIGHGUID_ITEM:
-                return ObjectGuid::Create<HIGHGUID_ITEM>(low);
-            default:
-                return ObjectGuid::Empty;
-        }
-    }
-    else if (type == 2)
-    {
-        uint16 mapId = uint16(guid >> 16);
-        uint32 entry = uint32(guid >> 20);
-        switch (high)
-        {
-            case HIGHGUID_GAMEOBJECT:
-                return ObjectGuid::Create<HIGHGUID_GAMEOBJECT>(mapId, entry, low);
-            case HIGHGUID_UNIT:
-                return ObjectGuid::Create<HIGHGUID_UNIT>(mapId, entry, low);
-            default:
-                return ObjectGuid::Empty;
-        }
-    }
-
-    return ObjectGuid::Empty;
+    std::string str = CHECKVAL<std::string>(luastate, narg);
+    uint8 pos = str.find("-");
+    uint64 low = std::stoull(str.substr(0, pos));
+    str.erase(0, pos + 1);
+    uint64 high = std::stoull(str);
+    ObjectGuid guid = ObjectGuid::Create<HighGuid::Null>();
+    guid.SetRawValue(high, low);
+    return guid;
 }
 
 template<> Object* Eluna::CHECKOBJ<Object>(lua_State* luastate, int narg, bool error)

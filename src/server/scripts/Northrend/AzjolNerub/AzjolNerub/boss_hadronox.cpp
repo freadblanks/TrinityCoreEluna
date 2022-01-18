@@ -229,7 +229,7 @@ public:
             events.ScheduleEvent(EVENT_ACID_CLOUD, randtime(Seconds(7), Seconds(13)));
             events.ScheduleEvent(EVENT_WEB_GRAB, randtime(Seconds(13), Seconds(19)));
             events.ScheduleEvent(EVENT_PIERCE_ARMOR, randtime(Seconds(4), Seconds(7)));
-            events.ScheduleEvent(EVENT_PLAYER_CHECK, Seconds(1));
+            events.ScheduleEvent(EVENT_PLAYER_CHECK, 1s);
             me->setActive(true);
         }
 
@@ -295,9 +295,6 @@ public:
 
         void UpdateAI(uint32 diff) override
         {
-            if (!_lastPlayerCombatState && me->IsEngaged())
-                me->GetThreatManager().UpdateOnlineStates(false, true);
-
             if (!UpdateVictim())
                 return;
 
@@ -315,7 +312,7 @@ public:
                         events.Repeat(randtime(Seconds(7), Seconds(9)));
                         break;
                     case EVENT_ACID_CLOUD:
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f))
                             DoCast(target, SPELL_ACID_CLOUD);
                         events.Repeat(randtime(Seconds(16), Seconds(23)));
                         break;

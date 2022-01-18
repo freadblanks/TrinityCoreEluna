@@ -50,15 +50,16 @@ class TC_GAME_API SmartScript
         static void InitTimer(SmartScriptHolder& e);
         void ProcessAction(SmartScriptHolder& e, Unit* unit = nullptr, uint32 var0 = 0, uint32 var1 = 0, bool bvar = false, SpellInfo const* spell = nullptr, GameObject* gob = nullptr, std::string const& varString = "");
         void ProcessTimedAction(SmartScriptHolder& e, uint32 const& min, uint32 const& max, Unit* unit = nullptr, uint32 var0 = 0, uint32 var1 = 0, bool bvar = false, SpellInfo const* spell = nullptr, GameObject* gob = nullptr, std::string const& varString = "");
-        void GetTargets(ObjectVector& targets, SmartScriptHolder const& e, Unit* invoker = nullptr) const;
+        void GetTargets(ObjectVector& targets, SmartScriptHolder const& e, WorldObject* invoker = nullptr) const;
         void GetWorldObjectsInDist(ObjectVector& objects, float dist) const;
         void InstallTemplate(SmartScriptHolder const& e);
-        static SmartScriptHolder CreateSmartEvent(SMART_EVENT e, uint32 event_flags, uint32 event_param1, uint32 event_param2, uint32 event_param3, uint32 event_param4, uint32 event_param5, SMART_ACTION action, uint32 action_param1, uint32 action_param2, uint32 action_param3, uint32 action_param4, uint32 action_param5, uint32 action_param6, SMARTAI_TARGETS t, uint32 target_param1, uint32 target_param2, uint32 target_param3, uint32 phaseMask = 0);
-        void AddEvent(SMART_EVENT e, uint32 event_flags, uint32 event_param1, uint32 event_param2, uint32 event_param3, uint32 event_param4, uint32 event_param5, SMART_ACTION action, uint32 action_param1, uint32 action_param2, uint32 action_param3, uint32 action_param4, uint32 action_param5, uint32 action_param6, SMARTAI_TARGETS t, uint32 target_param1, uint32 target_param2, uint32 target_param3, uint32 phaseMask = 0);
+        static SmartScriptHolder CreateSmartEvent(SMART_EVENT e, uint32 event_flags, uint32 event_param1, uint32 event_param2, uint32 event_param3, uint32 event_param4, uint32 event_param5, SMART_ACTION action, uint32 action_param1, uint32 action_param2, uint32 action_param3, uint32 action_param4, uint32 action_param5, uint32 action_param6, SMARTAI_TARGETS t, uint32 target_param1, uint32 target_param2, uint32 target_param3, uint32 target_param4, uint32 phaseMask);
+        void AddEvent(SMART_EVENT e, uint32 event_flags, uint32 event_param1, uint32 event_param2, uint32 event_param3, uint32 event_param4, uint32 event_param5, SMART_ACTION action, uint32 action_param1, uint32 action_param2, uint32 action_param3, uint32 action_param4, uint32 action_param5, uint32 action_param6, SMARTAI_TARGETS t, uint32 target_param1, uint32 target_param2, uint32 target_param3, uint32 target_param4, uint32 phaseMask);
         void SetPathId(uint32 id) { mPathId = id; }
         uint32 GetPathId() const { return mPathId; }
         WorldObject* GetBaseObject() const;
         WorldObject* GetBaseObjectOrUnit(Unit* unit);
+        WorldObject* GetBaseObjectOrPlayerTrigger() const;
         static bool IsUnit(WorldObject* obj);
         static bool IsPlayer(WorldObject* obj);
         static bool IsCreature(WorldObject* obj);
@@ -78,6 +79,7 @@ class TC_GAME_API SmartScript
         bool IsSmart(bool silent = false);
 
         void StoreTargetList(ObjectVector const& targets, uint32 id);
+        void AddToStoredTargetList(ObjectVector const& targets, uint32 id);
         ObjectVector const* GetStoredTargetVector(uint32 id, WorldObject const& ref) const;
 
         void StoreCounter(uint32 id, uint32 value, uint32 reset);
@@ -112,6 +114,7 @@ class TC_GAME_API SmartScript
         ObjectGuid meOrigGUID;
         GameObject* go;
         ObjectGuid goOrigGUID;
+        Player* atPlayer;
         AreaTriggerEntry const* trigger;
         AreaTrigger* areaTrigger;
         SceneTemplate const* sceneTemplate;

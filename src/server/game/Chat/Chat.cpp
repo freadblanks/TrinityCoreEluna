@@ -19,7 +19,6 @@
 #include "AccountMgr.h"
 #include "CellImpl.h"
 #include "CharacterCache.h"
-#include "ChatLink.h"
 #include "ChatPackets.h"
 #include "Common.h"
 #include "DatabaseEnv.h"
@@ -40,11 +39,7 @@
 #endif
 #include "WorldSession.h"
 #include <boost/algorithm/string/replace.hpp>
-
-ChatCommand::ChatCommand(char const* name, uint32 permission, bool allowConsole, pHandler handler, std::string help, std::vector<ChatCommand> childCommands /*= std::vector<ChatCommand>()*/)
-    : Name(ASSERT_NOTNULL(name)), Permission(permission), AllowConsole(allowConsole), Handler(handler), Help(std::move(help)), ChildCommands(std::move(childCommands))
-{
-}
+#include <sstream>
 
 // Lazy loading of the command table cache from commands and the
 // ScriptMgr should be thread safe since the player commands,
@@ -180,75 +175,46 @@ bool ChatHandler::hasStringAbbr(const char* name, const char* part)
 
 void ChatHandler::SendSysMessage(const char *str, bool escapeCharacters)
 {
+    std::string msg{ str };
+
+    // Replace every "|" with "||" in msg
+    if (escapeCharacters && msg.find('|') != std::string::npos)
+    {
+        Tokenizer tokens{msg, '|'};
+        std::ostringstream stream;
+        for (size_t i = 0; i < tokens.size() - 1; ++i)
+            stream << tokens[i] << "||";
+        stream << tokens[tokens.size() - 1];
+
+        msg = stream.str();
+    }
+
     WorldPackets::Chat::Chat packet;
-
-    // need copy to prevent corruption by strtok call in LineFromMessage original string
-    char* buf;
-    char* pos;
-
-    if (escapeCharacters && strchr(str, '|'))
-    {
-        size_t startPos = 0;
-        std::ostringstream o;
-        while (const char* charPos = strchr(str + startPos, '|'))
-        {
-            o.write(str + startPos, charPos - str - startPos);
-            o << "||";
-            startPos = charPos - str + 1;
-        }
-        o.write(str + startPos, strlen(str) - startPos);
-        buf = strdup(o.str().c_str());
-    }
-    else
-    {
-        buf = strdup(str);
-    }
-
-    pos = buf;
-
-    while (char* line = LineFromMessage(pos))
+    for (const auto& line : Tokenizer{msg, '\n'})
     {
         packet.Initialize(CHAT_MSG_SYSTEM, LANG_UNIVERSAL, nullptr, nullptr, line);
         m_session->SendPacket(packet.Write());
     }
-
-    free(buf);
 }
 
 void ChatHandler::SendGlobalSysMessage(const char *str)
 {
-    // Chat output
     WorldPackets::Chat::Chat packet;
-
-    // need copy to prevent corruption by strtok call in LineFromMessage original string
-    char* buf = strdup(str);
-    char* pos = buf;
-
-    while (char* line = LineFromMessage(pos))
+    for (const auto& line : Tokenizer{str, '\n'})
     {
         packet.Initialize(CHAT_MSG_SYSTEM, LANG_UNIVERSAL, nullptr, nullptr, line);
         sWorld->SendGlobalMessage(packet.Write());
     }
-
-    free(buf);
 }
 
 void ChatHandler::SendGlobalGMSysMessage(const char *str)
 {
-    // Chat output
     WorldPackets::Chat::Chat packet;
-
-    // need copy to prevent corruption by strtok call in LineFromMessage original string
-    char* buf = strdup(str);
-    char* pos = buf;
-
-    while (char* line = LineFromMessage(pos))
+    for (const auto& line : Tokenizer{str, '\n'})
     {
         packet.Initialize(CHAT_MSG_SYSTEM, LANG_UNIVERSAL, nullptr, nullptr, line);
         sWorld->SendGlobalGMMessage(packet.Write());
     }
-
-    free(buf);
 }
 
 void ChatHandler::SendSysMessage(uint32 entry)
@@ -301,6 +267,7 @@ bool ChatHandler::ExecuteCommandInTable(std::vector<ChatCommand> const& table, c
                 if (!sEluna->OnCommand(GetSession() ? GetSession()->GetPlayer() : NULL, oldtext))
                     return true;
 #endif
+
                 if (m_session && !m_session->HasPermission(rbac::RBAC_PERM_COMMANDS_NOTIFY_COMMAND_NOT_FOUND_ERROR))
                     return false;
 
@@ -316,12 +283,12 @@ bool ChatHandler::ExecuteCommandInTable(std::vector<ChatCommand> const& table, c
         }
 
         // must be available and have handler
-        if (!table[i].Handler || !isAvailable(table[i]))
+        if (!table[i].HasHandler() || !isAvailable(table[i]))
             continue;
 
         SetSentErrorMessage(false);
         // table[i].Name == "" is special case: send original command to handler
-        if ((table[i].Handler)(this, table[i].Name[0] != '\0' ? text : oldtext))
+        if (table[i](this, table[i].Name[0] != '\0' ? text : oldtext))
         {
             if (!m_session) // ignore console
                 return true;
@@ -460,66 +427,6 @@ bool ChatHandler::ParseCommands(char const* text)
         return false;
 
     return _ParseCommands(text+1);
-}
-
-bool ChatHandler::isValidChatMessage(char const* message)
-{
-/*
-Valid examples:
-|cffa335ee|Hitem:812:0:0:0:0:0:0:0:70|h[Glowing Brightwood Staff]|h|r
-|cffffff00|Hquest:51101:-1:110:120:5|h[The Wounded King]|h|r
-|cffffd000|Htrade:4037:1:150:1:6AAAAAAAAAAAAAAAAAAAAAAOAADAAAAAAAAAAAAAAAAIAAAAAAAAA|h[Engineering]|h|r
-|cff4e96f7|Htalent:2232:-1|h[Taste for Blood]|h|r
-|cff71d5ff|Hspell:21563|h[Command]|h|r
-|cffffd000|Henchant:3919|h[Engineering: Rough Dynamite]|h|r
-|cffffff00|Hachievement:546:0000000000000001:0:0:0:-1:0:0:0:0|h[Safe Deposit]|h|r
-|cff66bbff|Hglyph:21:762|h[Glyph of Bladestorm]|h|r
-
-| will be escaped to ||
-*/
-
-    if (strlen(message) > 255)
-        return false;
-
-    // more simple checks
-    if (sWorld->getIntConfig(CONFIG_CHAT_STRICT_LINK_CHECKING_SEVERITY) < 3)
-    {
-        const char validSequence[6] = "cHhhr";
-        const char* validSequenceIterator = validSequence;
-        const std::string validCommands = "cHhr|";
-
-        while (*message)
-        {
-            // find next pipe command
-            message = strchr(message, '|');
-
-            if (!message)
-                return true;
-
-            ++message;
-            char commandChar = *message;
-            if (validCommands.find(commandChar) == std::string::npos)
-                return false;
-
-            ++message;
-            // validate sequence
-            if (sWorld->getIntConfig(CONFIG_CHAT_STRICT_LINK_CHECKING_SEVERITY) == 2)
-            {
-                if (commandChar == *validSequenceIterator)
-                {
-                    if (validSequenceIterator == validSequence + 4)
-                        validSequenceIterator = validSequence;
-                    else
-                        ++validSequenceIterator;
-                }
-                else
-                    return false;
-            }
-        }
-        return true;
-    }
-
-    return LinkExtractor(message).IsValidMessage();
 }
 
 bool ChatHandler::ShowHelpForSubCommands(std::vector<ChatCommand> const& table, char const* cmd, char const* subcmd)
@@ -1208,164 +1115,6 @@ LocaleConstant CliHandler::GetSessionDbcLocale() const
 LocaleConstant CliHandler::GetSessionDbLocaleIndex() const
 {
     return sObjectMgr->GetDBCLocaleIndex();
-}
-
-void CommandArgs::Initialize(std::initializer_list<CommandArgsType> argsType)
-{
-    try
-    {
-        std::vector<CommandArgsType> argsTypeVector = std::vector<CommandArgsType>(argsType);
-        _argsTypeVector = argsTypeVector;
-
-        if (!_charArgs || !*_charArgs)
-        {
-            if (argsTypeVector.size())
-                throw std::invalid_argument("");
-
-            _validArgs = true;
-            return;
-        }
-
-        std::vector<std::string> argsVector;
-        InitializeArgsVector(argsVector);
-        CheckOptionalArgs(argsTypeVector, argsVector.size());
-
-        // Finally, we cast all our args to their types
-        for (uint8 typeIndex = 0, argIndex = 0; typeIndex < argsTypeVector.size(); ++typeIndex, ++argIndex)
-        {
-            switch (argsTypeVector[typeIndex])
-            {
-            case ARG_INT:
-            case ARG_INT_OPTIONAL:
-                _args.push_back(int32(atoi(argsVector[argIndex].c_str())));
-                break;
-            case ARG_UINT:
-            case ARG_UINT_OPTIONAL:
-            {
-                int value = atoi(argsVector[argIndex].c_str());
-                if (value < 0)
-                    return;
-
-                _args.push_back(uint32(value));
-                break;
-            }
-            case ARG_FLOAT:
-            case ARG_FLOAT_OPTIONAL:
-                _args.push_back(float(atof(argsVector[argIndex].c_str())));
-                break;
-            case ARG_STRING:
-            case ARG_STRING_OPTIONAL:
-                _args.push_back(argsVector[argIndex]);
-                break;
-            case ARG_UNIT:
-            case ARG_UNIT_OPTIONAL:
-            {
-                PlayerResult result;
-                if (_handler->extractPlayerTarget((char*)argsVector[argIndex].c_str(), &result.PlayerPtr, &result.Guid, &result.Name) && result.PlayerPtr)
-                    _args.push_back((Unit*)result.PlayerPtr);
-                else if (Unit* selectedUnit = _handler->getSelectedUnit())
-                {
-                    --argIndex;
-                    _args.push_back((Unit*)selectedUnit);
-                }
-                break;
-            }
-            case ARG_PLAYER:
-            case ARG_PLAYER_OPTIONAL:
-            {
-                PlayerResult result;
-                _handler->extractPlayerTarget((char*)argsVector[argIndex].c_str(), &result.PlayerPtr, &result.Guid, &result.Name);
-                _args.push_back(result);
-                break;
-            }
-            case ARG_OPTIONAL_BEGIN:
-                ASSERT(false, "Cannot use ARG_OPTIONAL_BEGIN as arg type");
-            default:
-                break;
-            }
-        }
-
-        _validArgs = true;
-    }
-    // Catch potential boost exception
-    catch (std::exception e)
-    {
-        _validArgs = false;
-    }
-}
-
-// Split args by spaces, expect for quoted args
-void CommandArgs::InitializeArgsVector(std::vector<std::string>& argsVector)
-{
-    std::ostringstream arg;
-    uint32 argsLength = strlen(_charArgs);
-
-    for (size_t i = 0; i < argsLength; i++)
-    {
-        char c = _charArgs[i];
-        if (c == ' ')
-        {
-            argsVector.push_back(arg.str());
-            arg.str("");
-            arg.clear();
-        }
-        else if (c == '\"')
-        {
-            ++i;
-            while (i < argsLength && _charArgs[i] != '\"')
-                arg << _charArgs[i++];
-        }
-        else if (c == '|')
-        {
-            while (i < argsLength && (i <= 1 || _charArgs[i - 1] != '|' || _charArgs[i] != 'r'))
-                arg << _charArgs[i++];
-
-            arg << 'r';
-        }
-        else
-            arg << _charArgs[i];
-    }
-
-    if (arg.str().size() != 0)
-        argsVector.push_back(arg.str());
-}
-
-// If we have less parameter than expected, check if any of them is optional
-// and reduce argsTypeVector accordingly
-void CommandArgs::CheckOptionalArgs(std::vector<CommandArgsType>& argsTypeVector, uint8 argsVectorSize)
-{
-    uint8 argsTypeVectorSize = argsTypeVector.size();
-
-    // Check if any parameter is optionnal
-    if (argsVectorSize == argsTypeVectorSize)
-        return;
-
-    if (argsVectorSize > argsTypeVectorSize)
-        throw std::invalid_argument("");
-
-    uint8 optionalCount = uint8(std::count_if(argsTypeVector.begin(), argsTypeVector.end(), [](CommandArgsType const& type)
-    {
-        return type > ARG_OPTIONAL_BEGIN;
-    }));
-
-    int8 argsDiff = argsTypeVectorSize - argsVectorSize;
-
-    if (optionalCount < argsDiff)
-        throw std::invalid_argument("");
-
-    for (uint8 i = argsTypeVectorSize; i != 0; --i)
-    {
-        auto itr = argsTypeVector.begin();
-        std::advance(itr, i - 1);
-
-        if (*itr > ARG_OPTIONAL_BEGIN)
-        {
-            argsTypeVector.erase(itr);
-
-            if (--argsDiff <= 0)
-                break;
-        }
-    }
 }
 
 std::string const AddonChannelCommandHandler::PREFIX = "TrinityCore";

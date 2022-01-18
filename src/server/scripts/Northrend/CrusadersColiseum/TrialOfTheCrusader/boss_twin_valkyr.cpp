@@ -182,11 +182,12 @@ struct boss_twin_baseAI : public BossAI
     {
         me->SetReactState(REACT_PASSIVE);
         me->ModifyAuraState(AuraState, true);
-        /* Uncomment this once that they are floating above the ground
-        me->SetLevitate(true);
-        me->SetFlying(true); */
-
         summons.DespawnAll();
+    }
+
+    void JustAppeared() override
+    {
+        events.Reset();
         events.SetPhase(PHASE_EVENT);
         events.ScheduleEvent(EVENT_START_MOVE, 4s);
     }
@@ -311,7 +312,7 @@ struct boss_twin_baseAI : public BossAI
                 events.Repeat(20s);
                 break;
             case EVENT_TOUCH:
-                if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 200.0f, true, true, OtherEssenceSpellId))
+                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 200.0f, true, true, OtherEssenceSpellId))
                 {
                     CastSpellExtraArgs args;
                     args.AddSpellMod(SPELLVALUE_MAX_TARGETS, 1); // @todo spellmgr correction instead?
@@ -447,7 +448,6 @@ class boss_fjola : public CreatureScript
             void JustReachedHome() override
             {
                 instance->DoUseDoorOrButton(instance->GetGuidData(DATA_MAIN_GATE));
-
                 boss_twin_baseAI::JustReachedHome();
             }
 

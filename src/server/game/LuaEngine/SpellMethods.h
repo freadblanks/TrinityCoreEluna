@@ -168,5 +168,31 @@ namespace LuaSpell
         spell->finish();
         return 0;
     }
+
+    int IsMountSummon(lua_State* L, Spell* spell)
+    {
+        SpellInfo const* spellInfo = spell->m_spellInfo;
+
+        for (SpellEffectInfo const& effect : spellInfo->GetEffects())
+        {
+            Eluna::Push(L, (spellInfo->GetEffectMechanic(effect.EffectIndex) == MECHANIC_MOUNT));
+        }
+        return 1;
+    }
+
+    int GetMountDisplay(lua_State* L, Spell* spell)
+    {
+        MountEntry const* mountEntry = sDB2Manager.GetMount(spell->m_spellInfo->Id);
+        uint32 displayId = 0;
+        if (!mountEntry->IsSelfMount())
+        {
+            DB2Manager::MountXDisplayContainer const* mountDisplays = sDB2Manager.GetMountDisplays(mountEntry->ID);
+            DB2Manager::MountXDisplayContainer usableDisplays;
+            std::copy(mountDisplays->begin(), mountDisplays->end(), std::back_inserter(usableDisplays));
+            displayId = Trinity::Containers::SelectRandomContainerElement(usableDisplays)->CreatureDisplayInfoID;
+        }
+        Eluna::Push(L, displayId);
+        return 1;
+    }
 };
 #endif

@@ -537,12 +537,14 @@ namespace LuaUnit
      * Returns the GUID of the [Unit]'s charmed entity.
      *
      * @return ObjectGuid charmedGUID
+     *
+     * Deprecated feature, has been stripped
      */
-    int GetCharmGUID(lua_State* L, Unit* unit)
+    /*int GetCharmGUID(lua_State* L, Unit* unit)
     {
         Eluna::Push(L, unit->GetCharmGUID());
         return 1;
-    }
+    }*/
 
     /**
      * Returns the GUID of the [Unit]'s pet.
@@ -688,7 +690,7 @@ namespace LuaUnit
      */
     int GetLevel(lua_State* L, Unit* unit)
     {
-        Eluna::Push(L, unit->getLevel());
+        Eluna::Push(L, unit->GetLevel());
         return 1;
     }
 
@@ -856,7 +858,7 @@ namespace LuaUnit
      */
     int GetGender(lua_State* L, Unit* unit)
     {
-        Eluna::Push(L, unit->getGender());
+        Eluna::Push(L, unit->GetGender());
         return 1;
     }
 
@@ -867,7 +869,7 @@ namespace LuaUnit
      */
     int GetRace(lua_State* L, Unit* unit)
     {
-        Eluna::Push(L, unit->getRace());
+        Eluna::Push(L, unit->GetRace());
         return 1;
     }
 
@@ -878,7 +880,7 @@ namespace LuaUnit
      */
     int GetClass(lua_State* L, Unit* unit)
     {
-        Eluna::Push(L, unit->getClass());
+        Eluna::Push(L, unit->GetClass());
         return 1;
     }
 
@@ -889,7 +891,7 @@ namespace LuaUnit
     */
     int GetRaceMask(lua_State* L, Unit* unit)
     {
-        Eluna::Push(L, unit->getRaceMask());
+        Eluna::Push(L, unit->GetRaceMask());
         return 1;
     }
 
@@ -900,7 +902,7 @@ namespace LuaUnit
     */
     int GetClassMask(lua_State* L, Unit* unit)
     {
-        Eluna::Push(L, unit->getClassMask());
+        Eluna::Push(L, unit->GetClassMask());
         return 1;
     }
 
@@ -961,7 +963,7 @@ namespace LuaUnit
         if (locale >= TOTAL_LOCALES)
             return luaL_argerror(L, 2, "valid LocaleConstant expected");
 
-        const ChrClassesEntry* entry = sChrClassesStore.LookupEntry(unit->getClass());
+        const ChrClassesEntry* entry = sChrClassesStore.LookupEntry(unit->GetClass());
         if (!entry)
             return 1;
 
@@ -996,7 +998,7 @@ namespace LuaUnit
         if (locale >= TOTAL_LOCALES)
             return luaL_argerror(L, 2, "valid LocaleConstant expected");
 
-        const ChrRacesEntry* entry = sChrRacesStore.LookupEntry(unit->getRace());
+        const ChrRacesEntry* entry = sChrRacesStore.LookupEntry(unit->GetRace());
         if (!entry)
             return 1;
 
@@ -2097,14 +2099,15 @@ namespace LuaUnit
     {
         Unit* target = Eluna::CHECKOBJ<Unit>(L, 2, false);
         uint32 spell = Eluna::CHECKVAL<uint32>(L, 3);
-        uint8 difficulty = Eluna::CHECKVAL<uint8>(L, 4);
-        bool triggered = Eluna::CHECKVAL<bool>(L, 5, false);
+        bool triggered = Eluna::CHECKVAL<bool>(L, 4, false);
 
-        SpellInfo const* spellEntry = sSpellMgr->GetSpellInfo(spell, Difficulty(difficulty));
+        SpellInfo const* spellEntry = sSpellMgr->GetSpellInfo(spell, DIFFICULTY_NORMAL);
         if (!spellEntry)
             return 0;
 
-        unit->CastSpell(target, spell, triggered);
+        TriggerCastFlags triggered_mask = triggered ? TRIGGERED_FULL_DEBUG_MASK : TRIGGERED_NONE;
+
+        unit->CastSpell(target, spell, triggered_mask);
 
         return 0;
     }
@@ -2240,13 +2243,20 @@ namespace LuaUnit
     {
         uint32 spell = Eluna::CHECKVAL<uint32>(L, 2);
         Unit* target = Eluna::CHECKOBJ<Unit>(L, 3);
-        uint8 difficulty = Eluna::CHECKVAL<uint8>(L, 4);
 
-        SpellInfo const* spellEntry = sSpellMgr->GetSpellInfo(spell, Difficulty(difficulty));
+        SpellInfo const* spellEntry = sSpellMgr->GetSpellInfo(spell, DIFFICULTY_NORMAL);
         if (!spellEntry)
             return 1;
 
-        Eluna::Push(L, unit->AddAura(spell, target));
+        Aura* aura;
+        if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spell, target->GetMap()->GetDifficultyID()))
+        {
+            ObjectGuid castId = ObjectGuid::Create<HighGuid::Cast>(SPELL_CAST_SOURCE_NORMAL, target->GetMapId(), spell, target->GetMap()->GenerateLowGuid<HighGuid::Cast>());
+            AuraCreateInfo createinfo(castId, spellInfo, target->GetMap()->GetDifficultyID(), MAX_EFFECT_MASK, target);
+            aura = Aura::TryRefreshStackOrCreate(createinfo);
+        }
+
+        Eluna::Push(L, aura);
         return 1;
     }
 

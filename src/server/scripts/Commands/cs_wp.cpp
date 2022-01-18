@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -54,7 +54,7 @@ public:
             { "reload", rbac::RBAC_PERM_COMMAND_WP_RELOAD, false, &HandleWpReloadCommand, "" },
             { "show",   rbac::RBAC_PERM_COMMAND_WP_SHOW,   false, &HandleWpShowCommand,   "" },
             { "move",   rbac::RBAC_PERM_COMMAND_WP_ADD,    false, &HandleWpMoveCommand,   "" },
-            { "delay",  rbac::RBAC_PERM_COMMAND_WP_ADD,    false, &HandleWpDelayCommand,   "" },
+            { "delay",  rbac::RBAC_PERM_COMMAND_WP_ADD,    false, &HandleWpDelayCommand,  "" },
             { "lookup", rbac::RBAC_PERM_COMMAND_WP_ADD,    false, &HandleWpLookupCommand, "" },
         };
         static std::vector<ChatCommand> commandTable =
@@ -140,6 +140,7 @@ public:
         stmt->setFloat(2, player->GetPositionX());
         stmt->setFloat(3, player->GetPositionY());
         stmt->setFloat(4, player->GetPositionZ());
+        stmt->setFloat(5, player->GetOrientation());
 
         WorldDatabase.Execute(stmt);
 
@@ -640,21 +641,27 @@ public:
         {
             handler->PSendSysMessage("|cff00ff00DEBUG: wp modify del, PathID: |r|cff00ffff%u|r", pathid);
 
-            target->DeleteFromDB();
-            target->AddObjectToRemoveList();
+            if (Creature::DeleteFromDB(target->GetSpawnId()))
+            {
+                stmt = WorldDatabase.GetPreparedStatement(WORLD_DEL_WAYPOINT_DATA);
+                stmt->setUInt32(0, pathid);
+                stmt->setUInt32(1, point);
+                WorldDatabase.Execute(stmt);
 
-            stmt = WorldDatabase.GetPreparedStatement(WORLD_DEL_WAYPOINT_DATA);
-            stmt->setUInt32(0, pathid);
-            stmt->setUInt32(1, point);
-            WorldDatabase.Execute(stmt);
+                stmt = WorldDatabase.GetPreparedStatement(WORLD_UPD_WAYPOINT_DATA_POINT);
+                stmt->setUInt32(0, pathid);
+                stmt->setUInt32(1, point);
+                WorldDatabase.Execute(stmt);
 
-            stmt = WorldDatabase.GetPreparedStatement(WORLD_UPD_WAYPOINT_DATA_POINT);
-            stmt->setUInt32(0, pathid);
-            stmt->setUInt32(1, point);
-            WorldDatabase.Execute(stmt);
-
-            handler->PSendSysMessage(LANG_WAYPOINT_REMOVED);
-            return true;
+                handler->SendSysMessage(LANG_WAYPOINT_REMOVED);
+                return true;
+            }
+            else
+            {
+                handler->SendSysMessage(LANG_WAYPOINT_NOTREMOVED);
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
         }                                                       // del
 
         if (show == "move")
@@ -666,8 +673,12 @@ public:
             // What to do:
             // Move the visual spawnpoint
             // Respawn the owner of the waypoints
-            target->DeleteFromDB();
-            target->AddObjectToRemoveList();
+            if (!Creature::DeleteFromDB(target->GetSpawnId()))
+            {
+                handler->PSendSysMessage(LANG_WAYPOINT_VP_NOTCREATED, VISUAL_WAYPOINT);
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
 
             // re-create
             Creature* wpCreature = Creature::CreateCreature(VISUAL_WAYPOINT, map, chr->GetPosition());
@@ -698,8 +709,9 @@ public:
             stmt->setFloat(0, chr->GetPositionX());
             stmt->setFloat(1, chr->GetPositionY());
             stmt->setFloat(2, chr->GetPositionZ());
-            stmt->setUInt32(3, pathid);
-            stmt->setUInt32(4, point);
+            stmt->setFloat(3, chr->GetOrientation());
+            stmt->setUInt32(4, pathid);
+            stmt->setUInt32(5, point);
             WorldDatabase.Execute(stmt);
 
             handler->PSendSysMessage(LANG_WAYPOINT_CHANGED);
@@ -845,22 +857,10 @@ public:
                 {
                     Field* fields = result2->Fetch();
                     ObjectGuid::LowType wpguid = fields[0].GetUInt64();
-                    Creature* creature = handler->GetCreatureFromPlayerMapByDbGuid(wpguid);
-
-                    if (!creature)
+                    if (!Creature::DeleteFromDB(wpguid))
                     {
                         handler->PSendSysMessage(LANG_WAYPOINT_NOTREMOVED, std::to_string(wpguid).c_str());
                         hasError = true;
-
-                        stmt = WorldDatabase.GetPreparedStatement(WORLD_DEL_CREATURE);
-                        stmt->setUInt64(0, wpguid);
-                        WorldDatabase.Execute(stmt);
-                    }
-                    else
-                    {
-                        creature->CombatStop();
-                        creature->DeleteFromDB();
-                        creature->AddObjectToRemoveList();
                     }
 
                 }
@@ -881,14 +881,14 @@ public:
                 float x         = fields[1].GetFloat();
                 float y         = fields[2].GetFloat();
                 float z         = fields[3].GetFloat();
+                float o         = fields[4].GetFloat();
 
                 uint32 id = VISUAL_WAYPOINT;
 
                 Player* chr = handler->GetSession()->GetPlayer();
                 Map* map = chr->GetMap();
-                Position pos = { x, y, z, chr->GetOrientation() };
 
-                Creature* wpCreature = Creature::CreateCreature(id, map, pos);
+                Creature* wpCreature = Creature::CreateCreature(id, map, { x, y, z, o });
                 if (!wpCreature)
                 {
                     handler->PSendSysMessage(LANG_WAYPOINT_VP_NOTCREATED, id);
@@ -951,13 +951,14 @@ public:
             float x         = fields[0].GetFloat();
             float y         = fields[1].GetFloat();
             float z         = fields[2].GetFloat();
+            float o         = fields[3].GetFloat();
+
             uint32 id = VISUAL_WAYPOINT;
 
             Player* chr = handler->GetSession()->GetPlayer();
             Map* map = chr->GetMap();
-            Position pos = { x, y, z, chr->GetOrientation() };
 
-            Creature* creature = Creature::CreateCreature(id, map, pos);
+            Creature* creature = Creature::CreateCreature(id, map, { x, y, z, o });
             if (!creature)
             {
                 handler->PSendSysMessage(LANG_WAYPOINT_VP_NOTCREATED, id);
@@ -1064,21 +1065,10 @@ public:
                 Field* fields = result->Fetch();
                 ObjectGuid::LowType lowguid = fields[0].GetUInt64();
 
-                Creature* creature = handler->GetCreatureFromPlayerMapByDbGuid(lowguid);
-                if (!creature)
+                if (!Creature::DeleteFromDB(lowguid))
                 {
                     handler->PSendSysMessage(LANG_WAYPOINT_NOTREMOVED, std::to_string(lowguid).c_str());
                     hasError = true;
-
-                    stmt = WorldDatabase.GetPreparedStatement(WORLD_DEL_CREATURE);
-                    stmt->setUInt64(0, lowguid);
-                    WorldDatabase.Execute(stmt);
-                }
-                else
-                {
-                    creature->CombatStop();
-                    creature->DeleteFromDB();
-                    creature->AddObjectToRemoveList();
                 }
             }
             while (result->NextRow());
@@ -1145,7 +1135,7 @@ public:
         }
         else
         {
-            // dans le cas ou le joueur souhaite d�finir un autre type de marche 
+            // dans le cas ou le joueur souhaite dйfinir un autre type de marche 
             WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_UPD_WP_MOVETYPE);
             stmt->setUInt8(0, moveType); // move_type
             stmt->setUInt64(1, wpId); // id
@@ -1260,7 +1250,7 @@ public:
             float x = field[2].GetFloat();
             float y = field[3].GetFloat();
             float z = field[4].GetFloat();
-            snprintf(msg, 255, "Chemin %u : x = %f y = %f z = %f", nbPath, x, y, z);
+            snprintf(msg, 255, "Path %u : x = %f y = %f z = %f", nbPath, x, y, z);
             handler->PSendSysMessage(LANG_RANDOM_MESSAGE, msg);
 
         } while (result->NextRow());

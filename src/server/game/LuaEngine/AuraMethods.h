@@ -50,7 +50,7 @@ namespace LuaAura
      */
     int GetCasterLevel(lua_State* L, Aura* aura)
     {
-        Eluna::Push(L, aura->GetCaster()->getLevel());
+        Eluna::Push(L, aura->GetCaster()->GetLevel());
         return 1;
     }
 

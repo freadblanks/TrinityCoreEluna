@@ -29,8 +29,7 @@ enum Spells
     SPELL_DECREPIT_FEVER    = 29998, // 25-man: 55011
     SPELL_SPELL_DISRUPTION  = 29310,
     SPELL_PLAGUE_CLOUD      = 29350,
-    SPELL_TELEPORT_SELF     = 30211,
-    SPELL_ERUPTION          = 29371
+    SPELL_TELEPORT_SELF     = 30211
 };
 
 enum Yells
@@ -113,16 +112,16 @@ public:
             Talk(SAY_DEATH);
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
             Talk(SAY_AGGRO);
 
             _safeSection = 0;
             events.ScheduleEvent(EVENT_DISRUPT, randtime(Seconds(15), Seconds(20)), 0, PHASE_FIGHT);
             events.ScheduleEvent(EVENT_FEVER, randtime(Seconds(10), Seconds(20)), 0, PHASE_FIGHT);
             events.ScheduleEvent(EVENT_DANCE, Minutes(1) + Seconds(30), 0, PHASE_FIGHT);
-            events.ScheduleEvent(EVENT_ERUPT, Seconds(15));
+            events.ScheduleEvent(EVENT_ERUPT, 15s);
 
             _safetyDance = true;
 
@@ -193,7 +192,9 @@ public:
                                     if (GameObject* tile = ObjectAccessor::GetGameObject(*me, tileGUID))
                                     {
                                         tile->SendCustomAnim(0);
-                                        tile->CastSpell(nullptr, SPELL_ERUPTION);
+                                        CastSpellExtraArgs args;
+                                        args.OriginalCaster = me->GetGUID();
+                                        tile->CastSpell(tile, tile->GetGOInfo()->trap.spell, args);
                                     }
 
                         if (_safeSection == 0)

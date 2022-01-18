@@ -35,7 +35,7 @@ BattlepayManager::BattlepayManager(WorldSession* session)
     _session = session;
     _purchaseIDCount = 0;
     _distributionIDCount = 0;
-    _walletName = "Aviana Points";
+    _walletName = "YOUR SERVER POINTS";
 }
 
 BattlepayManager::~BattlepayManager() = default;
@@ -194,7 +194,7 @@ auto BattlepayManager::ProductFilter(Product product) -> bool
         }
     }
 
-    if (product.ClassMask && (player->getClassMask() & product.ClassMask) == 0)
+    if (product.ClassMask && (player->GetClassMask() & product.ClassMask) == 0)
         return false;
 
     for (auto& itr : product.Items)

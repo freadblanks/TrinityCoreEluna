@@ -272,6 +272,13 @@ enum ProcAttributes
     PROC_ATTR_REDUCE_PROC_60            = 0x0000080  // aura should have a reduced chance to proc if level of proc Actor > 60
 };
 
+#define PROC_ATTR_ALL_ALLOWED (PROC_ATTR_REQ_EXP_OR_HONOR       | \
+                               PROC_ATTR_TRIGGERED_CAN_PROC     | \
+                               PROC_ATTR_REQ_POWER_COST         | \
+                               PROC_ATTR_REQ_SPELLMOD           | \
+                               PROC_ATTR_USE_STACKS_FOR_CHARGES | \
+                               PROC_ATTR_REDUCE_PROC_60)
+
 struct SpellProcEntry
 {
     uint32 SchoolMask;       // if nonzero - bitmask for matching proc condition based on spell's school
@@ -510,12 +517,10 @@ typedef std::multimap<uint32, SpellArea> SpellAreaMap;
 typedef std::multimap<uint32, SpellArea const*> SpellAreaForQuestMap;
 typedef std::multimap<uint32, SpellArea const*> SpellAreaForAuraMap;
 typedef std::multimap<uint32, SpellArea const*> SpellAreaForAreaMap;
-typedef std::multimap<std::pair<uint32, uint32>, SpellArea const*> SpellAreaForQuestAreaMap;
 typedef std::pair<SpellAreaMap::const_iterator, SpellAreaMap::const_iterator> SpellAreaMapBounds;
 typedef std::pair<SpellAreaForQuestMap::const_iterator, SpellAreaForQuestMap::const_iterator> SpellAreaForQuestMapBounds;
-typedef std::pair<SpellAreaForAuraMap::const_iterator, SpellAreaForAuraMap::const_iterator>  SpellAreaForAuraMapBounds;
-typedef std::pair<SpellAreaForAreaMap::const_iterator, SpellAreaForAreaMap::const_iterator>  SpellAreaForAreaMapBounds;
-typedef std::pair<SpellAreaForQuestAreaMap::const_iterator, SpellAreaForQuestAreaMap::const_iterator> SpellAreaForQuestAreaMapBounds;
+typedef std::pair<SpellAreaForAuraMap::const_iterator, SpellAreaForAuraMap::const_iterator> SpellAreaForAuraMapBounds;
+typedef std::pair<SpellAreaForAreaMap::const_iterator, SpellAreaForAreaMap::const_iterator> SpellAreaForAreaMapBounds;
 
 // Spell rank chain  (accessed using SpellMgr functions)
 struct SpellChainNode
@@ -579,8 +584,6 @@ struct PetDefaultSpellsEntry
 
 // < 0 for petspelldata id, > 0 for creature_id
 typedef std::map<int32, PetDefaultSpellsEntry> PetDefaultSpellsMap;
-
-typedef std::vector<bool> EnchantCustomAttribute;
 
 typedef std::unordered_map<int32, std::vector<int32>> SpellLinkedMap;
 
@@ -704,7 +707,6 @@ class TC_GAME_API SpellMgr
         SpellAreaForQuestMapBounds GetSpellAreaForQuestEndMapBounds(uint32 quest_id) const;
         SpellAreaForAuraMapBounds GetSpellAreaForAuraMapBounds(uint32 spell_id) const;
         SpellAreaForAreaMapBounds GetSpellAreaForAreaMapBounds(uint32 area_id) const;
-        SpellAreaForQuestAreaMapBounds GetSpellAreaForQuestAreaMapBounds(uint32 area_id, uint32 quest_id) const;
 
         // SpellInfo object management
         SpellInfo const* GetSpellInfo(uint32 spellId, Difficulty difficulty) const;
@@ -742,7 +744,6 @@ class TC_GAME_API SpellMgr
         void LoadSpellThreats();
         void LoadSkillLineAbilityMap();
         void LoadSpellPetAuras();
-        void LoadEnchantCustomAttr();
         void LoadSpellEnchantProcData();
         void LoadSpellLinked();
         void LoadPetLevelupSpellMap();
@@ -775,13 +776,11 @@ class TC_GAME_API SpellMgr
         SpellPetAuraMap            mSpellPetAuraMap;
         SpellLinkedMap             mSpellLinkedMap;
         SpellEnchantProcEventMap   mSpellEnchantProcEventMap;
-        EnchantCustomAttribute     mEnchantCustomAttr;
         SpellAreaMap               mSpellAreaMap;
         SpellAreaForQuestMap       mSpellAreaForQuestMap;
         SpellAreaForQuestMap       mSpellAreaForQuestEndMap;
         SpellAreaForAuraMap        mSpellAreaForAuraMap;
         SpellAreaForAreaMap        mSpellAreaForAreaMap;
-        SpellAreaForQuestAreaMap   mSpellAreaForQuestAreaMap;
         SkillLineAbilityMap        mSkillLineAbilityMap;
         PetLevelupSpellMap         mPetLevelupSpellMap;
         PetDefaultSpellsMap        mPetDefaultSpellsMap;           // only spells not listed in related mPetLevelupSpellMap entry

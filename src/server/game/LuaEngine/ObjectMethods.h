@@ -93,7 +93,7 @@ namespace LuaObject
      */
     int GetGUIDLow(lua_State* L, Object* obj)
     {
-        Eluna::Push(L, obj->GetGUID().GetCounter());
+        Eluna::Push(L, (uint32)obj->GetGUID().GetCounter());
         return 1;
     }
 

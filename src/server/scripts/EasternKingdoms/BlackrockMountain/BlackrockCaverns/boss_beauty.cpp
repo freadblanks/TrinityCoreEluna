@@ -57,9 +57,9 @@ class boss_beauty : public CreatureScript
                 _Reset();
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void JustEngagedWith(Unit* who) override
             {
-                _JustEngagedWith();
+                BossAI::JustEngagedWith(who);
                 events.ScheduleEvent(SPELL_MAGMA_SPIT, urand(7000, 10000));
                 events.ScheduleEvent(EVENT_BERSERKER_CHARGE, urand(16000, 19000));
                 events.ScheduleEvent(EVENT_FLAMEBREAK, urand(18000, 22000));
@@ -87,11 +87,11 @@ class boss_beauty : public CreatureScript
                     switch (eventId)
                     {
                         case SPELL_MAGMA_SPIT:
-                            DoCast(SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true), SPELL_MAGMA_SPIT, true);
+                            DoCast(SelectTarget(SelectTargetMethod::Random, 0, 100, true), SPELL_MAGMA_SPIT, true);
                             events.ScheduleEvent(SPELL_MAGMA_SPIT, urand(7000, 10000));
                             break;
                         case EVENT_BERSERKER_CHARGE:
-                            DoCast(SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true), SPELL_BERSERKER_CHARGE, true);
+                            DoCast(SelectTarget(SelectTargetMethod::Random, 0, 100, true), SPELL_BERSERKER_CHARGE, true);
                             events.ScheduleEvent(EVENT_BERSERKER_CHARGE, urand(16000, 19000));
                             break;
                         case EVENT_FLAMEBREAK:

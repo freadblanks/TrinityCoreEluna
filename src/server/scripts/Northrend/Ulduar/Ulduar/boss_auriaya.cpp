@@ -150,23 +150,23 @@ struct boss_auriaya : public BossAI
         me->GetCreatureListWithEntryInGrid(catList, NPC_SANCTUM_SENTRY, 500.0f);
         for (std::list<Creature*>::const_iterator itr = catList.begin(); itr != catList.end(); ++itr)
         {
-            if (isResetting)
-                (*itr)->Respawn();
-            else
+            if (!isResetting)
                 (*itr)->DespawnOrUnsummon();
+            else if (!(*itr)->IsAlive())
+                (*itr)->Respawn(true);
         }
     }
 
-    void JustEngagedWith(Unit* /*who*/) override
+    void JustEngagedWith(Unit* who) override
     {
-        _JustEngagedWith();
+        BossAI::JustEngagedWith(who);
         Talk(SAY_AGGRO);
         instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me);
-        events.ScheduleEvent(EVENT_SONIC_SCREECH, Seconds(48));
-        events.ScheduleEvent(EVENT_TERRIFYING_SCREECH, Seconds(38));
-        events.ScheduleEvent(EVENT_SUMMON_DEFENDER, Seconds(60));
-        events.ScheduleEvent(EVENT_SWARNING_GUARDIAN, Seconds(51));
-        events.ScheduleEvent(EVENT_BERSERK, Minutes(10));
+        events.ScheduleEvent(EVENT_SONIC_SCREECH, 48s);
+        events.ScheduleEvent(EVENT_TERRIFYING_SCREECH, 38s);
+        events.ScheduleEvent(EVENT_SUMMON_DEFENDER, 1min);
+        events.ScheduleEvent(EVENT_SWARNING_GUARDIAN, 51s);
+        events.ScheduleEvent(EVENT_BERSERK, 10min);
     }
 
     void KilledUnit(Unit* who) override
@@ -211,11 +211,10 @@ struct boss_auriaya : public BossAI
         HandleCats(false);
     }
 
-    void EnterEvadeMode(EvadeReason /*why*/) override
+    void EnterEvadeMode(EvadeReason why) override
     {
         instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
-        summons.DespawnAll();
-        _DespawnAtEvade(Seconds(5));
+        BossAI::EnterEvadeMode(why);
     }
 
     void UpdateAI(uint32 diff) override
@@ -248,13 +247,13 @@ struct boss_auriaya : public BossAI
                 case EVENT_SUMMON_DEFENDER:
                     Talk(EMOTE_DEFENDER);
                     DoCastSelf(SPELL_DEFENDER_TRIGGER);
-                    events.ScheduleEvent(EVENT_ACTIVATE_DEFENDER, Seconds(2));
+                    events.ScheduleEvent(EVENT_ACTIVATE_DEFENDER, 2s);
                     break;
                 case EVENT_ACTIVATE_DEFENDER:
                     DoCastSelf(SPELL_ACTIVATE_DEFENDER);
                     break;
                 case EVENT_SWARNING_GUARDIAN:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 1, 0.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 1, 0.0f, true))
                         DoCast(target, SPELL_SUMMON_SWARMING_GUARDIAN);
                     events.Repeat(Seconds(25), Seconds(45));
                     break;
@@ -284,13 +283,14 @@ struct npc_sanctum_sentry : public ScriptedAI
 
     void Reset() override
     {
+        _events.Reset();
         DoCastSelf(SPELL_STRENGHT_OF_THE_PACK, true);
         me->SetWalk(true);
     }
 
     void JustEngagedWith(Unit* /*who*/) override
     {
-        _events.ScheduleEvent(EVENT_RIP, Seconds(6));
+        _events.ScheduleEvent(EVENT_RIP, 6s);
         _events.ScheduleEvent(EVENT_SAVAGE_POUNCE, Milliseconds(1));
         me->SetWalk(false);
     }
@@ -320,7 +320,7 @@ struct npc_sanctum_sentry : public ScriptedAI
                     _events.Repeat(Seconds(10), Seconds(12));
                     break;
                 case EVENT_SAVAGE_POUNCE:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, CatsTargetSelector(me, 10.0f, 15.0f)))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, CatsTargetSelector(me, 10.0f, 15.0f)))
                     {
                         DoCast(target, SPELL_SAVAGE_POUNCE);
                         _events.Repeat(Seconds(10));
@@ -356,7 +356,7 @@ struct npc_feral_defender : public ScriptedAI
         me->SetAuraStack(SPELL_FERAL_ESSENCE, me, 8);
         DoCastSelf(SPELL_RANDOM_AGRO_PERIODIC, true);
         _events.SetPhase(PHASE_NONE);
-        _events.ScheduleEvent(EVENT_START_COMBAT, Seconds(1));
+        _events.ScheduleEvent(EVENT_START_COMBAT, 1s);
 
         if (Creature* auriaya = _instance->GetCreature(BOSS_AURIAYA))
             auriaya->AI()->JustSummoned(me);
@@ -379,12 +379,12 @@ struct npc_feral_defender : public ScriptedAI
                 case EVENT_START_COMBAT:
                     _events.SetPhase(PHASE_COMBAT);
                     me->SetReactState(REACT_AGGRESSIVE);
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                         AttackStart(target);
-                    _events.ScheduleEvent(EVENT_RUSH, Seconds(1));
+                    _events.ScheduleEvent(EVENT_RUSH, 1s);
                     break;
                 case EVENT_RUSH:
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 1, CatsTargetSelector(me, 10.0f, 11.0f)))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 1, CatsTargetSelector(me, 10.0f, 11.0f)))
                     {
                         DoCast(target, SPELL_FERAL_RUSH, true);
                         _events.Repeat(Seconds(5));
@@ -409,9 +409,9 @@ struct npc_feral_defender : public ScriptedAI
                     me->SetReactState(REACT_AGGRESSIVE);
                     me->SetDisableGravity(false);
                     me->SetHover(false);
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                         AttackStart(target);
-                    _events.ScheduleEvent(EVENT_RUSH, Seconds(1));
+                    _events.ScheduleEvent(EVENT_RUSH, 1s);
                     break;
                 default:
                     break;
@@ -439,7 +439,7 @@ struct npc_feral_defender : public ScriptedAI
                 DoCastSelf(SPELL_SUMMON_ESSENCE, true);
                 DoCastSelf(SPELL_CLEAR_ALL_DEBUFFS, true);
                 ResetThreatList();
-                _events.ScheduleEvent(EVENT_RESPAWN_DEFENDER, Seconds(30));
+                _events.ScheduleEvent(EVENT_RESPAWN_DEFENDER, 30s);
                 _events.CancelEvent(EVENT_RUSH);
             }
         }
@@ -525,11 +525,17 @@ class spell_auriaya_sentinel_blast : public SpellScript
 {
     PrepareSpellScript(spell_auriaya_sentinel_blast);
 
-    void FilterTargets(std::list<WorldObject*>& unitList)
+    void FilterTargets(std::list<WorldObject*>& targets)
     {
-        unitList.remove_if([](WorldObject* target)
+        targets.remove_if([](WorldObject* object) -> bool
         {
-            return target->GetTypeId() != TYPEID_PLAYER && (target->GetTypeId() != TYPEID_UNIT || !target->ToUnit()->IsPet());
+            if (object->GetTypeId() == TYPEID_PLAYER)
+                return false;
+
+            if (Creature* creature = object->ToCreature())
+                return !creature->IsPet();
+
+            return true;
         });
     }
 
@@ -553,10 +559,10 @@ class spell_auriaya_agro_creator : public SpellScript
     void HandleDummyEffect(SpellEffIndex /*effIndex*/)
     {
         Creature* caster = GetCaster()->ToCreature();
-        if (!caster || !caster->IsAIEnabled || caster->HasReactState(REACT_PASSIVE))
+        if (!caster || !caster->IsAIEnabled() || caster->HasReactState(REACT_PASSIVE))
             return;
 
-        if (Unit* target = caster->AI()->SelectTarget(SELECT_TARGET_RANDOM, 0, CatsTargetSelector(caster, 5.0f, 10.0f)))
+        if (Unit* target = caster->AI()->SelectTarget(SelectTargetMethod::Random, 0, CatsTargetSelector(caster, 5.0f, 10.0f)))
         {
             caster->CastSpell(target, SPELL_POUNCE, true);
             caster->GetThreatManager().AddThreat(target, 50000000.0f, nullptr, true);
@@ -583,15 +589,15 @@ class spell_auriaya_random_agro_periodic : public AuraScript
     void HandleEffectPeriodic(AuraEffect const* /*aurEff*/)
     {
         Creature* owner = GetUnitOwner()->ToCreature();
-        if (!owner || !owner->IsAIEnabled || owner->HasReactState(REACT_PASSIVE))
+        if (!owner || !owner->IsAIEnabled() || owner->HasReactState(REACT_PASSIVE))
             return;
 
         bool farTarget = true;
-        Unit* target = owner->AI()->SelectTarget(SELECT_TARGET_RANDOM, 0, CatsTargetSelector(owner, 15.0f, 25.0f));
+        Unit* target = owner->AI()->SelectTarget(SelectTargetMethod::Random, 0, CatsTargetSelector(owner, 15.0f, 25.0f));
         if (!target)
         {
             farTarget = false;
-            target = owner->AI()->SelectTarget(SELECT_TARGET_RANDOM, 0);
+            target = owner->AI()->SelectTarget(SelectTargetMethod::Random, 0);
         }
 
         if (!target)

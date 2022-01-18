@@ -80,7 +80,7 @@ public:
             ground = me->GetPositionZ();
             me->UpdateGroundPositionZ(me->GetPositionX(), me->GetPositionY(), ground);
             SummonInfernal();
-            events.ScheduleEvent(EVENT_CAST_SUMMON_INFERNAL, urand(1000, 3000));
+            events.ScheduleEvent(EVENT_CAST_SUMMON_INFERNAL, 1s, 3s);
         }
 
         void SetData(uint32 id, uint32 data) override
@@ -110,7 +110,7 @@ public:
                     if (Unit* infernal = ObjectAccessor::GetUnit(*me, infernalGUID))
                         if (infernal->GetDisplayId() == MODEL_INVISIBLE)
                             me->CastSpell(infernal, SPELL_SUMMON_INFERNAL, true);
-                    events.ScheduleEvent(EVENT_CAST_SUMMON_INFERNAL, 12000);
+                    events.ScheduleEvent(EVENT_CAST_SUMMON_INFERNAL, 12s);
                     break;
                 }
                 default:
@@ -150,7 +150,7 @@ public:
             me->GetMotionMaster()->MoveRandom(5.0f);
         }
 
-        void IsSummonedBy(Unit* summoner) override
+        void IsSummonedBy(WorldObject* summoner) override
         {
             if (summoner->ToCreature())
                 casterGUID = summoner->ToCreature()->GetGUID();;
@@ -162,9 +162,9 @@ public:
                 caster->AI()->SetData(TYPE_INFERNAL, DATA_DIED);
         }
 
-        void SpellHit(Unit* /*caster*/, SpellInfo const* spell) override
+        void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo) override
         {
-            if (spell->Id == SPELL_SUMMON_INFERNAL)
+            if (spellInfo->Id == SPELL_SUMMON_INFERNAL)
             {
                 me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_PACIFIED | UNIT_FLAG_NOT_SELECTABLE));
                 me->SetImmuneToPC(false);
@@ -250,14 +250,14 @@ public:
             Initialize();
         }
 
-        void SpellHit(Unit* pCaster, SpellInfo const* spell) override
+        void SpellHit(WorldObject* caster, SpellInfo const* spellInfo) override
         {
             if (bCanEat || bIsEating)
                 return;
 
-            if (pCaster->GetTypeId() == TYPEID_PLAYER && spell->Id == SPELL_PLACE_CARCASS && !me->HasAura(SPELL_JUST_EATEN))
+            if (caster->GetTypeId() == TYPEID_PLAYER && spellInfo->Id == SPELL_PLACE_CARCASS && !me->HasAura(SPELL_JUST_EATEN))
             {
-                uiPlayerGUID = pCaster->GetGUID();
+                uiPlayerGUID = caster->GetGUID();
                 bCanEat = true;
             }
         }
@@ -381,18 +381,19 @@ public:
             me->SetDisableGravity(false);
         }
 
-        void SpellHit(Unit* caster, SpellInfo const* spell) override
+        void SpellHit(WorldObject* caster, SpellInfo const* spellInfo) override
         {
-            if (!caster)
+            Player* playerCaster = caster->ToPlayer();
+            if (!playerCaster)
                 return;
 
-            if (caster->GetTypeId() == TYPEID_PLAYER && spell->Id == SPELL_HIT_FORCE_OF_NELTHARAKU && !Tapped)
+            if (spellInfo->Id == SPELL_HIT_FORCE_OF_NELTHARAKU && !Tapped)
             {
                 Tapped = true;
-                PlayerGUID = caster->GetGUID();
+                PlayerGUID = playerCaster->GetGUID();
 
                 me->SetFaction(FACTION_FLAYER_HUNTER);
-                DoCast(caster, SPELL_FORCE_OF_NELTHARAKU, true);
+                DoCast(playerCaster, SPELL_FORCE_OF_NELTHARAKU, true);
 
                 Unit* Dragonmaw = me->FindNearestCreature(NPC_DRAGONMAW_SUBJUGATOR, 50);
                 if (Dragonmaw)
@@ -401,7 +402,7 @@ public:
                     AttackStart(Dragonmaw);
                 }
 
-                me->GetThreatManager().ClearThreat(caster);
+                me->GetThreatManager().ClearThreat(playerCaster);
             }
         }
 
@@ -508,12 +509,12 @@ public:
             Initialize();
         }
 
-        void SpellHit(Unit* caster, SpellInfo const* spell) override
+        void SpellHit(WorldObject* caster, SpellInfo const* spellInfo) override
         {
             if (!caster)
                 return;
 
-            if (caster->GetTypeId() == TYPEID_PLAYER && spell->Id == 40468 && !Tapped)
+            if (caster->GetTypeId() == TYPEID_PLAYER && spellInfo->Id == 40468 && !Tapped)
             {
                 PlayerGUID = caster->GetGUID();
 
@@ -1231,7 +1232,7 @@ public:
             {
                 if (SpellTimer1 <= diff)
                 {
-                    if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                     {
                         if (target->GetTypeId() == TYPEID_PLAYER)
                         {
@@ -1332,8 +1333,11 @@ void npc_lord_illidan_stormrage::npc_lord_illidan_stormrageAI::SummonNextWave()
         }
     }
     ++WaveCount;
-    WaveTimer = WavesInfo[WaveCount].SpawnTimer;
-    AnnounceTimer = WavesInfo[WaveCount].YellTimer;
+    if (WaveCount < 4)
+    {
+        WaveTimer = WavesInfo[WaveCount].SpawnTimer;
+        AnnounceTimer = WavesInfo[WaveCount].YellTimer;
+    }
 }
 
 /*#####
@@ -1459,20 +1463,20 @@ public:
             switch (me->GetEntry())
             {
                 case NPC_ENRAGED_WATER_SPIRIT:
-                    _events.ScheduleEvent(EVENT_ENRAGED_WATER_SPIRIT, Seconds(0), Seconds(1));
+                    _events.ScheduleEvent(EVENT_ENRAGED_WATER_SPIRIT, 0s, Seconds(1));
                     break;
                 case NPC_ENRAGED_FIRE_SPIRIT:
                     if (!me->GetAura(SPELL_FEL_FIRE_AURA))
                         DoCastSelf(SPELL_FEL_FIRE_AURA);
-                    _events.ScheduleEvent(EVENT_ENRAGED_FIRE_SPIRIT, Seconds(2), Seconds(10));
+                    _events.ScheduleEvent(EVENT_ENRAGED_FIRE_SPIRIT, 2s, 10s);
                     break;
                 case NPC_ENRAGED_EARTH_SPIRIT:
                     if (!me->GetAura(SPELL_FEL_FIRE_AURA))
                         DoCastSelf(SPELL_FEL_FIRE_AURA);
-                    _events.ScheduleEvent(EVENT_ENRAGED_EARTH_SPIRIT, Seconds(3), Seconds(4));
+                    _events.ScheduleEvent(EVENT_ENRAGED_EARTH_SPIRIT, 3s, 4s);
                     break;
                 case NPC_ENRAGED_AIR_SPIRIT:
-                    _events.ScheduleEvent(EVENT_ENRAGED_AIR_SPIRIT_CHAIN_LIGHTNING, Seconds(10));
+                    _events.ScheduleEvent(EVENT_ENRAGED_AIR_SPIRIT_CHAIN_LIGHTNING, 10s);
                     break;
                 default:
                     break;
@@ -1507,12 +1511,12 @@ public:
                     case EVENT_ENRAGED_AIR_SPIRIT_CHAIN_LIGHTNING:
                         if (UpdateVictim())
                             DoCastVictim(SPELL_CHAIN_LIGHTNING);
-                        _events.ScheduleEvent(EVENT_ENRAGED_AIR_SPIRIT_HURRICANE, Seconds(3), Seconds(5));
+                        _events.ScheduleEvent(EVENT_ENRAGED_AIR_SPIRIT_HURRICANE, 3s, 5s);
                         break;
                     case EVENT_ENRAGED_AIR_SPIRIT_HURRICANE:
                         if (UpdateVictim())
                             DoCastVictim(SPELL_HURRICANE);
-                        _events.ScheduleEvent(EVENT_ENRAGED_AIR_SPIRIT_CHAIN_LIGHTNING, Seconds(15), Seconds(20));
+                        _events.ScheduleEvent(EVENT_ENRAGED_AIR_SPIRIT_CHAIN_LIGHTNING, 15s, 20s);
                         break;
                     default:
                         break;
@@ -1661,9 +1665,9 @@ public:
             }
         }
 
-        void SpellHit(Unit* /*caster*/, SpellInfo const* spell) override
+        void SpellHit(WorldObject* /*caster*/, SpellInfo const* spellInfo) override
         {
-            if (spell->Id == SPELL_WHISTLE)
+            if (spellInfo->Id == SPELL_WHISTLE)
             {
                 if (Creature* boar = me->FindNearestCreature(NPC_BOAR_ENTRY, 30.0f))
                 {

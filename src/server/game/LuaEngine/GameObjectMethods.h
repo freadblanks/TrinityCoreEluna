@@ -152,7 +152,7 @@ namespace LuaGameObject
      */
     int GetDBTableGUIDLow(lua_State* L, GameObject* go)
     {
-        Eluna::Push(L, go->GetSpawnId());
+        Eluna::Push(L, (uint32)go->GetSpawnId());
         return 1;
     }
 
@@ -179,7 +179,7 @@ namespace LuaGameObject
         else if (state == 1)
             go->SetGoState(GO_STATE_READY);
         else if (state == 2)
-            go->SetGoState(GO_STATE_ACTIVE_ALTERNATIVE);
+            go->SetGoState(GO_STATE_DESTROYED);
 
         return 0;
     }
@@ -249,7 +249,7 @@ namespace LuaGameObject
         owner->RemoveGameObject(go, false);
 
         if (deldb)
-            go->DeleteFromDB();
+            GameObject::DeleteFromDB(go->GetSpawnId());
 
         go->SetRespawnTime(0);
         go->Delete();
@@ -303,6 +303,45 @@ namespace LuaGameObject
         int32 respawn = Eluna::CHECKVAL<int32>(L, 2);
 
         go->SetRespawnTime(respawn);
+        return 0;
+    }
+
+    int ChangePosition(lua_State* L, GameObject* go)
+    {
+        float x = Eluna::CHECKVAL<float>(L, 2);
+        float y = Eluna::CHECKVAL<float>(L, 3);
+        float z = Eluna::CHECKVAL<float>(L, 4);
+        float o = Eluna::CHECKVAL<float>(L, 5, go->GetOrientation());
+
+        Map* map = go->GetMap();
+        ObjectGuid::LowType guid = go->GetSpawnId();
+
+        go->DestroyForNearbyPlayers();
+        go->RelocateStationaryPosition(x, y, z, o);
+        go->GetMap()->GameObjectRelocation(go, x, y, z, o);
+        go->SaveToDB();
+        go->Delete();
+        go = GameObject::CreateGameObjectFromDB(guid, map);
+        return 0;
+    }
+
+    int Turn(lua_State* L, GameObject* go)
+    {
+        float oz = Eluna::CHECKVAL<float>(L, 2);
+        float oy = Eluna::CHECKVAL<float>(L, 3, 0.0f);
+        float ox = Eluna::CHECKVAL<float>(L, 4, 0.0f);
+
+        Map* map = go->GetMap();
+        ObjectGuid::LowType guid = go->GetSpawnId();
+
+        go->Relocate(go->GetPositionX(), go->GetPositionY(), go->GetPositionZ(), oz);
+        go->RelocateStationaryPosition(go->GetPositionX(), go->GetPositionY(), go->GetPositionZ(), go->GetOrientation());
+        go->SetLocalRotationAngles(oz, oy, ox);
+        go->DestroyForNearbyPlayers();
+        go->UpdateObjectVisibility();
+        go->SaveToDB();
+        go->Delete();
+        go = GameObject::CreateGameObjectFromDB(guid, map);
         return 0;
     }
 };

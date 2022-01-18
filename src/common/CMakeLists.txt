@@ -23,9 +23,9 @@ list(APPEND PRIVATE_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/Debugging/Errors.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Debugging/Errors.h)
 
-if (USE_COREPCH)
+if(USE_COREPCH)
   set(PRIVATE_PCH_HEADER PrecompiledHeaders/commonPCH.h)
-endif (USE_COREPCH)
+endif(USE_COREPCH)
 
 GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -63,6 +63,7 @@ target_link_libraries(common
     process
     trinity-core-interface
   PUBLIC
+    argon2
     boost
     fmt
     g3dlib
@@ -87,12 +88,12 @@ set_target_properties(common
       FOLDER
         "server")
 
-if( BUILD_SHARED_LIBS )
-  if( UNIX )
+if(BUILD_SHARED_LIBS)
+  if(UNIX)
     install(TARGETS common
       LIBRARY
         DESTINATION lib)
-  elseif( WIN32 )
+  elseif(WIN32)
     install(TARGETS common
       RUNTIME
         DESTINATION "${CMAKE_INSTALL_PREFIX}")
@@ -100,6 +101,6 @@ if( BUILD_SHARED_LIBS )
 endif()
 
 # Generate precompiled header
-if (USE_COREPCH)
+if(USE_COREPCH)
   add_cxx_pch(common ${PRIVATE_PCH_HEADER})
-endif ()
+endif()

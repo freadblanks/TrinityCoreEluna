@@ -131,7 +131,6 @@ public:
                 DoCast(me, SPELL_TELEPORT);
 
                 DoCast(me, SPELL_SHIELD_OF_LIGHT);
-                me->AddUnitFlag(UNIT_FLAG_UNK_31);
 
                 DoCastAOE(SPELL_ACTIVATE_BEACONS);
 
@@ -178,11 +177,11 @@ public:
             }
         }
 
-        void JustEngagedWith(Unit* /*who*/) override
+        void JustEngagedWith(Unit* who) override
         {
             instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me, 1);
             Talk(SAY_AGGRO);
-            _JustEngagedWith();
+            BossAI::JustEngagedWith(who);
         }
 
         void JustDied(Unit* /*killer*/) override
@@ -225,9 +224,9 @@ public:
                         break;
                     case EVENT_BURNING_LIGHT:
                     {
-                        Unit* unit = SelectTarget(SELECT_TARGET_RANDOM, 0, NonTankTargetSelector(me));
+                        Unit* unit = SelectTarget(SelectTargetMethod::Random, 0, NonTankTargetSelector(me));
                         if (!unit)
-                            unit = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true);
+                            unit = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true);
                         DoCast(unit, SPELL_BURNING_LIGHT);
                         events.ScheduleEvent(EVENT_SEAR, 2000);
                         events.ScheduleEvent(EVENT_BURNING_LIGHT, 12000);

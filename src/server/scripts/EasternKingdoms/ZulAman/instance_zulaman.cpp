@@ -219,14 +219,14 @@ class instance_zulaman : public InstanceMapScript
                 return true;
             }
 
-            void ProcessEvent(WorldObject* /*obj*/, uint32 eventId) override
+            void ProcessEvent(WorldObject* /*obj*/, uint32 eventId, WorldObject* /*invoker*/) override
             {
                 switch (eventId)
                 {
                     case EVENT_START_ZULAMAN:
                         if (Creature* voljin = instance->GetCreature(VoljinGUID))
                         {
-                            if (voljin->IsAIEnabled)
+                            if (voljin->IsAIEnabled())
                                 voljin->AI()->DoAction(ACTION_START_ZULAMAN);
                         }
                         break;

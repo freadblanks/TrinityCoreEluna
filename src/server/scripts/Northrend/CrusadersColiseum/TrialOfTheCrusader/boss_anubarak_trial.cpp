@@ -181,16 +181,16 @@ class boss_anubarak_trial : public CreatureScript
             {
                 _Reset();
                 events.SetPhase(PHASE_MELEE);
-                events.ScheduleEvent(EVENT_FREEZE_SLASH, 15*IN_MILLISECONDS, 0, PHASE_MELEE);
-                events.ScheduleEvent(EVENT_PENETRATING_COLD, 20*IN_MILLISECONDS, PHASE_MELEE);
-                events.ScheduleEvent(EVENT_SUMMON_NERUBIAN, 10*IN_MILLISECONDS, 0, PHASE_MELEE);
-                events.ScheduleEvent(EVENT_SUBMERGE, 80*IN_MILLISECONDS, 0, PHASE_MELEE);
-                events.ScheduleEvent(EVENT_BERSERK, 10*MINUTE*IN_MILLISECONDS);
+                events.ScheduleEvent(EVENT_FREEZE_SLASH, 15s, 0, PHASE_MELEE);
+                events.ScheduleEvent(EVENT_PENETRATING_COLD, 20s, PHASE_MELEE);
+                events.ScheduleEvent(EVENT_SUMMON_NERUBIAN, 10s, 0, PHASE_MELEE);
+                events.ScheduleEvent(EVENT_SUBMERGE, 80s, 0, PHASE_MELEE);
+                events.ScheduleEvent(EVENT_BERSERK, 10min);
                 if (IsHeroic())
-                    events.ScheduleEvent(EVENT_NERUBIAN_SHADOW_STRIKE, 30*IN_MILLISECONDS, 0, PHASE_MELEE);
+                    events.ScheduleEvent(EVENT_NERUBIAN_SHADOW_STRIKE, 30s, 0, PHASE_MELEE);
 
                 if (!IsHeroic())
-                    events.ScheduleEvent(EVENT_SUMMON_FROST_SPHERE, 20*IN_MILLISECONDS);
+                    events.ScheduleEvent(EVENT_SUMMON_FROST_SPHERE, 20s);
 
                 Initialize();
                 me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
@@ -257,7 +257,7 @@ class boss_anubarak_trial : public CreatureScript
                         break;
                     case NPC_SPIKE:
                         summoned->SetDisplayFromModel(0);
-                        if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                         {
                             summoned->EngageWithTarget(target);
                             Talk(EMOTE_SPIKE, target);
@@ -269,9 +269,9 @@ class boss_anubarak_trial : public CreatureScript
                 summons.Summon(summoned);
             }
 
-            void JustEngagedWith(Unit* /*who*/) override
+            void JustEngagedWith(Unit* who) override
             {
-                _JustEngagedWith();
+                BossAI::JustEngagedWith(who);
                 Talk(SAY_AGGRO);
                 me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
 
@@ -369,7 +369,6 @@ class boss_anubarak_trial : public CreatureScript
                             break;
                         }
                         case EVENT_EMERGE:
-                            events.ScheduleEvent(EVENT_SUBMERGE, 80*IN_MILLISECONDS, 0, PHASE_MELEE);
                             DoCast(SPELL_SPIKE_TELE);
                             summons.DespawnEntry(NPC_SPIKE);
                             me->RemoveAurasDueToSpell(SPELL_SUBMERGE_ANUBARAK);
@@ -403,7 +402,7 @@ class boss_anubarak_trial : public CreatureScript
                             }
                             while
                                 (i != startAt);
-                            events.ScheduleEvent(EVENT_SUMMON_FROST_SPHERE, urand(20*IN_MILLISECONDS, 30*IN_MILLISECONDS));
+                            events.ScheduleEvent(EVENT_SUMMON_FROST_SPHERE, 20s, 30s);
                             break;
                         }
                         case EVENT_BERSERK:
@@ -558,7 +557,7 @@ class npc_nerubian_burrower : public CreatureScript
                 {
                     case ACTION_SHADOW_STRIKE:
                         if (!me->HasAura(SPELL_AWAKENED))
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0))
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0))
                                 DoCast(target, SPELL_SHADOW_STRIKE);
                         break;
                     default:
@@ -719,7 +718,7 @@ class npc_anubarak_spike : public CreatureScript
 
             void JustEngagedWith(Unit* who) override
             {
-                if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                 {
                     StartChase(target);
                     Talk(EMOTE_SPIKE, who);
@@ -749,7 +748,7 @@ class npc_anubarak_spike : public CreatureScript
                                 DoCast(me, SPELL_SPIKE_SPEED1);
                                 DoCast(me, SPELL_SPIKE_TRAIL);
                                 _phase = PHASE_IMPALE_NORMAL;
-                                if (Unit* target2 = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, true))
+                                if (Unit* target2 = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, true))
                                 {
                                     StartChase(target2);
                                     Talk(EMOTE_SPIKE, target2);
@@ -824,8 +823,7 @@ class npc_anubarak_spike : public CreatureScript
                 me->GetThreatManager().ResetAllThreat();
                 DoZoneInCombat();
                 AddThreat(who, 1000000.0f);
-                me->GetMotionMaster()->Clear();
-                me->GetMotionMaster()->MoveChase(who);
+                AttackStart(who);
             }
 
             private:
@@ -858,18 +856,18 @@ class spell_pursuing_spikes : public AuraScript
 
     void PeriodicTick(AuraEffect const* /*aurEff*/)
     {
-        PreventDefaultAction();
-
         Unit* permafrostCaster = nullptr;
         if (Aura* permafrostAura = GetTarget()->GetAura(SPELL_PERMAFROST))
             permafrostCaster = permafrostAura->GetCaster();
 
         if (permafrostCaster)
         {
+            PreventDefaultAction();
+
             if (Creature* permafrostCasterCreature = permafrostCaster->ToCreature())
                 permafrostCasterCreature->DespawnOrUnsummon(3000);
 
-            GetTarget()->CastSpell(nullptr, SPELL_SPIKE_FAIL, false);
+            GetTarget()->CastSpell(nullptr, SPELL_SPIKE_FAIL);
             GetTarget()->RemoveAllAuras();
             if (Creature* targetCreature = GetTarget()->ToCreature())
                 targetCreature->DisappearAndDie();

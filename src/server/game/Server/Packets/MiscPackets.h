@@ -183,6 +183,8 @@ namespace WorldPackets
 
             void Read() override;
 
+            std::chrono::steady_clock::time_point GetReceivedTime() const { return _worldPacket.GetReceivedTime(); }
+
             uint32 ClientTime = 0; // Client ticks in ms
             uint32 SequenceIndex = 0; // Same index as in request
         };
@@ -195,6 +197,7 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             uint32 CinematicID = 0;
+            ObjectGuid ConversationGuid;
         };
 
         class TriggerMovie final : public ServerPacket
@@ -498,13 +501,13 @@ namespace WorldPackets
         class LevelUpInfo final : public ServerPacket
         {
         public:
-            LevelUpInfo() : ServerPacket(SMSG_LEVEL_UP_INFO, 56) { }
+            LevelUpInfo() : ServerPacket(SMSG_LEVEL_UP_INFO, 60) { }
 
             WorldPacket const* Write() override;
 
             int32 Level = 0;
             int32 HealthDelta = 0;
-            std::array<int32, 6> PowerDelta = { };
+            std::array<int32, MAX_POWERS_PER_CLASS> PowerDelta = { };
             std::array<int32, MAX_STATS> StatDelta = { };
             int32 NumNewTalents = 0;
             int32 NumNewPvpTalentSlots = 0;
@@ -798,6 +801,16 @@ namespace WorldPackets
             bool EnablePVP = false;
         };
 
+        class SetWarMode final : public ClientPacket
+        {
+        public:
+            SetWarMode(WorldPacket&& packet) : ClientPacket(CMSG_SET_WAR_MODE, std::move(packet)) { }
+
+            void Read() override;
+
+            bool Enable = false;
+        };
+
         class AccountHeirloomUpdate final : public ServerPacket
         {
         public:
@@ -853,10 +866,11 @@ namespace WorldPackets
             bool Enable = false;
         };
 
-        class OverrideLight final : public ServerPacket
+        class TC_GAME_API OverrideLight final : public ServerPacket
         {
         public:
             OverrideLight() : ServerPacket(SMSG_OVERRIDE_LIGHT, 4 + 4 + 4) { }
+            OverrideLight(int32 areaLightID, int32 milli, int32 overLightID) : ServerPacket(SMSG_OVERRIDE_LIGHT, 4 + 4 + 4), AreaLightID(areaLightID), TransitionMilliseconds(milli), OverrideLightID(overLightID) { }
 
             WorldPacket const* Write() override;
 
@@ -932,6 +946,24 @@ namespace WorldPackets
 
             ObjectGuid ConversationGUID;
             uint32 LineID = 0;
+        };
+
+        class RequestLatestSplashScreen final : public ClientPacket
+        {
+        public:
+            RequestLatestSplashScreen(WorldPacket&& packet) : ClientPacket(CMSG_REQUEST_LATEST_SPLASH_SCREEN, std::move(packet)) { }
+
+            void Read() override { }
+        };
+
+        class SplashScreenShowLatest final : public ServerPacket
+        {
+        public:
+            SplashScreenShowLatest() : ServerPacket(SMSG_SPLASH_SCREEN_SHOW_LATEST, 4) { }
+
+            WorldPacket const* Write() override;
+
+            int32 UISplashScreenID = 0;
         };
     }
 }

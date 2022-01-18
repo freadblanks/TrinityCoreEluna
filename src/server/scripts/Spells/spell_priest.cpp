@@ -55,14 +55,21 @@ enum PriestSpells
     SPELL_PRIEST_ITEM_EFFICIENCY                    = 37595,
     SPELL_PRIEST_LEAP_OF_FAITH_EFFECT               = 92832,
     SPELL_PRIEST_LEVITATE_EFFECT                    = 111759,
+    SPELL_PRIEST_MASOCHISM_TALENT                   = 193063,
+    SPELL_PRIEST_MASOCHISM_PERIODIC_HEAL            = 193065,
+    SPELL_PRIEST_MASTERY_GRACE                      = 271534,
+    SPELL_PRIEST_MIND_BOMB_STUN                     = 226943,
     SPELL_PRIEST_ORACULAR_HEAL                      = 26170,
     SPELL_PRIEST_PENANCE_R1                         = 47540,
     SPELL_PRIEST_PENANCE_R1_DAMAGE                  = 47758,
     SPELL_PRIEST_PENANCE_R1_HEAL                    = 47757,
     SPELL_PRIEST_PRAYER_OF_HEALING                  = 596,
+    SPELL_PRIEST_RAPTURE                            = 47536,
     SPELL_PRIEST_RENEW                              = 139,
     SPELL_PRIEST_RENEWED_HOPE                       = 197469,
     SPELL_PRIEST_RENEWED_HOPE_EFFECT                = 197470,
+    SPELL_PRIEST_SHADOW_MEND_DAMAGE                 = 186439,
+    SPELL_PRIEST_SHADOW_MEND_PERIODIC_DUMMY         = 187464,
     SPELL_PRIEST_SHIELD_DISCIPLINE_ENERGIZE         = 47755,
     SPELL_PRIEST_SHIELD_DISCIPLINE_PASSIVE          = 197045,
     SPELL_PRIEST_SMITE                              = 585,
@@ -166,9 +173,7 @@ class spell_pri_aq_3p_bonus : public SpellScriptLoader
 class spell_pri_atonement : public SpellScriptLoader
 {
 public:
-    static char constexpr const ScriptName[] = "spell_pri_atonement";
-
-    spell_pri_atonement() : SpellScriptLoader(ScriptName) { }
+    spell_pri_atonement() : SpellScriptLoader("spell_pri_atonement") { }
 
     class spell_pri_atonement_AuraScript : public AuraScript
     {
@@ -227,7 +232,6 @@ public:
         return new spell_pri_atonement_AuraScript();
     }
 };
-char constexpr const spell_pri_atonement::ScriptName[];
 
 // 194384, 214206 - Atonement
 class spell_pri_atonement_triggered : public SpellScriptLoader
@@ -261,7 +265,7 @@ public:
         {
             if (Unit* caster = GetCaster())
                 if (Aura* atonement = caster->GetAura(SPELL_PRIEST_ATONEMENT))
-                    if (AtonementScript* script = atonement->GetScript<AtonementScript>(spell_pri_atonement::ScriptName))
+                    if (AtonementScript* script = atonement->GetScript<AtonementScript>())
                         (script->*func)(GetTarget()->GetGUID());
         }
 
@@ -428,7 +432,7 @@ class spell_pri_holy_words : public AuraScript
 
         SpellInfo const* targetSpellInfo = sSpellMgr->AssertSpellInfo(targetSpellId, GetCastDifficulty());
         int32 cdReduction = targetSpellInfo->GetEffect(cdReductionEffIndex).CalcValue(GetTarget());
-        GetTarget()->GetSpellHistory()->ModifyCooldown(targetSpellInfo, Seconds(-cdReduction));
+        GetTarget()->GetSpellHistory()->ModifyCooldown(targetSpellInfo, Seconds(-cdReduction), true);
     }
 
     void Register() override
@@ -541,6 +545,29 @@ public:
     SpellScript* GetSpellScript() const override
     {
         return new spell_pri_levitate_SpellScript();
+    }
+};
+
+// 205369 - Mind Bomb
+class spell_pri_mind_bomb : public AuraScript
+{
+    PrepareAuraScript(spell_pri_mind_bomb);
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_PRIEST_MIND_BOMB_STUN });
+    }
+
+    void RemoveEffect(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        if (GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_DEATH || GetTargetApplication()->GetRemoveMode() == AURA_REMOVE_BY_EXPIRE)
+            if (Unit* caster = GetCaster())
+                caster->CastSpell(GetTarget()->GetPosition(), SPELL_PRIEST_MIND_BOMB_STUN, true);
+    }
+
+    void Register() override
+    {
+        AfterEffectRemove += AuraEffectRemoveFn(spell_pri_mind_bomb::RemoveEffect, EFFECT_0, SPELL_AURA_DUMMY, AURA_EFFECT_HANDLE_REAL);
     }
 };
 
@@ -724,7 +751,9 @@ public:
                 SPELL_PRIEST_ATONEMENT_TRIGGERED,
                 SPELL_PRIEST_ATONEMENT_TRIGGERED_TRINITY,
                 SPELL_PRIEST_SHIELD_DISCIPLINE_PASSIVE,
-                SPELL_PRIEST_SHIELD_DISCIPLINE_ENERGIZE
+                SPELL_PRIEST_SHIELD_DISCIPLINE_ENERGIZE,
+                SPELL_PRIEST_RAPTURE,
+                SPELL_PRIEST_MASTERY_GRACE
             });
         }
 
@@ -732,14 +761,23 @@ public:
         {
             canBeRecalculated = false;
 
-            if (Player* player = GetCaster()->ToPlayer())
+            if (Unit* caster = GetCaster())
             {
-                int32 playerMastery = player->GetRatingBonusValue(CR_MASTERY);
-                int32 playerSpellPower = player->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_HOLY);
-                int32 playerVersatileDamage = player->GetRatingBonusValue(CR_VERSATILITY_DAMAGE_DONE);
+                float amountF = caster->SpellBaseDamageBonusDone(GetSpellInfo()->GetSchoolMask()) * 1.65f;
 
-                //Formula taken from SpellWork
-                amount = (int32)((playerSpellPower * 5.5f) + playerMastery) * (1 + playerVersatileDamage);
+                if (Player* player = caster->ToPlayer())
+                {
+                    AddPct(amountF, player->GetRatingBonusValue(CR_VERSATILITY_DAMAGE_DONE));
+
+                    if (AuraEffect const* mastery = caster->GetAuraEffect(SPELL_PRIEST_MASTERY_GRACE, EFFECT_0))
+                        if (GetUnitOwner()->HasAura(SPELL_PRIEST_ATONEMENT_TRIGGERED) || GetUnitOwner()->HasAura(SPELL_PRIEST_ATONEMENT_TRIGGERED_TRINITY))
+                            AddPct(amountF, mastery->GetAmount());
+                }
+
+                if (AuraEffect const* rapture = caster->GetAuraEffect(SPELL_PRIEST_RAPTURE, EFFECT_1))
+                    AddPct(amountF, rapture->GetAmount());
+
+                amount = amountF;
             }
         }
 
@@ -950,22 +988,86 @@ class spell_pri_shadow_mend : public SpellScript
 
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
-        return ValidateSpellInfo({ SPELL_PRIEST_ATONEMENT, SPELL_PRIEST_ATONEMENT_TRIGGERED, SPELL_PRIEST_TRINITY });
+        return ValidateSpellInfo
+        ({
+            SPELL_PRIEST_ATONEMENT,
+            SPELL_PRIEST_ATONEMENT_TRIGGERED,
+            SPELL_PRIEST_TRINITY,
+            SPELL_PRIEST_MASOCHISM_TALENT,
+            SPELL_PRIEST_MASOCHISM_PERIODIC_HEAL,
+            SPELL_PRIEST_SHADOW_MEND_PERIODIC_DUMMY
+        });
     }
 
-    void HandleEffectHit(SpellEffIndex /*effIndex*/)
+    void HandleEffectHit()
     {
         if (Unit* target = GetHitUnit())
         {
             Unit* caster = GetCaster();
+
+            int32 periodicAmount = GetHitHeal() / 20;
+            int32 damageForAuraRemoveAmount = periodicAmount * 10;
             if (caster->HasAura(SPELL_PRIEST_ATONEMENT) && !caster->HasAura(SPELL_PRIEST_TRINITY))
-                caster->CastSpell(target, SPELL_PRIEST_ATONEMENT_TRIGGERED, true);
+                caster->CastSpell(target, SPELL_PRIEST_ATONEMENT_TRIGGERED, GetSpell());
+
+            // Handle Masochism talent
+            if (caster->HasAura(SPELL_PRIEST_MASOCHISM_TALENT) && caster->GetGUID() == target->GetGUID())
+                caster->CastSpell(caster, SPELL_PRIEST_MASOCHISM_PERIODIC_HEAL, CastSpellExtraArgs(GetSpell()).AddSpellMod(SPELLVALUE_BASE_POINT0, periodicAmount));
+            else if (target->IsInCombat() && periodicAmount)
+            {
+                CastSpellExtraArgs args(TRIGGERED_FULL_MASK);
+                args.SetTriggeringSpell(GetSpell());
+                args.AddSpellMod(SPELLVALUE_BASE_POINT0, periodicAmount);
+                args.AddSpellMod(SPELLVALUE_BASE_POINT1, damageForAuraRemoveAmount);
+                caster->CastSpell(target, SPELL_PRIEST_SHADOW_MEND_PERIODIC_DUMMY, args);
+            }
         }
     }
 
     void Register() override
     {
-        OnEffectHitTarget += SpellEffectFn(spell_pri_shadow_mend::HandleEffectHit, EFFECT_0, SPELL_EFFECT_HEAL);
+        AfterHit += SpellHitFn(spell_pri_shadow_mend::HandleEffectHit);
+    }
+};
+
+// 187464 - Shadow Mend (Damage)
+class spell_pri_shadow_mend_periodic_damage : public AuraScript
+{
+    PrepareAuraScript(spell_pri_shadow_mend_periodic_damage);
+
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_PRIEST_SHADOW_MEND_DAMAGE });
+    }
+
+    void HandleDummyTick(AuraEffect const* aurEff)
+    {
+        CastSpellExtraArgs args(TRIGGERED_FULL_MASK);
+        args.SetOriginalCaster(GetCasterGUID());
+        args.SetTriggeringAura(aurEff);
+        args.AddSpellMod(SPELLVALUE_BASE_POINT0, aurEff->GetAmount());
+        GetTarget()->CastSpell(GetTarget(), SPELL_PRIEST_SHADOW_MEND_DAMAGE, args);
+    }
+
+    bool CheckProc(ProcEventInfo& eventInfo)
+    {
+        return eventInfo.GetDamageInfo() != nullptr;
+    }
+
+    void HandleProc(AuraEffect* aurEff, ProcEventInfo& eventInfo)
+    {
+        int32 newAmount = aurEff->GetAmount() - eventInfo.GetDamageInfo()->GetDamage();
+
+        aurEff->ChangeAmount(newAmount);
+        if (newAmount < 0)
+            Remove();
+    }
+
+    void Register() override
+    {
+        OnEffectPeriodic += AuraEffectPeriodicFn(spell_pri_shadow_mend_periodic_damage::HandleDummyTick, EFFECT_0, SPELL_AURA_PERIODIC_DUMMY);
+        DoCheckProc += AuraCheckProcFn(spell_pri_shadow_mend_periodic_damage::CheckProc);
+        OnEffectProc += AuraEffectProcFn(spell_pri_shadow_mend_periodic_damage::HandleProc, EFFECT_1, SPELL_AURA_DUMMY);
     }
 };
 
@@ -1333,6 +1435,7 @@ void AddSC_priest_spell_scripts()
     new spell_pri_item_t6_trinket();
     new spell_pri_leap_of_faith_effect_trigger();
     new spell_pri_levitate();
+    RegisterAuraScript(spell_pri_mind_bomb);
     new spell_pri_penance();
     RegisterSpellScript(spell_pri_power_word_radiance);
     new spell_pri_power_word_shield();
@@ -1341,6 +1444,7 @@ void AddSC_priest_spell_scripts()
     RegisterSpellScript(spell_pri_prayer_of_mending_jump);
     RegisterAuraScript(spell_pri_spirit_of_redemption);
     RegisterSpellScript(spell_pri_shadow_mend);
+    RegisterAuraScript(spell_pri_shadow_mend_periodic_damage);
     new spell_pri_t3_4p_bonus();
     new spell_pri_t5_heal_2p_bonus();
     new spell_pri_t10_heal_2p_bonus();

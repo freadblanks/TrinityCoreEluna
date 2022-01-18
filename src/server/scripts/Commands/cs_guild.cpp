@@ -90,7 +90,22 @@ public:
         if (target->GetGuildId())
         {
             handler->SendSysMessage(LANG_PLAYER_IN_GUILD);
-            return true;
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        if (sGuildMgr->GetGuildByName(guildName))
+        {
+            handler->SendSysMessage(LANG_GUILD_RENAME_ALREADY_EXISTS);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        if (sObjectMgr->IsReservedName(guildName) || !sObjectMgr->IsValidCharterName(guildName))
+        {
+            handler->SendSysMessage(LANG_BAD_VALUE);
+            handler->SetSentErrorMessage(true);
+            return false;
         }
 
         Guild* guild = new Guild;
@@ -200,7 +215,7 @@ public:
 
         uint8 newRank = uint8(atoi(rankStr));
         CharacterDatabaseTransaction trans(nullptr);
-        return targetGuild->ChangeMemberRank(trans, targetGuid, newRank);
+        return targetGuild->ChangeMemberRank(trans, targetGuid, GuildRankId(newRank));
     }
 
     static bool HandleGuildRenameCommand(ChatHandler* handler, char const* _args)

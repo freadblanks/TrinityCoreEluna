@@ -235,7 +235,7 @@ namespace LuaItem
         // \124cffa335ee\124Hitem:174164::::::::120::::2:4824:1517:\124h[Breastplate of Twilight Decimation]\124h\124r
         std::ostringstream oss;
         oss << "|c" << std::hex << ItemQualityColors[temp->GetQuality()] << std::dec <<
-            "|Hitem:" << temp->GetId() << "::::::::" << (uint32)item->GetOwner()->getLevel()
+            "|Hitem:" << temp->GetId() << "::::::::" << (uint32)item->GetOwner()->GetLevel()
             << ":::::::" << "|h[" << name << "]|h|r";
 
         Eluna::Push(L, oss.str());

@@ -16,17 +16,17 @@
  */
 
 // This is where scripts' loading functions should be declared:
-
-void AddSC_GOMove_commandscript();
-void AddSC_PandarenFaction();
 void AddSC_custom_commandscrip();
+void AddSC_custom_commandscript();
 void AddSC_exp_player();
+void AddSC_AwardsForTime();
+
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
 void AddCustomScripts()
 {
-	AddSC_GOMove_commandscript();
-    AddSC_PandarenFaction();
     AddSC_custom_commandscrip();
+    AddSC_custom_commandscript();
     AddSC_exp_player();
+    AddSC_AwardsForTime();
 }

@@ -186,9 +186,9 @@ enum KilJaedenTimers
 // Locations of the Hand of Deceiver adds
 Position DeceiverLocations[3]=
 {
-    {1682.045f, 631.299f, 5.936f, 0.0f},
-    {1684.099f, 618.848f, 0.589f, 0.0f},
-    {1694.170f, 612.272f, 1.416f, 0.0f}
+    {1682.949951f, 637.75000f, 28.0231f, 5.717090f},
+    {1684.699951f, 614.41998f, 28.0580f, 0.698392f},
+    {1707.609985f, 612.15002f, 28.0946f, 1.990370f}
 };
 
 // Locations, where Shield Orbs will spawn
@@ -355,7 +355,7 @@ public:
             {
                 if (GameObject* pOrb = GetOrb(i))
                 {
-                    if (pOrb->GetFaction() == 35)
+                    if (pOrb->GetFaction() == FACTION_FRIENDLY)
                     {
                         pOrb->CastSpell(me, SPELL_RING_OF_BLUE_FLAMES);
                         pOrb->setActive(true);
@@ -381,7 +381,7 @@ class go_orb_of_the_blue_flight : public GameObjectScript
 
             bool GossipHello(Player* player) override
             {
-                if (me->GetFaction() == 35)
+                if (me->GetFaction() == FACTION_FRIENDLY)
                 {
                     player->SummonCreature(NPC_POWER_OF_THE_BLUE_DRAGONFLIGHT, player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), 0.0f, TEMPSUMMON_TIMED_DESPAWN, 121000);
                     player->CastSpell(player, SPELL_VENGEANCE_OF_THE_BLUE_FLIGHT, false);
@@ -624,7 +624,7 @@ public:
         //      summoned->SetVisibility(VISIBILITY_OFF);  //with this we cant see the armageddon visuals
             }
             else
-                summoned->SetLevel(me->getLevel());
+                summoned->SetLevel(me->GetLevel());
 
             summoned->SetFaction(me->GetFaction());
             summons.Summon(summoned);
@@ -675,7 +675,7 @@ public:
             Talk(SAY_KJ_REFLECTION);
             for (uint8 i = 0; i < 4; ++i)
             {
-                if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true, true, -SPELL_VENGEANCE_OF_THE_BLUE_FLIGHT))
+                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100, true, true, -SPELL_VENGEANCE_OF_THE_BLUE_FLIGHT))
                 {
                     float x, y, z;
                     target->GetPosition(x, y, z);
@@ -759,7 +759,7 @@ public:
                                 me->RemoveAurasDueToSpell(SPELL_SOUL_FLAY);
                                 for (uint8 z = 0; z < 6; ++z)
                                 {
-                                    pRandomPlayer = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true);
+                                    pRandomPlayer = SelectTarget(SelectTargetMethod::Random, 0, 100, true);
                                     if (!pRandomPlayer || !pRandomPlayer->HasAura(SPELL_VENGEANCE_OF_THE_BLUE_FLIGHT))
                                         break;
                                 }
@@ -852,7 +852,7 @@ public:
                             Unit* target = nullptr;
                             for (uint8 z = 0; z < 6; ++z)
                             {
-                                target = SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true);
+                                target = SelectTarget(SelectTargetMethod::Random, 0, 100, true);
                                 if (!target || !target->HasAura(SPELL_VENGEANCE_OF_THE_BLUE_FLIGHT)) break;
                             }
                             if (target)
@@ -953,7 +953,7 @@ public:
         void JustSummoned(Creature* summoned) override
         {
             summoned->SetFaction(me->GetFaction());
-            summoned->SetLevel(me->getLevel());
+            summoned->SetLevel(me->GetLevel());
         }
 
         void JustEngagedWith(Unit* who) override
@@ -1046,7 +1046,7 @@ public:
         void JustSummoned(Creature* summoned) override
         {
             summoned->SetFaction(me->GetFaction());
-            summoned->SetLevel(me->getLevel());
+            summoned->SetLevel(me->GetLevel());
         }
 
         void UpdateAI(uint32 diff) override
@@ -1057,7 +1057,7 @@ public:
             if (uiSpawnFiendTimer <= diff)
             {
                 if (Creature* pFiend = DoSpawnCreature(NPC_VOLATILE_FELFIRE_FIEND, 0, 0, 0, 0, TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN, 20000))
-                    AddThreat(SelectTarget(SELECT_TARGET_RANDOM, 0), 100000.0f, pFiend);
+                    AddThreat(SelectTarget(SelectTargetMethod::Random, 0), 100000.0f, pFiend);
                 uiSpawnFiendTimer = urand(4000, 8000);
             } else uiSpawnFiendTimer -= diff;
         }
@@ -1327,7 +1327,7 @@ public:
 
             if ((victimClass == 0) && me->GetVictim())
             {
-                victimClass = me->EnsureVictim()->getClass();
+                victimClass = me->EnsureVictim()->GetClass();
                 switch (victimClass)
                 {
                     case CLASS_DRUID:
@@ -1401,7 +1401,7 @@ public:
                     }
                     if (uiTimer[2] <= diff)
                     {
-                        DoCast(SelectTarget(SELECT_TARGET_RANDOM, 0, 100, true), SPELL_SR_CURSE_OF_AGONY, true);
+                        DoCast(SelectTarget(SelectTargetMethod::Random, 0, 100, true), SPELL_SR_CURSE_OF_AGONY, true);
                         uiTimer[2] = urand(2000, 4000);
                     }
                     DoMeleeAttackIfReady();

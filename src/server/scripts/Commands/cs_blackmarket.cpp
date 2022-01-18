@@ -8,6 +8,36 @@
 #include "RBAC.h"
 #include "WorldSession.h"
 
+
+#include "Bag.h"
+#include "BattlefieldMgr.h"
+#include "BattlegroundMgr.h"
+#include "CellImpl.h"
+#include "ChannelPackets.h"
+#include "ChatPackets.h"
+#include "Conversation.h"
+#include "DB2Stores.h"
+#include "GameTime.h"
+#include "GossipDef.h"
+#include "GridNotifiersImpl.h"
+#include "InstanceScript.h"
+#include "M2Stores.h"
+#include "MapManager.h"
+#include "MovementPackets.h"
+#include "ObjectAccessor.h"
+#include "PhasingHandler.h"
+#include "PoolMgr.h"
+#include "QuestPools.h"
+#include "SpellMgr.h"
+#include "SpellPackets.h"
+#include "Transport.h"
+#include "World.h"
+#include <fstream>
+#include <limits>
+#include <map>
+#include <set>
+#include <sstream>
+
 class blackmarket_commandscript : public CommandScript
 {
 public:
@@ -28,13 +58,21 @@ public:
 
     static bool HandleBMSetAuctionDurationCommand(ChatHandler* handler, const char* args)
     {
-        CommandArgs cmdArgs = CommandArgs(handler, args, { CommandArgs::ARG_UINT, CommandArgs::ARG_UINT });
-
-        if (!cmdArgs.ValidArgs())
+        if (!*args)
             return false;
 
-        uint32 marketId = cmdArgs.GetArg<uint32>(0);
-        uint32 durationSeconds = cmdArgs.GetArg<uint32>(1);
+        char* marketId1 = strtok((char*)args, " ");
+
+        if (!marketId1)
+            return false;
+
+        char* durationSeconds1 = strtok(nullptr, " ");
+
+        if (!durationSeconds1)
+            return false;
+
+        uint32 marketId = atoi(marketId1);
+        uint32 durationSeconds = atoi(durationSeconds1);
 
         if (BlackMarketEntry* entry = sBlackMarketMgr->GetAuctionByID(marketId))
             entry->SetStartTime(durationSeconds + time(nullptr) - sBlackMarketMgr->GetTemplateByID(entry->GetMarketId())->Duration);

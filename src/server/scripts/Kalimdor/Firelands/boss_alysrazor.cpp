@@ -183,7 +183,7 @@ class npc_harbinger_of_flame : public CreatureScript
             {
                 for (ObjectGuid const& birdGuid : me->m_unitData->ChannelObjects)
                     if (Creature* bird = ObjectAccessor::GetCreature(*me, birdGuid))
-                        DoZoneInCombat(bird, 200.0f);
+                        DoZoneInCombat(bird);
 
                 me->InterruptSpell(CURRENT_CHANNELED_SPELL);
                 _events.Reset();
@@ -227,7 +227,7 @@ class npc_harbinger_of_flame : public CreatureScript
                     switch (eventId)
                     {
                         case EVENT_FIEROBLAST:
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, false, true, -SPELL_RIDE_MONSTROSITY))
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, false, true, -SPELL_RIDE_MONSTROSITY))
                                 DoCast(target, SPELL_FIEROBLAST_TRASH);
                             _events.RescheduleEvent(EVENT_FIEROBLAST, 500);  // cast time is longer, but thanks to UNIT_STATE_CASTING check it won't trigger more often (need this because this creature gets a stacking haste aura)
                             break;
@@ -330,7 +330,7 @@ class npc_blazing_monstrosity : public CreatureScript
                     switch (eventId)
                     {
                         case EVENT_START_SPITTING:
-                            if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 0.0f, false, true, -SPELL_RIDE_MONSTROSITY))
+                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 0.0f, false, true, -SPELL_RIDE_MONSTROSITY))
                                 DoCast(target, SPELL_MOLTEN_BARRAGE);
                             break;
                         case EVENT_CONTINUE_SPITTING:
@@ -370,7 +370,7 @@ class npc_molten_barrage : public CreatureScript
                     me->GetMotionMaster()->MoveFollow(target, 0.0f, 0.0f, MOTION_SLOT_DEFAULT);
             }
 
-            void IsSummonedBy(Unit* /*summoner*/) override
+            void IsSummonedBy(WorldObject* /*summoner*/) override
             {
                 DoCastAOE(SPELL_AGGRO_CLOSEST, true);
                 DoCast(me, SPELL_MOLTEN_BARRAGE_VISUAL);
@@ -558,7 +558,7 @@ class spell_alysrazor_turn_monstrosity : public SpellScriptLoader
                 PreventHitDefaultEffect(effIndex);
                 GetHitUnit()->GetMotionMaster()->MoveIdle();
                 if (TempSummon* summ = GetHitUnit()->ToTempSummon())
-                    if (Unit* summoner = summ->GetSummoner())
+                    if (WorldObject* summoner = summ->GetSummoner())
                         GetHitUnit()->CastSpell(summoner, SPELL_GENERIC_DUMMY_CAST, TRIGGERED_FULL_MASK);
 
                 float angle = 0.0f;
