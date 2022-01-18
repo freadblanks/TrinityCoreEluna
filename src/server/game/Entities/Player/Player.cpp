@@ -31,6 +31,7 @@
 #include "BattlegroundPackets.h"
 #include "BattlegroundScore.h"
 #include "BattlePetMgr.h"
+#include "BattlePayPackets.h"
 #include "CellImpl.h"
 #include "Channel.h"
 #include "ChannelMgr.h"
