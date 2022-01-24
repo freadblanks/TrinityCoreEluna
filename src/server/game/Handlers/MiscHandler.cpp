@@ -57,8 +57,6 @@
 #include "WhoPackets.h"
 #include "World.h"
 #include "WorldPacket.h"
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/locks.hpp>
 #include <cstdarg>
 #include <zlib.h>
 
@@ -1065,7 +1063,7 @@ void WorldSession::HandleGuildSetFocusedAchievement(WorldPackets::Achievement::G
 void WorldSession::HandleServerTimeOffsetRequest(WorldPackets::Misc::ServerTimeOffsetRequest& /*request*/)
 {
     WorldPackets::Misc::ServerTimeOffset response;
-    response.Time = GameTime::GetGameTimeSystemPoint();
+    response.Time = GameTime::GetSystemTime();
     SendPacket(response.Write());
 }
 

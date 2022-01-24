@@ -1186,7 +1186,7 @@ struct npc_frostwing_ymirjar_vrykul : public ScriptedAI
         {
             case NPC_YMIRJAR_FROSTBINDER:
                 me->RemoveAurasDueToSpell(SPELL_ARCTIC_CHILL);
-                /* fallthrough */
+                [[fallthrough]];
             case NPC_YMIRJAR_DEATHBRINGER:
                 _OOCevents.ScheduleEvent(EVENT_YMIRJAR_SPIRIT_STREAM, 10s, 20s);
                 break;
@@ -1393,7 +1393,7 @@ struct npc_impaling_spear : public CreatureAI
         {
             _vehicleCheckTimer = 500;
             if (!me->GetVehicle())
-                me->DespawnOrUnsummon(100);
+                me->DespawnOrUnsummon(100ms);
         }
         else
             _vehicleCheckTimer -= diff;
@@ -1455,7 +1455,7 @@ class spell_svalna_remove_spear : public SpellScript
         {
             if (Unit* vehicle = target->GetVehicleBase())
                 vehicle->RemoveAurasDueToSpell(SPELL_IMPALING_SPEAR);
-            target->DespawnOrUnsummon(1);
+            target->DespawnOrUnsummon(1ms);
         }
     }
 

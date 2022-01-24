@@ -677,7 +677,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         void setActive(bool isActiveObject);
         bool IsFarVisible() const { return m_isFarVisible; }
         void SetFarVisible(bool on);
-        bool IsVisibilityOverridden() const { return m_visibilityDistanceOverride.is_initialized(); }
+        bool IsVisibilityOverridden() const { return m_visibilityDistanceOverride.has_value(); }
         void SetVisibilityDistanceOverride(VisibilityDistanceType type);
         void SetVisibilityDistanceOverride(float distance);
         void SetWorldObject(bool apply);

@@ -8,12 +8,16 @@
 # WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-add_library(process INTERFACE)
+CollectSourceFiles(
+  ${CMAKE_CURRENT_SOURCE_DIR}/common
+  COMMON_SOURCES
+)
 
-target_include_directories(process
-  INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR})
+add_executable(tests-common ${COMMON_SOURCES})
 
-target_link_libraries(process
-  INTERFACE
-    boost)
+target_link_libraries(tests-common
+  PRIVATE
+    common
+    Catch2::Catch2)
+
+catch_discover_tests(tests-common)

@@ -15,17 +15,6 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef OptionalFwd_h__
-#define OptionalFwd_h__
 
-namespace boost
-{
-    template <class T>
-    class optional;
-}
-
-//! Optional helper class to wrap optional values within.
-template <class T>
-using Optional = boost::optional<T>;
-
-#endif // OptionalFwd_h__
+#define CATCH_CONFIG_MAIN
+#include "catch2/catch.hpp"

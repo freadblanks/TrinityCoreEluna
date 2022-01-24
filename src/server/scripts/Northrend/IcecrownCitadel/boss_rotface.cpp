@@ -352,6 +352,7 @@ class npc_big_ooze : public CreatureScript
                         case EVENT_STICKY_OOZE:
                             DoCastVictim(SPELL_STICKY_OOZE);
                             events.ScheduleEvent(EVENT_STICKY_OOZE, 15s);
+                            break;
                         default:
                             break;
                     }
@@ -840,7 +841,7 @@ class spell_rotface_unstable_ooze_explosion_suicide : public SpellScriptLoader
 
                 target->RemoveAllAuras();
                 target->SetVisible(false);
-                target->ToCreature()->DespawnOrUnsummon(60000);
+                target->ToCreature()->DespawnOrUnsummon(60s);
             }
 
             void Register() override

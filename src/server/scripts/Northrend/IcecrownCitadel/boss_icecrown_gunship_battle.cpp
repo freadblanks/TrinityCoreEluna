@@ -784,7 +784,7 @@ class npc_gunship : public CreatureScript
                     GetCreatureListWithEntryInGrid(creatures, me, NPC_KOR_KRON_REAVER, 200.0f);
                     GetCreatureListWithEntryInGrid(creatures, me, NPC_KOR_KRON_SERGEANT, 200.0f);
                     for (std::list<Creature*>::iterator itr = creatures.begin(); itr != creatures.end(); ++itr)
-                        (*itr)->DespawnOrUnsummon(1);
+                        (*itr)->DespawnOrUnsummon(1ms);
                 }
                 else
                 {
@@ -848,7 +848,7 @@ class npc_high_overlord_saurfang_igb : public CreatureScript
                 _controller.SetTransport(creature->GetTransport());
                 me->SetRegenerateHealth(false);
                 me->m_CombatDistance = 70.0f;
-                _firstMageCooldown = GameTime::GetGameTimeSteadyPoint() + 60s;
+                _firstMageCooldown = GameTime::Now() + 60s;
                 _axethrowersYellCooldown = time_t(0);
                 _rocketeersYellCooldown = time_t(0);
             }
@@ -858,7 +858,7 @@ class npc_high_overlord_saurfang_igb : public CreatureScript
                 ScriptedAI::InitializeAI();
 
                 _events.Reset();
-                _firstMageCooldown = GameTime::GetGameTimeSteadyPoint() + 60s;
+                _firstMageCooldown = GameTime::Now() + 60s;
                 _axethrowersYellCooldown = time_t(0);
                 _rocketeersYellCooldown = time_t(0);
             }
@@ -910,7 +910,7 @@ class npc_high_overlord_saurfang_igb : public CreatureScript
                 }
                 else if (action == ACTION_SPAWN_MAGE)
                 {
-                    std::chrono::steady_clock::time_point now = GameTime::GetGameTimeSteadyPoint();
+                    TimePoint now = GameTime::Now();
                     if (_firstMageCooldown > now)
                         _events.ScheduleEvent(EVENT_SUMMON_MAGE, std::chrono::duration_cast<Milliseconds>(_firstMageCooldown - now));
                     else
@@ -938,7 +938,7 @@ class npc_high_overlord_saurfang_igb : public CreatureScript
                     init.MovebyPath(path, 0);
                     me->GetMotionMaster()->LaunchMoveSpline(std::move(init), 0, MOTION_PRIORITY_NORMAL, POINT_MOTION_TYPE);
 
-                    me->DespawnOrUnsummon(18000);
+                    me->DespawnOrUnsummon(18s);
                 }
             }
 
@@ -1087,7 +1087,7 @@ class npc_high_overlord_saurfang_igb : public CreatureScript
             EventMap _events;
             PassengerController _controller;
             InstanceScript* _instance;
-            std::chrono::steady_clock::time_point _firstMageCooldown;
+            TimePoint _firstMageCooldown;
             time_t _axethrowersYellCooldown;
             time_t _rocketeersYellCooldown;
         };
@@ -1112,7 +1112,7 @@ class npc_muradin_bronzebeard_igb : public CreatureScript
                 _controller.SetTransport(creature->GetTransport());
                 me->SetRegenerateHealth(false);
                 me->m_CombatDistance = 70.0f;
-                _firstMageCooldown = GameTime::GetGameTimeSteadyPoint() + 60s;
+                _firstMageCooldown = GameTime::Now() + 60s;
                 _riflemanYellCooldown = time_t(0);
                 _mortarYellCooldown = time_t(0);
             }
@@ -1122,7 +1122,7 @@ class npc_muradin_bronzebeard_igb : public CreatureScript
                 ScriptedAI::InitializeAI();
 
                 _events.Reset();
-                _firstMageCooldown = GameTime::GetGameTimeSteadyPoint() + 60s;
+                _firstMageCooldown = GameTime::Now() + 60s;
                 _riflemanYellCooldown = time_t(0);
                 _mortarYellCooldown = time_t(0);
             }
@@ -1174,7 +1174,7 @@ class npc_muradin_bronzebeard_igb : public CreatureScript
                 }
                 else if (action == ACTION_SPAWN_MAGE)
                 {
-                    std::chrono::steady_clock::time_point now = GameTime::GetGameTimeSteadyPoint();
+                    TimePoint now = GameTime::Now();
                     if (_firstMageCooldown > now)
                         _events.ScheduleEvent(EVENT_SUMMON_MAGE, std::chrono::duration_cast<Milliseconds>(_firstMageCooldown - now));
                     else
@@ -1202,7 +1202,7 @@ class npc_muradin_bronzebeard_igb : public CreatureScript
                     init.MovebyPath(path, 0);
                     me->GetMotionMaster()->LaunchMoveSpline(std::move(init), 0, MOTION_PRIORITY_NORMAL, POINT_MOTION_TYPE);
 
-                    me->DespawnOrUnsummon(18000);
+                    me->DespawnOrUnsummon(18s);
                 }
             }
 
@@ -1355,7 +1355,7 @@ class npc_muradin_bronzebeard_igb : public CreatureScript
             EventMap _events;
             PassengerController _controller;
             InstanceScript* _instance;
-            std::chrono::steady_clock::time_point _firstMageCooldown;
+            TimePoint _firstMageCooldown;
             time_t _riflemanYellCooldown;
             time_t _mortarYellCooldown;
         };

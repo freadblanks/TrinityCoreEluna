@@ -10929,9 +10929,7 @@ void ObjectMgr::LoadPlayerChoices()
                 continue;
             }
 
-            responseItr->Reward = boost::in_place();
-
-            PlayerChoiceResponseReward* reward = responseItr->Reward.get_ptr();
+            PlayerChoiceResponseReward* reward = &responseItr->Reward.emplace();
             reward->TitleId          = fields[2].GetInt32();
             reward->PackageId        = fields[3].GetInt32();
             reward->SkillLineId      = fields[4].GetInt32();
@@ -11185,8 +11183,7 @@ void ObjectMgr::LoadPlayerChoices()
                 continue;
             }
 
-            responseItr->MawPower.emplace();
-            PlayerChoiceResponseMawPower& mawPower = responseItr->MawPower.get();
+            PlayerChoiceResponseMawPower& mawPower = responseItr->MawPower.emplace();
             mawPower.TypeArtFileID = fields[2].GetInt32();
             mawPower.Rarity = fields[3].GetInt32();
             mawPower.RarityColor = fields[4].GetUInt32();
