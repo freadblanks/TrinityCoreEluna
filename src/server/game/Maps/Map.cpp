@@ -52,9 +52,6 @@
 #include "VMapFactory.h"
 #include "Weather.h"
 #include "WeatherMgr.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 #include "World.h"
 #include "WorldSession.h"
 #include <sstream>
@@ -3670,13 +3667,6 @@ void Map::AddObjectToRemoveList(WorldObject* obj)
 {
     ASSERT(obj->GetMapId() == GetId() && obj->GetInstanceId() == GetInstanceId());
 
-#ifdef ELUNA
-    if (Creature* creature = obj->ToCreature())
-        sEluna->OnRemove(creature);
-    else if (GameObject* gameobject = obj->ToGameObject())
-        sEluna->OnRemove(gameobject);
-#endif
-
     obj->CleanupsBeforeDelete(false);                            // remove or simplify at least cross referenced links
 
     i_objectsToRemove.insert(obj);
@@ -4135,30 +4125,15 @@ void InstanceMap::CreateInstanceData(bool load)
     if (i_data != nullptr)
         return;
 
-    bool isElunaAI = false;
-
-#ifdef ELUNA
-    i_data = sEluna->GetInstanceData(this);
-    if (i_data)
-        isElunaAI = true;
-#endif
-
-    // if Eluna AI was fetched succesfully we should not call CreateInstanceData nor set the unused scriptID
-    if (!isElunaAI)
+    InstanceTemplate const* mInstance = sObjectMgr->GetInstanceTemplate(GetId());
+    if (mInstance)
     {
-        InstanceTemplate const* mInstance = sObjectMgr->GetInstanceTemplate(GetId());
-        if (mInstance)
-        {
-            i_script_id = mInstance->ScriptId;
-            i_data = sScriptMgr->CreateInstanceData(this);
-        }
+        i_script_id = mInstance->ScriptId;
+        i_data = sScriptMgr->CreateInstanceData(this);
     }
 
     if (!i_data)
         return;
-
-    if (!isElunaAI || !load)
-        i_data->Initialize();
 
     if (load)
     {
