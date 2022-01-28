@@ -432,7 +432,7 @@ void ShutdownCLIThread(std::thread* cliThread)
             // if CancelSynchronousIo fails with ERROR_NOT_FOUND then there was nothing to cancel, proceed with shutdown
             if (errorCode != ERROR_NOT_FOUND)
             {
-                LPSTR errorBuffer;
+                LPCSTR errorBuffer;
                 DWORD numCharsWritten = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
                     nullptr, errorCode, 0, (LPTSTR)&errorBuffer, 0, nullptr);
                 if (!numCharsWritten)
@@ -441,7 +441,7 @@ void ShutdownCLIThread(std::thread* cliThread)
                 TC_LOG_DEBUG("server.worldserver", "Error cancelling I/O of CliThread, error code %u, detail: %s", uint32(errorCode), errorBuffer);
 
                 if (numCharsWritten)
-                    LocalFree(errorBuffer);
+                    LocalFree((LPSTR)errorBuffer);
 
                 // send keyboard input to safely unblock the CLI thread
                 INPUT_RECORD b[4];
@@ -488,6 +488,11 @@ void WorldUpdateLoop()
     uint32 realCurrTime = 0;
     uint32 realPrevTime = getMSTime();
 
+    LoginDatabase.WarnAboutSyncQueries(true);
+    CharacterDatabase.WarnAboutSyncQueries(true);
+    WorldDatabase.WarnAboutSyncQueries(true);
+    HotfixDatabase.WarnAboutSyncQueries(true);
+
     ///- While we have not World::m_stopEvent, update the world
     while (!World::IsStopped())
     {
@@ -513,6 +518,11 @@ void WorldUpdateLoop()
             Sleep(1000);
 #endif
     }
+
+    LoginDatabase.WarnAboutSyncQueries(false);
+    CharacterDatabase.WarnAboutSyncQueries(false);
+    WorldDatabase.WarnAboutSyncQueries(false);
+    HotfixDatabase.WarnAboutSyncQueries(false);
 }
 
 void SignalHandler(boost::system::error_code const& error, int /*signalNumber*/)
