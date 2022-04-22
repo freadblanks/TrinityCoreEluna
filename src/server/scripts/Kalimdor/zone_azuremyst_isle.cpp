@@ -33,7 +33,6 @@ EndContentData */
 #include "CellImpl.h"
 #include "GameObjectAI.h"
 #include "GridNotifiersImpl.h"
-#include "Log.h"
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
 #include "ScriptedEscortAI.h"
@@ -85,8 +84,8 @@ public:
 
             DoCastSelf(SPELL_IRRIDATION, true);
 
-            me->AddUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
-            me->AddUnitFlag(UNIT_FLAG_IN_COMBAT);
+            me->SetUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
+            me->SetUnitFlag(UNIT_FLAG_IN_COMBAT);
             me->SetHealth(me->CountPctFromMaxHealth(10));
             me->SetStandState(UNIT_STAND_STATE_SLEEP);
         }
@@ -201,7 +200,7 @@ public:
         {
             Initialize();
             NormFaction = creature->GetFaction();
-            NpcFlags = NPCFlags(creature->m_unitData->NpcFlags[0]);
+            NpcFlags = creature->GetNpcFlags();
         }
 
         void Initialize()
@@ -220,7 +219,7 @@ public:
             Initialize();
 
             me->SetFaction(NormFaction);
-            me->SetNpcFlags(NpcFlags);
+            me->ReplaceAllNpcFlags(NpcFlags);
         }
 
         void JustEngagedWith(Unit* who) override
@@ -228,7 +227,7 @@ public:
             Talk(ATTACK_YELL, who);
         }
 
-        bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 /*gossipListId*/) override
+        bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 /*gossipListId*/) override
         {
             CloseGossipMenuFor(player);
             me->SetFaction(FACTION_MONSTER);
@@ -291,7 +290,7 @@ public:
 
         void Reset() override
         {
-            me->AddUnitFlag(UNIT_FLAG_IN_COMBAT);
+            me->SetUnitFlag(UNIT_FLAG_IN_COMBAT);
             me->SetHealth(me->CountPctFromMaxHealth(15));
             switch (urand(0, 1))
             {
@@ -359,7 +358,7 @@ public:
             Talk(SAY_AGGRO, who);
         }
 
-        void QuestAccept(Player* player, Quest const* quest) override
+        void OnQuestAccept(Player* player, Quest const* quest) override
         {
             if (quest->GetQuestId() == QUEST_A_CRY_FOR_HELP)
             {
@@ -596,8 +595,6 @@ public:
                         (*itr)->Respawn();
                 }
             }
-            else
-                TC_LOG_ERROR("scripts", "SD2 ERROR: FlagList is empty!");
         }
 
         void UpdateAI(uint32 diff) override
@@ -618,7 +615,7 @@ public:
     }
 };
 
-// 29528 -  Inoculate Nestlewood Owlkin
+// 29528 - Inoculate Nestlewood Owlkin
 class spell_inoculate_nestlewood : public AuraScript
 {
     PrepareAuraScript(spell_inoculate_nestlewood);
@@ -641,5 +638,5 @@ void AddSC_azuremyst_isle()
     new npc_engineer_spark_overgrind();
     new npc_injured_draenei();
     new npc_magwin();
-    RegisterAuraScript(spell_inoculate_nestlewood);
+    RegisterSpellScript(spell_inoculate_nestlewood);
 }

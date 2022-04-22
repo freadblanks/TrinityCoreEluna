@@ -45,7 +45,6 @@ enum Spells
     SPELL_SUBMERGE          = 37550,
     SPELL_EMERGE            = 20568,
 
-
     // Ambusher spells
     SPELL_SPREAD_SHOT       = 37790,
     SPELL_SHOOT             = 37770,
@@ -155,7 +154,7 @@ public:
             instance->SetData(DATA_STRANGE_POOL, NOT_STARTED);
             DoCast(me, SPELL_SUBMERGE); // submerge anim
             me->SetVisible(false); // we start invis under water, submerged
-            me->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+            me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
             me->SetImmuneToPC(true);
         }
 
@@ -218,7 +217,7 @@ public:
                         WaitTimer = 3000;
                         CanStartEvent = true; // fresh fished from pool
                         me->SetImmuneToPC(false);
-                        me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                        me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
                     }
                     else
                         WaitTimer -= diff;
@@ -285,12 +284,11 @@ public:
 
                 if (RotTimer)
                 {
-                    Map::PlayerList const& PlayerList = me->GetMap()->GetPlayers();
-                    for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
+                    instance->instance->DoOnPlayers([this, diff](Player* player)
                     {
-                        if (i->GetSource() && i->GetSource()->IsAlive() && me->HasInArc(diff/20000.f*float(M_PI)*2.f, i->GetSource()) && me->IsWithinDist(i->GetSource(), SPOUT_DIST) && !i->GetSource()->IsInWater())
-                            DoCast(i->GetSource(), SPELL_SPOUT, true); // only knock back players in arc, in 100yards, not in water
-                    }
+                        if (player->IsAlive() && me->HasInArc(diff / 20000.f * float(M_PI) * 2.f, player) && me->IsWithinDist(player, SPOUT_DIST) && !player->IsInWater())
+                            DoCast(player, SPELL_SPOUT, true); // only knock back players in arc, in 100yards, not in water
+                    });
 
                     if (SpoutAnimTimer <= diff)
                     {
@@ -369,7 +367,7 @@ public:
 
                 if (!Spawned)
                 {
-                    me->SetUnitFlags(UNIT_FLAG_IMMUNE_TO_PC);
+                    me->ReplaceAllUnitFlags(UNIT_FLAG_IMMUNE_TO_PC);
                     // spawn adds
                     for (uint8 i = 0; i < 9; ++i)
                         if (Creature* summoned = me->SummonCreature(i < 6 ? NPC_COILFANG_AMBUSHER : NPC_COILFANG_GUARDIAN, AddPos[i][0], AddPos[i][1], AddPos[i][2], 0, TEMPSUMMON_CORPSE_DESPAWN))
@@ -457,7 +455,7 @@ class go_strange_pool : public GameObjectScript
 
             InstanceScript* instance;
 
-            bool GossipHello(Player* player) override
+            bool OnGossipHello(Player* player) override
             {
                 // 25%
                 if (!urand(0, 3))

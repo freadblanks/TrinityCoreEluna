@@ -21,7 +21,7 @@
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
-#include "ScriptedEscortAI.h"
+#include "ScriptedCreature.h"
 #include "SpellScript.h"
 
 enum BloodyBreakoutTexts
@@ -109,7 +109,7 @@ struct npc_koltira_deathweaver : public ScriptedAI
         _eventGossip = false;
     }
 
-    bool GossipHello(Player* player) override
+    bool OnGossipHello(Player* player) override
     {
         ObjectGuid const guid = me->GetGUID();
         _playerGUID = player->GetGUID();
@@ -127,7 +127,7 @@ struct npc_koltira_deathweaver : public ScriptedAI
         return false;
     }
 
-    void QuestAccept(Player* /* player */, Quest const* quest) override
+    void OnQuestAccept(Player* /* player */, Quest const* quest) override
     {
         if (quest->GetQuestId() == QUEST_BLOODY_BREAKOUT)
         {
@@ -139,7 +139,7 @@ struct npc_koltira_deathweaver : public ScriptedAI
     void Reset() override
     {
         me->SetImmuneToNPC(true);
-        me->AddNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+        me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
         me->SetStandState(UNIT_STAND_STATE_DEAD);
         me->RemoveAllAuras();
 
@@ -203,7 +203,7 @@ struct npc_koltira_deathweaver : public ScriptedAI
                 case EVENT_INTRO_6:
                     Talk(SAY_KOLTIRA_3);
                     me->SetStandState(UNIT_STAND_STATE_KNEEL);
-                    me->AddNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+                    me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
                     _eventGossip = true;
 
                     break;
@@ -611,6 +611,7 @@ public:
     };
 };
 
+// 53110 - Devour Humanoid
 class spell_death_knight_devour_humanoid : public SpellScript
 {
     PrepareSpellScript(spell_death_knight_devour_humanoid);

@@ -34,7 +34,6 @@
 #include "Player.h"
 #include "Random.h"
 #include "ScriptMgr.h"
-#include "SpellAuras.h"
 #include "TemporarySummon.h"
 #include "World.h"
 #include "WorldStatePackets.h"
@@ -215,7 +214,6 @@ void BattlefieldTB::OnPlayerJoinWar(Player* player)
     if (player->GetTeamId() == GetAttackerTeam() && GetData(BATTLEFIELD_TB_DATA_TOWERS_DESTROYED) > 0)
         player->CastSpell(player, SPELL_TOWER_ATTACK_BONUS, CastSpellExtraArgs(TRIGGERED_FULL_MASK).AddSpellMod(SPELLVALUE_AURA_STACK, GetData(BATTLEFIELD_TB_DATA_TOWERS_DESTROYED)));
 }
-
 
 void BattlefieldTB::OnPlayerLeaveWar(Player* player)
 {

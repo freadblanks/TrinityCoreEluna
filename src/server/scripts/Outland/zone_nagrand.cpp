@@ -27,12 +27,10 @@ npc_maghar_captive
 EndContentData */
 
 #include "ScriptMgr.h"
-#include "GameObject.h"
 #include "GameObjectAI.h"
 #include "MotionMaster.h"
 #include "Player.h"
 #include "ScriptedEscortAI.h"
-#include "ScriptedGossip.h"
 #include "SpellInfo.h"
 #include "TemporarySummon.h"
 
@@ -201,7 +199,7 @@ public:
             DoMeleeAttackIfReady();
         }
 
-        void QuestAccept(Player* player, Quest const* quest) override
+        void OnQuestAccept(Player* player, Quest const* quest) override
         {
             if (quest->GetQuestId() == QUEST_TOTEM_KARDASH_H)
             {
@@ -395,7 +393,7 @@ public:
             DoMeleeAttackIfReady();
         }
 
-        void QuestAccept(Player* player, Quest const* quest) override
+        void OnQuestAccept(Player* player, Quest const* quest) override
         {
             if (quest->GetQuestId() == QUEST_TOTEM_KARDASH_A)
             {
@@ -531,7 +529,7 @@ public:
             });
         }
 
-        void DamageTaken(Unit* /*attacker*/, uint32& damage) override
+        void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
         {
             if (!has_fled && me->GetHealth() > damage && me->HealthBelowPctDamaged(15, damage))
             {
@@ -583,7 +581,7 @@ public:
             used_bloodthirst = false;
         }
 
-        void DamageTaken(Unit* /*attacker*/, uint32& damage) override
+        void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
         {
             if (!used_bloodthirst && me->GetHealth() > damage && me->HealthBelowPctDamaged(50, damage))
             {
@@ -612,7 +610,7 @@ public:
             used_transform = false;
         }
 
-        void DamageTaken(Unit* /*attacker*/, uint32& damage) override
+        void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
         {
             if (!used_transform && me->GetHealth() > damage && me->HealthBelowPctDamaged(65, damage))
             {
@@ -653,7 +651,7 @@ public:
                 });
         }
 
-        void DamageTaken(Unit* /*attacker*/, uint32& damage) override
+        void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
         {
             if (!used_healing && me->GetHealth() > damage && me->HealthBelowPctDamaged(50, damage))
             {

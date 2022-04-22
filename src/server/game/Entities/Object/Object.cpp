@@ -41,9 +41,11 @@
 #include "PhasingHandler.h"
 #include "Player.h"
 #include "ReputationMgr.h"
+#include "SmoothPhasing.h"
 #include "SpellAuraEffects.h"
 #include "SpellMgr.h"
 #include "SpellPackets.h"
+#include "StringConvert.h"
 #include "TemporarySummon.h"
 #include "Totem.h"
 #include "Transport.h"
@@ -52,8 +54,8 @@
 #include "Util.h"
 #include "VMapFactory.h"
 #include "Vehicle.h"
+#include "VMapManager2.h"
 #include "World.h"
-#include "WorldSession.h"
 #include <G3D/Vector3.h>
 #include <sstream>
 #ifdef ELUNA
@@ -79,6 +81,7 @@ Object::Object() : m_values(this)
 
     m_inWorld           = false;
     m_isNewObject       = false;
+    m_isDestroyedObject = false;
     m_objectUpdated     = false;
 }
 
@@ -171,6 +174,9 @@ void Object::BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) c
 
         if (worldObject->GetAIAnimKitId() || worldObject->GetMovementAnimKitId() || worldObject->GetMeleeAnimKitId())
             flags.AnimKit = true;
+
+        if (worldObject->GetSmoothPhasing() && worldObject->GetSmoothPhasing()->GetInfoForSeer(target->GetGUID()))
+            flags.SmoothPhasing = true;
     }
 
     if (Unit const* unit = ToUnit())
@@ -186,7 +192,7 @@ void Object::BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) c
     buf << GetGUID();
     buf << uint8(objectType);
 
-    BuildMovementUpdate(&buf, flags);
+    BuildMovementUpdate(&buf, flags, target);
     BuildValuesCreate(&buf, target);
     data->AddUpdateBlock(buf);
 }
@@ -252,7 +258,18 @@ void Object::DestroyForPlayer(Player* target) const
     target->SendDirectMessage(&packet);
 }
 
-void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags) const
+void Object::SendOutOfRangeForPlayer(Player* target) const
+{
+    ASSERT(target);
+
+    UpdateData updateData(target->GetMapId());
+    BuildOutOfRangeUpdateBlock(&updateData);
+    WorldPacket packet;
+    updateData.BuildPacket(&packet);
+    target->SendDirectMessage(&packet);
+}
+
+void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags, Player* target) const
 {
     std::vector<uint32> const* PauseTimes = nullptr;
     uint32 PauseTimesCount = 0;
@@ -291,8 +308,13 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags) const
         bool HasFallDirection = unit->HasUnitMovementFlag(MOVEMENTFLAG_FALLING);
         bool HasFall = HasFallDirection || unit->m_movementInfo.jump.fallTime != 0;
         bool HasSpline = unit->IsSplineEnabled();
+        bool HasInertia = unit->m_movementInfo.inertia.has_value();
 
         *data << GetGUID();                                             // MoverGUID
+
+        *data << uint32(unit->GetUnitMovementFlags());
+        *data << uint32(unit->GetExtraUnitMovementFlags());
+        *data << uint32(unit->GetExtraUnitMovementFlags2());
 
         *data << uint32(unit->m_movementInfo.time);                     // MoveTime
         *data << float(unit->GetPositionX());
@@ -309,16 +331,22 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags) const
         //for (std::size_t i = 0; i < RemoveForcesIDs.size(); ++i)
         //    *data << ObjectGuid(RemoveForcesIDs);
 
-        data->WriteBits(unit->GetUnitMovementFlags(), 30);
-        data->WriteBits(unit->GetExtraUnitMovementFlags(), 18);
         data->WriteBit(!unit->m_movementInfo.transport.guid.IsEmpty()); // HasTransport
         data->WriteBit(HasFall);                                        // HasFall
         data->WriteBit(HasSpline);                                      // HasSpline - marks that the unit uses spline movement
         data->WriteBit(false);                                          // HeightChangeFailed
         data->WriteBit(false);                                          // RemoteTimeValid
+        data->WriteBit(HasInertia);                                     // HasInertia
 
         if (!unit->m_movementInfo.transport.guid.IsEmpty())
             *data << unit->m_movementInfo.transport;
+
+        if (HasInertia)
+        {
+            *data << unit->m_movementInfo.inertia->guid;
+            *data << unit->m_movementInfo.inertia->force.PositionXYZStream();
+            *data << uint32(unit->m_movementInfo.inertia->lifetime);
+        }
 
         if (HasFall)
         {
@@ -446,6 +474,7 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags) const
         bool hasAreaTriggerBox      = shape.IsBox();
         bool hasAreaTriggerPolygon  = createProperties && shape.IsPolygon();
         bool hasAreaTriggerCylinder = shape.IsCylinder();
+        bool hasDisk                = shape.IsDisk();
         bool hasAreaTriggerSpline   = areaTrigger->HasSplines();
         bool hasOrbit               = areaTrigger->HasOrbit();
         bool hasMovementScript      = false;
@@ -465,6 +494,7 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags) const
         data->WriteBit(hasAreaTriggerBox);
         data->WriteBit(hasAreaTriggerPolygon);
         data->WriteBit(hasAreaTriggerCylinder);
+        data->WriteBit(hasDisk);
         data->WriteBit(hasAreaTriggerSpline);
         data->WriteBit(hasOrbit);
         data->WriteBit(hasMovementScript);
@@ -534,6 +564,18 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags) const
             *data << float(shape.CylinderDatas.LocationZOffsetTarget);
         }
 
+        if (hasDisk)
+        {
+            *data << float(shape.DiskDatas.InnerRadius);
+            *data << float(shape.DiskDatas.InnerRadiusTarget);
+            *data << float(shape.DiskDatas.OuterRadius);
+            *data << float(shape.DiskDatas.OuterRadiusTarget);
+            *data << float(shape.DiskDatas.Height);
+            *data << float(shape.DiskDatas.HeightTarget);
+            *data << float(shape.DiskDatas.LocationZOffset);
+            *data << float(shape.DiskDatas.LocationZOffsetTarget);
+        }
+
         //if (hasMovementScript)
         //    *data << *areaTrigger->GetMovementScript(); // AreaTriggerMovementScriptInfo
 
@@ -556,15 +598,18 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags) const
             *data << uint32(Int1);
     }
 
-    //if (flags.SmoothPhasing)
-    //{
-    //    data->WriteBit(ReplaceActive);
-    //    data->WriteBit(StopAnimKits);
-    //    data->WriteBit(HasReplaceObject);
-    //    data->FlushBits();
-    //    if (HasReplaceObject)
-    //        *data << ObjectGuid(ReplaceObject);
-    //}
+    if (flags.SmoothPhasing)
+    {
+        SmoothPhasingInfo const* smoothPhasingInfo = static_cast<WorldObject const*>(this)->GetSmoothPhasing()->GetInfoForSeer(target->GetGUID());
+        ASSERT(smoothPhasingInfo);
+
+        data->WriteBit(smoothPhasingInfo->ReplaceActive);
+        data->WriteBit(smoothPhasingInfo->StopAnimKits);
+        data->WriteBit(smoothPhasingInfo->ReplaceObject.has_value());
+        data->FlushBits();
+        if (smoothPhasingInfo->ReplaceObject)
+            *data << *smoothPhasingInfo->ReplaceObject;
+    }
 
     if (flags.SceneObject)
     {
@@ -931,7 +976,7 @@ void WorldObject::RemoveFromWorld()
     if (!IsInWorld())
         return;
 
-    DestroyForNearbyPlayers();
+    UpdateObjectVisibilityOnDestroy();
 
     Object::RemoveFromWorld();
 }
@@ -1411,6 +1456,14 @@ bool WorldObject::CheckPrivateObjectOwnerVisibility(WorldObject const* seer) con
     return false;
 }
 
+SmoothPhasing* WorldObject::GetOrCreateSmoothPhasing()
+{
+    if (!_smoothPhasing)
+        _smoothPhasing = std::make_unique<SmoothPhasing>();
+
+    return _smoothPhasing.get();
+}
+
 bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool ignoreStealth, bool distanceCheck, bool checkAlert) const
 {
     if (this == obj)
@@ -1424,6 +1477,10 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool ignoreStealth, boo
 
     if (!obj->CheckPrivateObjectOwnerVisibility(this))
         return false;
+
+    if (SmoothPhasing const* smoothPhasing = obj->GetSmoothPhasing())
+        if (smoothPhasing->IsBeingReplacedForSeer(GetGUID()))
+            return false;
 
     if (!sConditionMgr->IsObjectMeetingVisibilityByObjectIdConditions(obj->GetTypeId(), obj->GetEntry(), const_cast<WorldObject*>(this)))
         return false;
@@ -1493,7 +1550,7 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool ignoreStealth, boo
         {
             if (Player const* objPlayer = obj->ToPlayer())
             {
-                if (thisPlayer->GetTeam() != objPlayer->GetTeam() || !thisPlayer->IsGroupVisibleFor(objPlayer))
+                if (!thisPlayer->IsGroupVisibleFor(objPlayer))
                     return false;
             }
             else
@@ -1521,10 +1578,18 @@ bool WorldObject::CanDetect(WorldObject const* obj, bool ignoreStealth, bool che
 {
     WorldObject const* seer = this;
 
+    // If a unit is possessing another one, it uses the detection of the latter
     // Pets don't have detection, they use the detection of their masters
     if (Unit const* thisUnit = ToUnit())
-        if (Unit* controller = thisUnit->GetCharmerOrOwner())
+    {
+        if (thisUnit->isPossessing())
+        {
+            if (Unit* charmed = thisUnit->GetCharmed())
+                seer = charmed;
+        }
+        else if (Unit* controller = thisUnit->GetCharmerOrOwner())
             seer = controller;
+    }
 
     if (obj->IsAlwaysDetectableFor(seer))
         return true;
@@ -1743,7 +1808,7 @@ void WorldObject::AddObjectToRemoveList()
     map->AddObjectToRemoveList(this);
 }
 
-TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropertiesEntry const* properties /*= nullptr*/, uint32 duration /*= 0*/, WorldObject* summoner /*= nullptr*/, uint32 spellId /*= 0*/, uint32 vehId /*= 0*/, ObjectGuid privateObjectOwner /*= ObjectGuid::Empty*/)
+TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropertiesEntry const* properties /*= nullptr*/, uint32 duration /*= 0*/, WorldObject* summoner /*= nullptr*/, uint32 spellId /*= 0*/, uint32 vehId /*= 0*/, ObjectGuid privateObjectOwner /*= ObjectGuid::Empty*/, SmoothPhasingInfo const* smoothPhasingInfo /* = nullptr*/)
 {
     uint32 mask = UNIT_MASK_SUMMON;
     if (properties)
@@ -1821,6 +1886,18 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
         return nullptr;
     }
 
+    Transport* transport = summoner ? summoner->GetTransport() : nullptr;
+    if (transport)
+    {
+        float x, y, z, o;
+        pos.GetPosition(x, y, z, o);
+        transport->CalculatePassengerOffset(x, y, z, &o);
+        summon->m_movementInfo.transport.pos.Relocate(x, y, z, o);
+
+        // This object must be added to transport before adding to map for the client to properly display it
+        transport->AddPassenger(summon);
+    }
+
     if (summoner && !(properties && properties->GetFlags().HasFlag(SummonPropertiesFlags::IgnoreSummonerPhase)))
         PhasingHandler::InheritPhaseShift(summon, summoner);
 
@@ -1832,7 +1909,33 @@ TempSummon* Map::SummonCreature(uint32 entry, Position const& pos, SummonPropert
 
     summon->SetPrivateObjectOwner(privateObjectOwner);
 
-    AddToMap(summon->ToCreature());
+    if (smoothPhasingInfo)
+    {
+        if (summoner && smoothPhasingInfo->ReplaceObject)
+        {
+            if (WorldObject* replacedObject = ObjectAccessor::GetWorldObject(*summoner, *smoothPhasingInfo->ReplaceObject))
+            {
+                SmoothPhasingInfo originalSmoothPhasingInfo = *smoothPhasingInfo;
+                originalSmoothPhasingInfo.ReplaceObject = summon->GetGUID();
+                replacedObject->GetOrCreateSmoothPhasing()->SetViewerDependentInfo(privateObjectOwner, originalSmoothPhasingInfo);
+
+                summon->SetDemonCreatorGUID(privateObjectOwner);
+            }
+        }
+
+        summon->GetOrCreateSmoothPhasing()->SetSingleInfo(*smoothPhasingInfo);
+    }
+
+    if (!AddToMap(summon->ToCreature()))
+    {
+        // Returning false will cause the object to be deleted - remove from transport
+        if (transport)
+            transport->RemovePassenger(summon);
+
+        delete summon;
+        return nullptr;
+    }
+
     summon->InitSummon();
 
     // call MoveInLineOfSight for nearby creatures
@@ -1865,8 +1968,8 @@ void WorldObject::SetZoneScript()
 {
     if (Map* map = FindMap())
     {
-        if (map->IsDungeon())
-            m_zoneScript = (ZoneScript*)((InstanceMap*)map)->GetInstanceScript();
+        if (InstanceMap* instanceMap = map->ToInstanceMap())
+            m_zoneScript = reinterpret_cast<ZoneScript*>(instanceMap->GetInstanceScript());
         else if (!map->IsBattlegroundOrArena())
         {
             if (Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(GetZoneId()))
@@ -1909,11 +2012,14 @@ TempSummon* WorldObject::SummonCreature(uint32 id, float x, float y, float z, fl
     return SummonCreature(id, { x,y,z,o }, despawnType, despawnTime, 0, 0, privateObjectOwner);
 }
 
-TempSummon* WorldObject::SummonPersonalClone(Position const& pos, TempSummonType despawnType /*= TEMPSUMMON_MANUAL_DESPAWN*/, Milliseconds despawnTime /*= 0s*/, uint32 vehId /*= 0*/, uint32 spellId /*= 0*/, ObjectGuid privateObjectOwner /*= ObjectGuid::Empty*/)
+TempSummon* WorldObject::SummonPersonalClone(Position const& pos, TempSummonType despawnType /*= TEMPSUMMON_MANUAL_DESPAWN*/, Milliseconds despawnTime /*= 0s*/, uint32 vehId /*= 0*/, uint32 spellId /*= 0*/, Player* privateObjectOwner /*= nullptr*/)
 {
+    ASSERT(privateObjectOwner);
+
     if (Map* map = FindMap())
     {
-        if (TempSummon* summon = map->SummonCreature(GetEntry(), pos, nullptr, despawnTime.count(), this, spellId, vehId, privateObjectOwner))
+        SmoothPhasingInfo smoothPhasingInfo{GetGUID(), true, true};
+        if (TempSummon* summon = map->SummonCreature(GetEntry(), pos, nullptr, despawnTime.count(), privateObjectOwner, spellId, vehId, privateObjectOwner->GetGUID(), &smoothPhasingInfo))
         {
             summon->SetTempSummonType(despawnType);
             return summon;
@@ -2015,10 +2121,10 @@ Creature* WorldObject::FindNearestCreature(uint32 entry, float range, bool alive
     return creature;
 }
 
-GameObject* WorldObject::FindNearestGameObject(uint32 entry, float range) const
+GameObject* WorldObject::FindNearestGameObject(uint32 entry, float range, bool spawnedOnly) const
 {
     GameObject* go = nullptr;
-    Trinity::NearestGameObjectEntryInObjectRangeCheck checker(*this, entry, range);
+    Trinity::NearestGameObjectEntryInObjectRangeCheck checker(*this, entry, range, spawnedOnly);
     Trinity::GameObjectLastSearcher<Trinity::NearestGameObjectEntryInObjectRangeCheck> searcher(this, go, checker);
     Cell::VisitGridObjects(this, searcher, range);
     return go;
@@ -2340,54 +2446,62 @@ SpellMissInfo WorldObject::MagicSpellHitResult(Unit* victim, SpellInfo const* sp
     if (!victim->IsAlive() && victim->GetTypeId() != TYPEID_PLAYER)
         return SPELL_MISS_NONE;
 
-    SpellSchoolMask schoolMask = spellInfo->GetSchoolMask();
-    // PvP - PvE spell misschances per leveldif > 2
-    int32 lchance = victim->GetTypeId() == TYPEID_PLAYER ? 7 : 11;
-    int32 thisLevel = GetLevelForTarget(victim);
-    if (GetTypeId() == TYPEID_UNIT && ToCreature()->IsTrigger())
-        thisLevel = std::max<int32>(thisLevel, spellInfo->SpellLevel);
-    int32 leveldif = int32(victim->GetLevelForTarget(this)) - thisLevel;
-    int32 levelBasedHitDiff = leveldif;
-
-    // Base hit chance from attacker and victim levels
-    int32 modHitChance = 100;
-    if (levelBasedHitDiff >= 0)
+    float missChance = [&]()
     {
-        if (victim->GetTypeId() != TYPEID_PLAYER)
+        if (spellInfo->HasAttribute(SPELL_ATTR7_NO_ATTACK_MISS))
+            return 0.0f;
+
+        SpellSchoolMask schoolMask = spellInfo->GetSchoolMask();
+        // PvP - PvE spell misschances per leveldif > 2
+        int32 lchance = victim->GetTypeId() == TYPEID_PLAYER ? 7 : 11;
+        int32 thisLevel = GetLevelForTarget(victim);
+        if (GetTypeId() == TYPEID_UNIT && ToCreature()->IsTrigger())
+            thisLevel = std::max<int32>(thisLevel, spellInfo->SpellLevel);
+        int32 leveldif = int32(victim->GetLevelForTarget(this)) - thisLevel;
+        int32 levelBasedHitDiff = leveldif;
+
+        // Base hit chance from attacker and victim levels
+        int32 modHitChance = 100;
+        if (levelBasedHitDiff >= 0)
         {
-            modHitChance = 94 - 3 * std::min(levelBasedHitDiff, 3);
-            levelBasedHitDiff -= 3;
+            if (victim->GetTypeId() != TYPEID_PLAYER)
+            {
+                modHitChance = 94 - 3 * std::min(levelBasedHitDiff, 3);
+                levelBasedHitDiff -= 3;
+            }
+            else
+            {
+                modHitChance = 96 - std::min(levelBasedHitDiff, 2);
+                levelBasedHitDiff -= 2;
+            }
+            if (levelBasedHitDiff > 0)
+                modHitChance -= lchance * std::min(levelBasedHitDiff, 7);
         }
         else
+            modHitChance = 97 - levelBasedHitDiff;
+
+        // Spellmod from SpellModOp::HitChance
+        if (Player* modOwner = GetSpellModOwner())
+            modOwner->ApplySpellMod(spellInfo, SpellModOp::HitChance, modHitChance);
+
+        // Spells with SPELL_ATTR3_IGNORE_HIT_RESULT will ignore target's avoidance effects
+        if (!spellInfo->HasAttribute(SPELL_ATTR3_IGNORE_HIT_RESULT))
         {
-            modHitChance = 96 - std::min(levelBasedHitDiff, 2);
-            levelBasedHitDiff -= 2;
+            // Chance hit from victim SPELL_AURA_MOD_ATTACKER_SPELL_HIT_CHANCE auras
+            modHitChance += victim->GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_ATTACKER_SPELL_HIT_CHANCE, schoolMask);
         }
-        if (levelBasedHitDiff > 0)
-            modHitChance -= lchance * std::min(levelBasedHitDiff, 7);
-    }
-    else
-        modHitChance = 97 - levelBasedHitDiff;
 
-    // Spellmod from SpellModOp::HitChance
-    if (Player* modOwner = GetSpellModOwner())
-        modOwner->ApplySpellMod(spellInfo, SpellModOp::HitChance, modHitChance);
+        float HitChance = modHitChance;
+        // Increase hit chance from attacker SPELL_AURA_MOD_SPELL_HIT_CHANCE and attacker ratings
+        if (Unit const* unit = ToUnit())
+            HitChance += unit->m_modSpellHitChance;
 
-    // Spells with SPELL_ATTR3_IGNORE_HIT_RESULT will ignore target's avoidance effects
-    if (!spellInfo->HasAttribute(SPELL_ATTR3_IGNORE_HIT_RESULT))
-    {
-        // Chance hit from victim SPELL_AURA_MOD_ATTACKER_SPELL_HIT_CHANCE auras
-        modHitChance += victim->GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_ATTACKER_SPELL_HIT_CHANCE, schoolMask);
-    }
+        RoundToInterval(HitChance, 0.0f, 100.0f);
 
-    int32 HitChance = modHitChance * 100;
-    // Increase hit chance from attacker SPELL_AURA_MOD_SPELL_HIT_CHANCE and attacker ratings
-    if (Unit const* unit = ToUnit())
-        HitChance += int32(unit->m_modSpellHitChance * 100.0f);
+        return 100.0f - HitChance;
+    }();
 
-    RoundToInterval(HitChance, 0, 10000);
-
-    int32 tmp = 10000 - HitChance;
+    int32 tmp = int32(missChance * 100.0f);
 
     int32 rand = irand(0, 9999);
     if (tmp > 0 && rand < tmp)
@@ -2695,6 +2809,9 @@ SpellCastResult WorldObject::CastSpell(CastSpellTargetArg const& targets, uint32
         spell->SetSpellValue(pair.first, pair.second);
 
     spell->m_CastItem = args.CastItem;
+    if (args.OriginalCastItemLevel)
+        spell->m_castItemLevel = *args.OriginalCastItemLevel;
+
     return spell->prepare(*targets.Targets, args.TriggeringAura);
 }
 
@@ -2847,7 +2964,7 @@ bool WorldObject::IsValidAttackTarget(WorldObject const* target, SpellInfo const
         return false;
 
     // can't attack untargetable
-    if ((!bySpell || !bySpell->HasAttribute(SPELL_ATTR6_CAN_TARGET_UNTARGETABLE)) && unitTarget && unitTarget->HasUnitFlag(UNIT_FLAG_NOT_SELECTABLE))
+    if ((!bySpell || !bySpell->HasAttribute(SPELL_ATTR6_CAN_TARGET_UNTARGETABLE)) && unitTarget && unitTarget->HasUnitFlag(UNIT_FLAG_UNINTERACTIBLE))
         return false;
 
     if (Player const* playerAttacker = ToPlayer())
@@ -2857,7 +2974,7 @@ bool WorldObject::IsValidAttackTarget(WorldObject const* target, SpellInfo const
     }
 
     // check flags
-    if (unitTarget && unitTarget->HasUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_TAXI_FLIGHT | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_NON_ATTACKABLE_2)))
+    if (unitTarget && unitTarget->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_ON_TAXI | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_NON_ATTACKABLE_2))
         return false;
 
     Unit const* unitOrOwner = unit;
@@ -2997,11 +3114,11 @@ bool WorldObject::IsValidAssistTarget(WorldObject const* target, SpellInfo const
         return false;
 
     // can't assist untargetable
-    if ((!bySpell || !bySpell->HasAttribute(SPELL_ATTR6_CAN_TARGET_UNTARGETABLE)) && unitTarget && unitTarget->HasUnitFlag(UNIT_FLAG_NOT_SELECTABLE))
+    if ((!bySpell || !bySpell->HasAttribute(SPELL_ATTR6_CAN_TARGET_UNTARGETABLE)) && unitTarget && unitTarget->HasUnitFlag(UNIT_FLAG_UNINTERACTIBLE))
         return false;
 
     // check flags for negative spells
-    if (isNegativeSpell && unitTarget && unitTarget->HasUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_TAXI_FLIGHT | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_NON_ATTACKABLE_2)))
+    if (isNegativeSpell && unitTarget && unitTarget->HasUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_ON_TAXI | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_NON_ATTACKABLE_2))
         return false;
 
     if (isNegativeSpell || !bySpell || !bySpell->HasAttribute(SPELL_ATTR6_ASSIST_IGNORE_IMMUNE_FLAG))
@@ -3118,9 +3235,9 @@ void WorldObject::GetCreatureListWithEntryInGrid(Container& creatureContainer, u
 }
 
 template <typename Container>
-void WorldObject::GetPlayerListInGrid(Container& playerContainer, float maxSearchRange) const
+void WorldObject::GetPlayerListInGrid(Container& playerContainer, float maxSearchRange, bool alive /*= true*/) const
 {
-    Trinity::AnyPlayerInObjectRangeCheck checker(this, maxSearchRange);
+    Trinity::AnyPlayerInObjectRangeCheck checker(this, maxSearchRange, alive);
     Trinity::PlayerListSearcher<Trinity::AnyPlayerInObjectRangeCheck> searcher(this, playerContainer, checker);
     Cell::VisitWorldObjects(this, searcher, maxSearchRange);
 }
@@ -3416,7 +3533,8 @@ void WorldObject::DestroyForNearbyPlayers()
 void WorldObject::UpdateObjectVisibility(bool /*forced*/)
 {
     //updates object's visibility for nearby players
-    Trinity::VisibleChangesNotifier notifier(*this);
+    WorldObject* objects[] = { this };
+    Trinity::VisibleChangesNotifier notifier({ std::begin(objects), std::end(objects) });
     Cell::VisitWorldObjects(this, notifier, GetVisibilityRange());
 }
 
@@ -3521,7 +3639,7 @@ float WorldObject::GetFloorZ() const
 {
     if (!IsInWorld())
         return m_staticFloorZ;
-    return std::max<float>(m_staticFloorZ, GetMap()->GetGameObjectFloor(GetPhaseShift(), GetPositionX(), GetPositionY(), GetPositionZ() + GetCollisionHeight()));
+    return std::max<float>(m_staticFloorZ, GetMap()->GetGameObjectFloor(GetPhaseShift(), GetPositionX(), GetPositionY(), GetPositionZ() + Z_OFFSET_FIND_HEIGHT));
 }
 
 float WorldObject::GetMapWaterOrGroundLevel(float x, float y, float z, float* ground/* = nullptr*/) const
@@ -3534,7 +3652,7 @@ float WorldObject::GetMapWaterOrGroundLevel(float x, float y, float z, float* gr
 float WorldObject::GetMapHeight(float x, float y, float z, bool vmap/* = true*/, float distanceToSearch/* = DEFAULT_HEIGHT_SEARCH*/) const
 {
     if (z != MAX_HEIGHT)
-        z += GetCollisionHeight();
+        z += Z_OFFSET_FIND_HEIGHT;
 
     return GetMap()->GetHeight(GetPhaseShift(), x, y, z, vmap, distanceToSearch);
 }
@@ -3556,6 +3674,6 @@ template TC_GAME_API void WorldObject::GetCreatureListWithEntryInGrid(std::list<
 template TC_GAME_API void WorldObject::GetCreatureListWithEntryInGrid(std::deque<Creature*>&, uint32, float) const;
 template TC_GAME_API void WorldObject::GetCreatureListWithEntryInGrid(std::vector<Creature*>&, uint32, float) const;
 
-template TC_GAME_API void WorldObject::GetPlayerListInGrid(std::list<Player*>&, float) const;
-template TC_GAME_API void WorldObject::GetPlayerListInGrid(std::deque<Player*>&, float) const;
-template TC_GAME_API void WorldObject::GetPlayerListInGrid(std::vector<Player*>&, float) const;
+template TC_GAME_API void WorldObject::GetPlayerListInGrid(std::list<Player*>&, float, bool) const;
+template TC_GAME_API void WorldObject::GetPlayerListInGrid(std::deque<Player*>&, float, bool) const;
+template TC_GAME_API void WorldObject::GetPlayerListInGrid(std::vector<Player*>&, float, bool) const;

@@ -32,6 +32,9 @@ PoolObject::PoolObject(uint64 _guid, float _chance) : guid(_guid), chance(std::f
 ////////////////////////////////////////////////////////////
 // template class ActivePoolData
 
+ActivePoolData::ActivePoolData() = default;
+ActivePoolData::~ActivePoolData() = default;
+
 // Method that tell amount spawned objects/subpools
 uint32 ActivePoolData::GetActiveObjectCount(uint32 pool_id) const
 {
@@ -111,6 +114,14 @@ void ActivePoolData::RemoveObject<Pool>(uint64 sub_pool_id, uint32 pool_id)
 ////////////////////////////////////////////////////////////
 // Methods of template class PoolGroup
 
+template <class T>
+PoolGroup<T>::PoolGroup(): poolId(0)
+{
+}
+
+template <class T>
+PoolGroup<T>::~PoolGroup() = default;
+
 // Method to add a gameobject/creature guid to the proper list depending on pool type and chance value
 template <class T>
 void PoolGroup<T>::AddEntry(PoolObject& poolitem, uint32 maxentries)
@@ -175,7 +186,7 @@ void PoolGroup<T>::DespawnObject(ActivePoolData& spawns, uint64 guid, bool alway
 
 // Method that is actualy doing the removal job on one creature
 template<>
-void PoolGroup<Creature>::Despawn1Object(uint64 guid, bool alwaysDeleteRespawnTime)
+void PoolGroup<Creature>::Despawn1Object(uint64 guid, bool alwaysDeleteRespawnTime, bool saveRespawnTime)
 {
     if (CreatureData const* data = sObjectMgr->GetCreatureData(guid))
     {
@@ -190,7 +201,7 @@ void PoolGroup<Creature>::Despawn1Object(uint64 guid, bool alwaysDeleteRespawnTi
                 Creature* creature = itr->second;
                 ++itr;
                 // For dynamic spawns, save respawn time here
-                if (!creature->GetRespawnCompatibilityMode())
+                if (saveRespawnTime && !creature->GetRespawnCompatibilityMode())
                     creature->SaveRespawnTime();
                 creature->AddObjectToRemoveList();
             }
@@ -203,7 +214,7 @@ void PoolGroup<Creature>::Despawn1Object(uint64 guid, bool alwaysDeleteRespawnTi
 
 // Same on one gameobject
 template<>
-void PoolGroup<GameObject>::Despawn1Object(uint64 guid, bool alwaysDeleteRespawnTime)
+void PoolGroup<GameObject>::Despawn1Object(uint64 guid, bool alwaysDeleteRespawnTime, bool saveRespawnTime)
 {
     if (GameObjectData const* data = sObjectMgr->GetGameObjectData(guid))
     {
@@ -219,7 +230,7 @@ void PoolGroup<GameObject>::Despawn1Object(uint64 guid, bool alwaysDeleteRespawn
                 ++itr;
 
                 // For dynamic spawns, save respawn time here
-                if (!go->GetRespawnCompatibilityMode())
+                if (saveRespawnTime && !go->GetRespawnCompatibilityMode())
                     go->SaveRespawnTime();
                 go->AddObjectToRemoveList();
             }
@@ -232,7 +243,7 @@ void PoolGroup<GameObject>::Despawn1Object(uint64 guid, bool alwaysDeleteRespawn
 
 // Same on one pool
 template<>
-void PoolGroup<Pool>::Despawn1Object(uint64 child_pool_id, bool alwaysDeleteRespawnTime)
+void PoolGroup<Pool>::Despawn1Object(uint64 child_pool_id, bool alwaysDeleteRespawnTime, bool /*saveRespawnTime*/)
 {
     sPoolMgr->DespawnPool(child_pool_id, alwaysDeleteRespawnTime);
 }
@@ -285,7 +296,7 @@ void PoolGroup<T>::SpawnObject(ActivePoolData& spawns, uint32 limit, uint64 trig
                 roll -= obj.chance;
                 // Triggering object is marked as spawned at this time and can be also rolled (respawn case)
                 // so this need explicit check for this case
-                if (roll < 0 && (/*obj.guid == triggerFrom ||*/ !spawns.IsActiveObject<T>(obj.guid)))
+                if (roll < 0 && (obj.guid == triggerFrom || !spawns.IsActiveObject<T>(obj.guid)))
                 {
                     rolledObjects.push_back(obj);
                     break;
@@ -295,9 +306,9 @@ void PoolGroup<T>::SpawnObject(ActivePoolData& spawns, uint32 limit, uint64 trig
 
         if (!EqualChanced.empty() && rolledObjects.empty())
         {
-            std::copy_if(EqualChanced.begin(), EqualChanced.end(), std::back_inserter(rolledObjects), [/*triggerFrom, */&spawns](PoolObject const& object)
+            std::copy_if(EqualChanced.begin(), EqualChanced.end(), std::back_inserter(rolledObjects), [triggerFrom, &spawns](PoolObject const& object)
             {
-                return /*object.guid == triggerFrom ||*/ !spawns.IsActiveObject<T>(object.guid);
+                return object.guid == triggerFrom || !spawns.IsActiveObject<T>(object.guid);
             });
 
             Trinity::Containers::RandomResize(rolledObjects, count);
@@ -374,16 +385,18 @@ void PoolGroup<Pool>::Spawn1Object(PoolObject* obj)
 
 // Method that does the respawn job on the specified creature
 template <>
-void PoolGroup<Creature>::ReSpawn1Object(PoolObject* /*obj*/)
+void PoolGroup<Creature>::ReSpawn1Object(PoolObject* obj)
 {
-    // Creature is still on map, nothing to do
+    Despawn1Object(obj->guid, false, false);
+    Spawn1Object(obj);
 }
 
 // Method that does the respawn job on the specified gameobject
 template <>
-void PoolGroup<GameObject>::ReSpawn1Object(PoolObject* /*obj*/)
+void PoolGroup<GameObject>::ReSpawn1Object(PoolObject* obj)
 {
-    // GameObject is still on map, nothing to do
+    Despawn1Object(obj->guid, false, false);
+    Spawn1Object(obj);
 }
 
 // Nothing to do for a child Pool
@@ -422,7 +435,8 @@ void PoolGroup<Pool>::RemoveRespawnTimeFromDB(uint64 /*guid*/) { }
 ////////////////////////////////////////////////////////////
 // Methods of class PoolMgr
 
-PoolMgr::PoolMgr() { }
+PoolMgr::PoolMgr() = default;
+PoolMgr::~PoolMgr() = default;
 
 void PoolMgr::Initialize()
 {
@@ -556,6 +570,7 @@ void PoolMgr::LoadFromDB()
                 }
 
                 GameObjectTemplate const* goinfo = sObjectMgr->GetGameObjectTemplate(data->id);
+                ASSERT(goinfo);
                 if (goinfo->type != GAMEOBJECT_TYPE_CHEST &&
                     goinfo->type != GAMEOBJECT_TYPE_FISHINGHOLE &&
                     goinfo->type != GAMEOBJECT_TYPE_GATHERING_NODE &&
@@ -843,3 +858,18 @@ void PoolMgr::UpdatePool(uint32 pool_id, uint64 db_guid_or_pool_id)
 template void PoolMgr::UpdatePool<Pool>(uint32 pool_id, uint64 db_guid_or_pool_id);
 template void PoolMgr::UpdatePool<GameObject>(uint32 pool_id, uint64 db_guid_or_pool_id);
 template void PoolMgr::UpdatePool<Creature>(uint32 pool_id, uint64 db_guid_or_pool_id);
+
+void PoolMgr::UpdatePool(uint32 pool_id, SpawnObjectType type, uint64 spawnId)
+{
+    switch (type)
+    {
+        case SPAWN_TYPE_CREATURE:
+            UpdatePool<Creature>(pool_id, spawnId);
+            break;
+        case SPAWN_TYPE_GAMEOBJECT:
+            UpdatePool<GameObject>(pool_id, spawnId);
+            break;
+        default:
+            ABORT_MSG("Invalid spawn type %u passed to PoolMgr::IsPartOfPool (with spawnId " UI64FMTD ")", uint32(type), spawnId);
+    }
+}

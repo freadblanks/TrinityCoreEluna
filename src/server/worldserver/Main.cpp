@@ -46,14 +46,11 @@
 #include "ScriptMgr.h"
 #include "ScriptReloadMgr.h"
 #include "SecretMgr.h"
-#include "SharedDefines.h"
 #include "TCSoap.h"
 #include "World.h"
 #include "WorldSocket.h"
 #include "WorldSocketMgr.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
+#include "Util.h"
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
 #include <boost/asio/signal_set.hpp>
@@ -195,6 +192,8 @@ extern int main(int argc, char** argv)
         return 1;
     }
 
+    std::vector<std::string> overriddenKeys = sConfigMgr->OverrideWithEnvVariablesIfAny();
+
     std::shared_ptr<Trinity::Asio::IoContext> ioContext = std::make_shared<Trinity::Asio::IoContext>();
 
     sLog->RegisterAppender<AppenderDB>();
@@ -213,6 +212,9 @@ extern int main(int argc, char** argv)
             TC_LOG_INFO("server.worldserver", "Using Boost version: %i.%i.%i", BOOST_VERSION / 100000, BOOST_VERSION / 100 % 1000, BOOST_VERSION % 100);
         }
     );
+
+    for (std::string const& key : overriddenKeys)
+        TC_LOG_INFO("server.worldserver", "Configuration field '%s' was overridden with environment variable.", key.c_str());
 
     OpenSSLCrypto::threadsSetup();
 
@@ -284,6 +286,9 @@ extern int main(int argc, char** argv)
     sMetric->Initialize(realm.Name, *ioContext, []()
     {
         TC_METRIC_VALUE("online_players", sWorld->GetPlayerCount());
+        TC_METRIC_VALUE("db_queue_login", uint64(LoginDatabase.QueueSize()));
+        TC_METRIC_VALUE("db_queue_character", uint64(CharacterDatabase.QueueSize()));
+        TC_METRIC_VALUE("db_queue_world", uint64(WorldDatabase.QueueSize()));
     });
 
     TC_METRIC_EVENT("events", "Worldserver started", "");
@@ -313,10 +318,6 @@ extern int main(int argc, char** argv)
         sInstanceSaveMgr->Unload();
         sOutdoorPvPMgr->Die();                    // unload it before MapManager
         sMapMgr->UnloadAll();                     // unload all grids (including locked in memory)
-
-#ifdef ELUNA
-        Eluna::Uninitialize();
-#endif
     });
 
     // Start the Remote Access port (acceptor) if enabled

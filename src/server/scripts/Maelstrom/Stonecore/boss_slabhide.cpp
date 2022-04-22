@@ -21,7 +21,6 @@
 #include "Map.h"
 #include "MotionMaster.h"
 #include "ScriptedCreature.h"
-#include "Spell.h"
 #include "SpellScript.h"
 #include "stonecore.h"
 
@@ -118,7 +117,6 @@ class boss_slabhide : public CreatureScript
                 me->setActive(true);
                 me->SetCanFly(true);
                 me->SetDisableGravity(true);
-                me->SetAnimTier(UnitBytes1_Flags(UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER), false);
                 me->SetReactState(REACT_PASSIVE);
                 instance->SetData(DATA_SLABHIDE_INTRO, NOT_STARTED);
                 _isFlying = false;
@@ -134,7 +132,6 @@ class boss_slabhide : public CreatureScript
 
                 me->SetCanFly(false);
                 me->SetDisableGravity(false);
-                me->SetAnimTier(UNIT_BYTE1_FLAG_NONE, false);
                 me->SetReactState(REACT_AGGRESSIVE);
                 _isFlying = false;
             }
@@ -149,7 +146,7 @@ class boss_slabhide : public CreatureScript
                 events.ScheduleEvent(EVENT_AIR_PHASE, 10s);
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
+            void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
             {
                 if (_isFlying && damage >= me->GetHealth())
                     damage = me->GetHealth() - 1; // Let creature health fall to 1 hp but prevent it from dying during air phase.
@@ -197,11 +194,10 @@ class boss_slabhide : public CreatureScript
                     case POINT_SLABHIDE_INTRO_LAND:
                         me->SetCanFly(false);
                         me->SetDisableGravity(false);
-                        me->SetAnimTier(UNIT_BYTE1_FLAG_NONE, false);
                         me->SetHover(false);
                         me->SetHomePosition(SlabhideIntroLandPos);
                         me->HandleEmoteCommand(EMOTE_ONESHOT_ROAR);
-                        me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                        me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
                         me->SetReactState(REACT_AGGRESSIVE);
                         instance->SetData(DATA_SLABHIDE_INTRO, DONE);
                         break;
@@ -261,7 +257,6 @@ class boss_slabhide : public CreatureScript
                         case EVENT_STALACTITE:
                             me->SetCanFly(true);
                             me->SetDisableGravity(true);
-                            me->SetAnimTier(UnitBytes1_Flags(UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_HOVER), false);
                             me->SetHover(true);
 
                             DoCast(me, SPELL_STALACTITE_SUMMON);
@@ -278,7 +273,6 @@ class boss_slabhide : public CreatureScript
                         case EVENT_ATTACK:
                             me->SetCanFly(false);
                             me->SetDisableGravity(false);
-                            me->SetAnimTier(UNIT_BYTE1_FLAG_NONE, false);
                             me->SetHover(false);
 
                             events.ScheduleEvent(EVENT_LAVA_FISSURE, 6s, 8s);

@@ -16,13 +16,14 @@
  */
 
 #include "GuildMgr.h"
-#include "DB2Stores.h"
+#include "AchievementMgr.h"
 #include "DatabaseEnv.h"
+#include "DB2Stores.h"
 #include "Guild.h"
 #include "Log.h"
 #include "ObjectMgr.h"
+#include "Util.h"
 #include "World.h"
-#include <algorithm>
 
 GuildMgr::GuildMgr() : NextGuildId(UI64LIT(1))
 {
@@ -81,17 +82,12 @@ Guild* GuildMgr::GetGuildByGuid(ObjectGuid guid) const
     return nullptr;
 }
 
-Guild* GuildMgr::GetGuildByName(const std::string& guildName) const
+Guild* GuildMgr::GetGuildByName(std::string_view guildName) const
 {
-    std::string search = guildName;
-    std::transform(search.begin(), search.end(), search.begin(), ::toupper);
-    for (GuildContainer::const_iterator itr = GuildStore.begin(); itr != GuildStore.end(); ++itr)
-    {
-        std::string gname = itr->second->GetName();
-        std::transform(gname.begin(), gname.end(), gname.begin(), ::toupper);
-        if (search == gname)
-            return itr->second;
-    }
+    for (auto [id, guild] : GuildStore)
+        if (StringEqualI(guild->GetName(), guildName))
+            return guild;
+
     return nullptr;
 }
 
@@ -364,7 +360,6 @@ void GuildMgr::LoadGuilds()
             TC_LOG_INFO("server.loading", ">> Loaded %u guild new logs in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
         }
     }
-
 
     // 8. Load all guild bank tabs
     TC_LOG_INFO("server.loading", "Loading guild bank tabs...");

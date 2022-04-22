@@ -640,6 +640,7 @@ WorldPacket const* WorldPackets::Misc::AccountHeirloomUpdate::Write()
 void WorldPackets::Misc::MountSpecial::Read()
 {
     SpellVisualKitIDs.resize(_worldPacket.read<uint32>());
+    _worldPacket >> SequenceVariation;
     for (int32& spellVisualKitId : SpellVisualKitIDs)
         _worldPacket >> spellVisualKitId;
 }
@@ -648,6 +649,7 @@ WorldPacket const* WorldPackets::Misc::SpecialMountAnim::Write()
 {
     _worldPacket << UnitGUID;
     _worldPacket << uint32(SpellVisualKitIDs.size());
+    _worldPacket << int32(SequenceVariation);
     if (!SpellVisualKitIDs.empty())
         _worldPacket.append(SpellVisualKitIDs.data(), SpellVisualKitIDs.size());
 
@@ -738,6 +740,36 @@ void WorldPackets::Misc::ConversationLineStarted::Read()
 WorldPacket const* WorldPackets::Misc::SplashScreenShowLatest::Write()
 {
     _worldPacket << int32(UISplashScreenID);
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Misc::DisplayToast::Write()
+{
+    _worldPacket << uint64(Quantity);
+    _worldPacket << uint8(AsUnderlyingType(DisplayToastMethod));
+    _worldPacket << uint32(QuestID);
+
+    _worldPacket.WriteBit(Mailed);
+    _worldPacket.WriteBits(AsUnderlyingType(Type), 2);
+    _worldPacket.WriteBit(IsSecondaryResult);
+
+    switch (Type)
+    {
+        case DisplayToastType::NewItem:
+            _worldPacket.WriteBit(BonusRoll);
+            _worldPacket << Item;
+            _worldPacket << int32(LootSpec);
+            _worldPacket << int32(Gender);
+            break;
+        case DisplayToastType::NewCurrency:
+            _worldPacket << uint32(CurrencyID);
+            break;
+        default:
+            break;
+    }
+
+    _worldPacket.FlushBits();
 
     return &_worldPacket;
 }

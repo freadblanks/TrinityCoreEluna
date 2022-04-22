@@ -28,9 +28,8 @@
 #include "ObjectAccessor.h"
 #include "PassiveAI.h"
 #include "Player.h"
-#include "ScriptedEscortAI.h"
+#include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
-#include "Spell.h"
 #include "SpellScript.h"
 #include "SpellInfo.h"
 #include "TemporarySummon.h"
@@ -332,7 +331,7 @@ class go_acherus_soul_prison : public GameObjectScript
         {
             go_acherus_soul_prisonAI(GameObject* go) : GameObjectAI(go) { }
 
-            bool GossipHello(Player* player) override
+            bool OnGossipHello(Player* player) override
             {
                 if (Creature* anchor = me->FindNearestCreature(29521, 15))
                 {
@@ -352,6 +351,7 @@ class go_acherus_soul_prison : public GameObjectScript
         }
 };
 
+// 51519 - Death Knight Initiate Visual
 class spell_death_knight_initiate_visual : public SpellScript
 {
     PrepareSpellScript(spell_death_knight_initiate_visual);
@@ -388,8 +388,7 @@ class spell_death_knight_initiate_visual : public SpellScript
             default: return;
         }
 
-        target->CastSpell(target, spellId, CastSpellExtraArgs(TRIGGERED_FULL_MASK)
-            .SetOriginalCastId(GetSpell()->m_castId));
+        target->CastSpell(target, spellId, GetSpell());
         target->LoadEquipment();
     }
 
@@ -574,7 +573,7 @@ public:
 
             me->RestoreFaction();
             CombatAI::Reset();
-            me->AddUnitFlag(UNIT_FLAG_CAN_SWIM);
+            me->SetUnitFlag(UNIT_FLAG_CAN_SWIM);
         }
 
         void SpellHit(WorldObject* caster, SpellInfo const* spellInfo) override
@@ -587,7 +586,7 @@ public:
             }
         }
 
-       void DamageTaken(Unit* pDoneBy, uint32 &uiDamage) override
+       void DamageTaken(Unit* pDoneBy, uint32 &uiDamage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
         {
             if (m_bIsDuelInProgress && pDoneBy && pDoneBy->IsControlledByPlayer())
             {
@@ -651,7 +650,7 @@ public:
             CombatAI::UpdateAI(uiDiff);
         }
 
-        bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
+        bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
         {
             uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
             ClearGossipMenuFor(player);
@@ -674,7 +673,7 @@ public:
             return true;
         }
 
-        bool GossipHello(Player* player) override
+        bool OnGossipHello(Player* player) override
         {
             if (player->GetQuestStatus(QUEST_DEATH_CHALLENGE) == QUEST_STATUS_INCOMPLETE && me->IsFullHealth())
             {
@@ -797,7 +796,7 @@ public:
     {
         npc_salanar_the_horsemanAI(Creature* creature) : ScriptedAI(creature) { }
 
-        bool GossipSelect(Player* player, uint32 menuId, uint32 gossipListId) override
+        bool OnGossipSelect(Player* player, uint32 menuId, uint32 gossipListId) override
         {
             if (menuId == GOSSIP_SALANAR_MENU && gossipListId == GOSSIP_SALANAR_OPTION)
             {
@@ -848,6 +847,7 @@ enum HorseSeats
     SEAT_ID_0   = 0
 };
 
+// 52265 - Repo
 class spell_stable_master_repo : public AuraScript
 {
     PrepareAuraScript(spell_stable_master_repo);
@@ -871,6 +871,7 @@ class spell_stable_master_repo : public AuraScript
     }
 };
 
+// 52264 - Deliver Stolen Horse
 class spell_deliver_stolen_horse : public SpellScript
 {
     PrepareSpellScript(spell_deliver_stolen_horse);
@@ -930,7 +931,7 @@ public:
 
             deathcharger->RestoreFaction();
             deathcharger->RemoveNpcFlag(UNIT_NPC_FLAG_SPELLCLICK);
-            deathcharger->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+            deathcharger->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
             if (!me->GetVehicle() && deathcharger->IsVehicle() && deathcharger->GetVehicleKit()->HasEmptySeat(0))
                 me->EnterVehicle(deathcharger);
         }
@@ -943,8 +944,8 @@ public:
 
             if (killer->GetTypeId() == TYPEID_PLAYER && deathcharger->GetTypeId() == TYPEID_UNIT && deathcharger->IsVehicle())
             {
-                deathcharger->AddNpcFlag(UNIT_NPC_FLAG_SPELLCLICK);
-                deathcharger->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                deathcharger->SetNpcFlag(UNIT_NPC_FLAG_SPELLCLICK);
+                deathcharger->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
                 deathcharger->SetFaction(FACTION_SCARLET_CRUSADE_2);
             }
         }
@@ -1084,6 +1085,7 @@ enum GiftOfTheHarvester
     SPELL_GHOST_TRANSFORM   = 52505
 };
 
+// 52479 - Gift of the Harvester
 class spell_gift_of_the_harvester : public SpellScript
 {
     PrepareSpellScript(spell_gift_of_the_harvester);
@@ -1091,10 +1093,10 @@ class spell_gift_of_the_harvester : public SpellScript
     bool Validate(SpellInfo const* /*spell*/) override
     {
         return ValidateSpellInfo(
-                {
-                        SPELL_GHOUL_TRANFORM,
-                        SPELL_GHOST_TRANSFORM
-                });
+        {
+            SPELL_GHOUL_TRANFORM,
+            SPELL_GHOST_TRANSFORM
+        });
     }
 
     void HandleScriptEffect(SpellEffIndex /*effIndex*/)
@@ -1122,7 +1124,7 @@ void AddSC_the_scarlet_enclave_c1()
     new npc_death_knight_initiate();
     RegisterCreatureAI(npc_dark_rider_of_acherus);
     new npc_salanar_the_horseman();
-    RegisterAuraScript(spell_stable_master_repo);
+    RegisterSpellScript(spell_stable_master_repo);
     RegisterSpellScript(spell_deliver_stolen_horse);
     new npc_ros_dark_rider();
     new npc_dkc1_gothik();

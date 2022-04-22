@@ -19,7 +19,6 @@
 #include "GridNotifiers.h"
 #include "halls_of_origination.h"
 #include "InstanceScript.h"
-#include "Map.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
 #include "ScriptedCreature.h"
@@ -115,7 +114,7 @@ public:
             events.ScheduleEvent(EVENT_BURNING_LIGHT, 12s);
         }
 
-        void DamageTaken(Unit* /*attacker*/, uint32& damage) override
+        void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
         {
             if ((me->HealthBelowPctDamaged(66, damage) && _phase == PHASE_FIRST_SHIELD) ||
                 (me->HealthBelowPctDamaged(33, damage) && _phase == PHASE_SECOND_SHIELD))

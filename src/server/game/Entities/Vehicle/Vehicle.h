@@ -18,7 +18,6 @@
 #ifndef __TRINITY_VEHICLE_H
 #define __TRINITY_VEHICLE_H
 
-#include "ObjectDefines.h"
 #include "Object.h"
 #include "VehicleDefines.h"
 #include "Unit.h"
@@ -38,6 +37,11 @@ class TC_GAME_API Vehicle : public TransportBase
         ~Vehicle();
 
     public:
+        Vehicle(Vehicle const& right) = delete;
+        Vehicle(Vehicle&& right) = delete;
+        Vehicle& operator=(Vehicle const& right) = delete;
+        Vehicle& operator=(Vehicle&& right) = delete;
+
         void Install();
         void Uninstall();
         void Reset(bool evading = false);
@@ -63,9 +67,6 @@ class TC_GAME_API Vehicle : public TransportBase
         bool IsVehicleInUse() const;
         bool IsControllableVehicle() const;
 
-        void SetLastShootPos(Position const& pos) { _lastShootPos.Relocate(pos); }
-        Position const& GetLastShootPos() const { return _lastShootPos; }
-
         SeatMap::iterator GetSeatIteratorForPassenger(Unit* passenger);
         SeatMap Seats;                                      ///< The collection of all seats on the vehicle. Including vacant ones.
 
@@ -74,6 +75,8 @@ class TC_GAME_API Vehicle : public TransportBase
         void RemovePendingEventsForPassenger(Unit* passenger);
 
         Milliseconds GetDespawnDelay();
+
+        std::string GetDebugInfo() const;
 
     protected:
         friend class VehicleJoinEvent;
@@ -117,7 +120,6 @@ class TC_GAME_API Vehicle : public TransportBase
 
         uint32 _creatureEntry;                              ///< Can be different than the entry of _me in case of players
         Status _status;                                     ///< Internal variable for sanity checks
-        Position _lastShootPos;
 
         typedef std::list<VehicleJoinEvent*> PendingJoinEventContainer;
         PendingJoinEventContainer _pendingJoinEvents;       ///< Collection of delayed join events for prospective passengers

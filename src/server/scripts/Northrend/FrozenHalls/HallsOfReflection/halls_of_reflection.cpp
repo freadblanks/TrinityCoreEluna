@@ -27,7 +27,6 @@
 #include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
 #include "ScriptMgr.h"
-#include "Spell.h"
 #include "SpellInfo.h"
 #include "SpellScript.h"
 #include "TemporarySummon.h"
@@ -360,7 +359,7 @@ class npc_jaina_or_sylvanas_intro_hor : public CreatureScript
                 _instance = me->GetInstanceScript();
             }
 
-            bool GossipHello(Player* player) override
+            bool OnGossipHello(Player* player) override
             {
                 // override default gossip
                 if (_instance->GetData(DATA_QUEL_DELAR_EVENT) == IN_PROGRESS || _instance->GetData(DATA_QUEL_DELAR_EVENT) == SPECIAL)
@@ -373,7 +372,7 @@ class npc_jaina_or_sylvanas_intro_hor : public CreatureScript
                 return false;
             }
 
-            bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
+            bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
             {
                 ClearGossipMenuFor(player);
 
@@ -382,12 +381,12 @@ class npc_jaina_or_sylvanas_intro_hor : public CreatureScript
                     case 0:
                         CloseGossipMenuFor(player);
                         _events.ScheduleEvent(EVENT_START_INTRO, 1s);
-                        me->RemoveNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
+                        me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER);
                         break;
                     case 1:
                         CloseGossipMenuFor(player);
                         _events.ScheduleEvent(EVENT_SKIP_INTRO, 1s);
-                        me->RemoveNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
+                        me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER);
                         break;
                     default:
                         break;
@@ -402,7 +401,7 @@ class npc_jaina_or_sylvanas_intro_hor : public CreatureScript
                 _utherGUID.Clear();
                 _lichkingGUID.Clear();
 
-                me->RemoveNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
+                me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER);
                 me->SetStandState(UNIT_STAND_STATE_STAND);
                 _events.ScheduleEvent(EVENT_WALK_INTRO1, 3s);
             }
@@ -435,7 +434,7 @@ class npc_jaina_or_sylvanas_intro_hor : public CreatureScript
                             Talk(SAY_JAINA_INTRO_2);
                         else
                             Talk(SAY_SYLVANAS_INTRO_2);
-                        me->AddNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
+                        me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER);
                         break;
                     case EVENT_START_INTRO:
                         if (Creature* korelnOrLoralen = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_KORELN_LORALEN)))
@@ -846,7 +845,7 @@ class npc_jaina_or_sylvanas_escape_hor : public CreatureScript
                     lichking->AI()->EnterEvadeMode(); // event failed
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
+            void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
             {
                 if (damage >= me->GetHealth() && _invincibility)
                     damage = me->GetHealth() - 1;
@@ -880,7 +879,7 @@ class npc_jaina_or_sylvanas_escape_hor : public CreatureScript
                 }
             }
 
-            bool GossipHello(Player* player) override
+            bool OnGossipHello(Player* player) override
             {
                 // override default gossip
                 if (_instance->GetBossState(DATA_THE_LICH_KING_ESCAPE) == DONE)
@@ -894,7 +893,7 @@ class npc_jaina_or_sylvanas_escape_hor : public CreatureScript
                 return false;
             }
 
-            bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
+            bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
             {
                 ClearGossipMenuFor(player);
 
@@ -966,7 +965,7 @@ class npc_jaina_or_sylvanas_escape_hor : public CreatureScript
                             me->RemoveAurasDueToSpell(SPELL_JAINA_ICE_BARRIER);
                         else
                             me->RemoveAurasDueToSpell(SPELL_SYLVANAS_CLOAK_OF_DARKNESS);
-                        me->AddNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+                        me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
                         me->SetHealth(JAINA_SYLVANAS_MAX_HEALTH);
                         me->SetFacingTo(SylvanasShadowThroneDoorPosition.GetOrientation());
                         break;
@@ -1013,7 +1012,7 @@ class npc_jaina_or_sylvanas_escape_hor : public CreatureScript
                                 lichking->AI()->AttackStart(me);
                             }
                             me->SetHealth(JAINA_SYLVANAS_MAX_HEALTH);
-                            me->RemoveNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
+                            me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER);
                             break;
                         case EVENT_ESCAPE_1:
                             if (Creature* lichking = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_THE_LICH_KING_ESCAPE)))
@@ -1038,7 +1037,7 @@ class npc_jaina_or_sylvanas_escape_hor : public CreatureScript
                             if (Creature* lichking = ObjectAccessor::GetCreature(*me, _instance->GetGuidData(DATA_THE_LICH_KING_ESCAPE)))
                             {
                                 lichking->SetReactState(REACT_PASSIVE);
-                                lichking->AddUnitFlag(UNIT_FLAG_PACIFIED);
+                                lichking->SetUnitFlag(UNIT_FLAG_PACIFIED);
                             }
 
                             _events.ScheduleEvent(EVENT_ESCAPE_3, 1500ms);
@@ -1156,7 +1155,7 @@ class npc_jaina_or_sylvanas_escape_hor : public CreatureScript
                             else
                                 Talk(SAY_SYLVANAS_ESCAPE_9);
                             DoCast(me, SPELL_CREDIT_ESCAPING_ARTHAS);
-                            me->AddNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
+                            me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER);
                             break;
                         default:
                             break;
@@ -1196,7 +1195,7 @@ class npc_the_lich_king_escape_hor : public CreatureScript
                 _despawn = false;
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
+            void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
             {
                 if (damage >= me->GetHealth())
                     damage = me->GetHealth() - 1;
@@ -2477,7 +2476,7 @@ class npc_uther_quel_delar : public CreatureScript
                 _events.ScheduleEvent(EVENT_UTHER_1, 1ms);
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
+            void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
             {
                 if (damage >= me->GetHealth())
                     damage = me->GetHealth() - 1;

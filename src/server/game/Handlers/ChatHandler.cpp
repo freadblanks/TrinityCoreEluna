@@ -22,8 +22,8 @@
 #include "Chat.h"
 #include "ChatPackets.h"
 #include "Common.h"
+#include "CreatureAI.h"
 #include "DB2Stores.h"
-#include "DatabaseEnv.h"
 #include "GameTime.h"
 #include "GridNotifiersImpl.h"
 #include "Group.h"
@@ -39,8 +39,8 @@
 #include "ScriptMgr.h"
 #include "SpellAuraEffects.h"
 #include "Util.h"
+#include "Warden.h"
 #include "World.h"
-#include "WorldPacket.h"
 #include <algorithm>
 
 inline bool isNasty(uint8 c)
@@ -177,7 +177,6 @@ void WorldSession::HandleChatMessage(ChatMsg type, Language lang, std::string ms
         {
             switch (type)
             {
-                case CHAT_MSG_EMOTE:
                 case CHAT_MSG_PARTY:
                 case CHAT_MSG_RAID:
                 case CHAT_MSG_RAID_WARNING:
@@ -217,7 +216,6 @@ void WorldSession::HandleChatMessage(ChatMsg type, Language lang, std::string ms
 
     if (msg.size() > 255)
         return;
-
 
     if (msg.empty())
         return;
@@ -307,11 +305,11 @@ void WorldSession::HandleChatMessage(ChatMsg type, Language lang, std::string ms
                     return;
                 }
 
-                /*if (GetPlayer()->GetTeam() != receiver->GetTeam() && !HasPermission(rbac::RBAC_PERM_TWO_SIDE_INTERACTION_CHAT))
+                if (GetPlayer()->GetEffectiveTeam() != receiver->GetEffectiveTeam() && !HasPermission(rbac::RBAC_PERM_TWO_SIDE_INTERACTION_CHAT))
                 {
                     SendChatPlayerNotfoundNotice(target);
                     return;
-                }*/
+                }
             }
 
             if (GetPlayer()->HasAura(1852) && !receiver->IsGameMaster())
@@ -466,6 +464,13 @@ void WorldSession::HandleChatAddonMessage(ChatMsg type, std::string prefix, std:
 
     if (prefix.empty() || prefix.length() > 16)
         return;
+
+    // Our Warden module also uses SendAddonMessage as a way to communicate Lua check results to the server, see if this is that
+    if (type == CHAT_MSG_GUILD)
+    {
+        if (_warden && _warden->ProcessLuaCheckResponse(text))
+            return;
+    }
 
     // Disabled addon channel?
     if (!sWorld->getBoolConfig(CONFIG_ADDON_CHANNEL))
@@ -681,7 +686,7 @@ void WorldSession::HandleTextEmoteOpcode(WorldPackets::Chat::CTextEmote& packet)
             // Only allow text-emotes for "dead" entities (feign death included)
             if (_player->HasUnitState(UNIT_STATE_DIED))
                 break;
-            _player->HandleEmoteCommand(emote, nullptr, { packet.SpellVisualKitIDs.data(), packet.SpellVisualKitIDs.data() + packet.SpellVisualKitIDs.size() });
+            _player->HandleEmoteCommand(emote, nullptr, { packet.SpellVisualKitIDs.data(), packet.SpellVisualKitIDs.data() + packet.SpellVisualKitIDs.size() }, packet.SequenceVariation);
             break;
     }
 

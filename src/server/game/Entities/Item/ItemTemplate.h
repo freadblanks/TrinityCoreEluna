@@ -20,9 +20,9 @@
 
 #include "Common.h"
 #include "DB2Structure.h"
+#include "Errors.h"
 #include "SharedDefines.h"
 #include <bitset>
-#include <unordered_map>
 #include <vector>
 
 enum ItemModType
@@ -168,10 +168,14 @@ enum ItemFieldFlags : uint32
     ITEM_FIELD_FLAG_UNK26         = 0x80000000
 };
 
+DEFINE_ENUM_FLAG(ItemFieldFlags);
+
 enum ItemFieldFlags2 : uint32
 {
     ITEM_FIELD_FLAG2_EQUIPPED   = 0x1
 };
+
+DEFINE_ENUM_FLAG(ItemFieldFlags2);
 
 enum ItemFlags : uint32
 {

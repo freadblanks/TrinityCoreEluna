@@ -26,6 +26,7 @@
 #include "GridDefines.h"
 #include "GridRefManager.h"
 #include "MapDefines.h"
+#include "MapReference.h"
 #include "MapRefManager.h"
 #include "MPSCQueue.h"
 #include "ObjectGuid.h"
@@ -37,6 +38,7 @@
 #include <boost/heap/fibonacci_heap.hpp>
 #include <bitset>
 #include <list>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -65,6 +67,7 @@ struct MapEntry;
 struct Position;
 struct ScriptAction;
 struct ScriptInfo;
+struct SmoothPhasingInfo;
 struct SummonPropertiesEntry;
 class Transport;
 enum Difficulty : uint8;
@@ -229,10 +232,10 @@ struct CompareRespawnInfo
 {
     bool operator()(RespawnInfo const* a, RespawnInfo const* b) const;
 };
-typedef std::unordered_map<uint32 /*zoneId*/, ZoneDynamicInfo> ZoneDynamicInfoMap;
-typedef boost::heap::fibonacci_heap<RespawnInfo*, boost::heap::compare<CompareRespawnInfo>> RespawnListContainer;
-typedef RespawnListContainer::handle_type RespawnListHandle;
-typedef std::unordered_map<ObjectGuid::LowType, RespawnInfo*> RespawnInfoMap;
+using ZoneDynamicInfoMap = std::unordered_map<uint32 /*zoneId*/, ZoneDynamicInfo>;
+using RespawnListContainer = boost::heap::fibonacci_heap<RespawnInfo*, boost::heap::compare<CompareRespawnInfo>>;
+using RespawnListHandle = RespawnListContainer::handle_type;
+using RespawnInfoMap = std::unordered_map<ObjectGuid::LowType, RespawnInfo*>;
 struct RespawnInfo
 {
     SpawnObjectType type;
@@ -431,6 +434,14 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         typedef MapRefManager PlayerList;
         PlayerList const& GetPlayers() const { return m_mapRefManager; }
 
+        template <typename T>
+        void DoOnPlayers(T&& fn)
+        {
+            for (MapReference const& ref : GetPlayers())
+                if (Player* player = ref.GetSource())
+                    fn(player);
+        }
+
         //per-map script storage
         void ScriptsStart(std::map<uint32, std::multimap<uint32, ScriptInfo>> const& scripts, uint32 id, Object* source, Object* target);
         void ScriptCommandStart(ScriptInfo const& script, uint32 delay, Object* source, Object* target);
@@ -448,7 +459,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         void UpdateIteratorBack(Player* player);
 
-        TempSummon* SummonCreature(uint32 entry, Position const& pos, SummonPropertiesEntry const* properties = nullptr, uint32 duration = 0, WorldObject* summoner = nullptr, uint32 spellId = 0, uint32 vehId = 0, ObjectGuid privateObjectOwner = ObjectGuid::Empty);
+        TempSummon* SummonCreature(uint32 entry, Position const& pos, SummonPropertiesEntry const* properties = nullptr, uint32 duration = 0, WorldObject* summoner = nullptr, uint32 spellId = 0, uint32 vehId = 0, ObjectGuid privateObjectOwner = ObjectGuid::Empty, SmoothPhasingInfo const* smoothPhasingInfo = nullptr);
         void SummonCreatureGroup(uint8 group, std::list<TempSummon*>* list = nullptr);
         AreaTrigger* GetAreaTrigger(ObjectGuid const& guid);
         SceneObject* GetSceneObject(ObjectGuid const& guid);
@@ -580,7 +591,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         Weather* GetOrGenerateZoneDefaultWeather(uint32 zoneId);
         WeatherState GetZoneWeather(uint32 zoneId) const;
         void SetZoneWeather(uint32 zoneId, WeatherState weatherId, float intensity);
-        void SetZoneOverrideLight(uint32 zoneId, uint32 areaLightId, uint32 overrideLightId, uint32 transitionMilliseconds);
+        void SetZoneOverrideLight(uint32 zoneId, uint32 areaLightId, uint32 overrideLightId, Milliseconds transitionTime);
 
         void UpdateAreaDependentAuras();
 
@@ -606,6 +617,11 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void RemoveUpdateObject(Object* obj)
         {
             _updateObjects.erase(obj);
+        }
+
+        size_t GetActiveNonPlayersCount() const
+        {
+            return m_activeNonPlayers.size();
         }
 
         virtual std::string GetDebugInfo() const;
@@ -761,18 +777,18 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void DoRespawn(SpawnObjectType type, ObjectGuid::LowType spawnId, uint32 gridId);
         bool AddRespawnInfo(RespawnInfo const& info);
         void UnloadAllRespawnInfos();
+        RespawnInfo* GetRespawnInfo(SpawnObjectType type, ObjectGuid::LowType spawnId) const;
+        void Respawn(RespawnInfo* info, CharacterDatabaseTransaction dbTrans = nullptr);
         void DeleteRespawnInfo(RespawnInfo* info, CharacterDatabaseTransaction dbTrans = nullptr);
         void DeleteRespawnInfoFromDB(SpawnObjectType type, ObjectGuid::LowType spawnId, CharacterDatabaseTransaction dbTrans = nullptr);
 
     public:
-        void GetRespawnInfo(std::vector<RespawnInfo*>& respawnData, SpawnObjectTypeMask types) const;
-        RespawnInfo* GetRespawnInfo(SpawnObjectType type, ObjectGuid::LowType spawnId) const;
+        void GetRespawnInfo(std::vector<RespawnInfo const*>& respawnData, SpawnObjectTypeMask types) const;
         void Respawn(SpawnObjectType type, ObjectGuid::LowType spawnId, CharacterDatabaseTransaction dbTrans = nullptr)
         {
             if (RespawnInfo* info = GetRespawnInfo(type, spawnId))
                 Respawn(info, dbTrans);
         }
-        void Respawn(RespawnInfo* info, CharacterDatabaseTransaction dbTrans = nullptr);
         void RemoveRespawnTime(SpawnObjectType type, ObjectGuid::LowType spawnId, CharacterDatabaseTransaction dbTrans = nullptr, bool alwaysDeleteFromDB = false)
         {
             if (RespawnInfo* info = GetRespawnInfo(type, spawnId))
@@ -921,7 +937,7 @@ enum InstanceResetMethod
 class TC_GAME_API InstanceMap : public Map
 {
     public:
-        InstanceMap(uint32 id, time_t, uint32 InstanceId, Difficulty SpawnMode, Map* _parent);
+        InstanceMap(uint32 id, time_t, uint32 InstanceId, Difficulty SpawnMode, Map* _parent, TeamId InstanceTeam);
         ~InstanceMap();
         bool AddPlayerToMap(Player* player, bool initPlayer = true) override;
         void RemovePlayerFromMap(Player*, bool) override;
@@ -946,6 +962,8 @@ class TC_GAME_API InstanceMap : public Map
         bool HasPermBoundPlayers() const;
         uint32 GetMaxPlayers() const;
         uint32 GetMaxResetDelay() const;
+        TeamId GetTeamIdInInstance() const { return i_script_team; }
+        Team GetTeamInInstance() const { return i_script_team == TEAM_ALLIANCE ? ALLIANCE : HORDE; }
 
         virtual void InitVisibilityDistance() override;
 
@@ -955,6 +973,7 @@ class TC_GAME_API InstanceMap : public Map
         bool m_unloadWhenEmpty;
         InstanceScript* i_data;
         uint32 i_script_id;
+        TeamId i_script_team;
         InstanceScenario* i_scenario;
 };
 

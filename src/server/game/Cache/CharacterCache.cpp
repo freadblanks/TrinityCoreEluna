@@ -23,7 +23,6 @@
 #include "Player.h"
 #include "Timer.h"
 #include "World.h"
-#include "WorldPacket.h"
 #include <unordered_map>
 
 namespace
@@ -198,7 +197,6 @@ void CharacterCache::UpdateCharacterInfoDeleted(ObjectGuid const& guid, bool del
     if (name)
         itr->second.Name = *name;
 }
-
 
 /*
 Getters

@@ -31,7 +31,6 @@ EndScriptData */
 #include "Player.h"
 #include "ScriptedCreature.h"
 #include "serpent_shrine.h"
-#include "Spell.h"
 #include "TemporarySummon.h"
 
 enum LadyVashj
@@ -151,7 +150,7 @@ public:
             Intro = false;
             JustCreated = true;
             CanAttack = false;
-            creature->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE); // set it only once on Creature create (no need do intro if wiped)
+            creature->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE); // set it only once on Creature create (no need do intro if wiped)
         }
 
         void Initialize()
@@ -604,7 +603,6 @@ public:
 
         void MoveInLineOfSight(Unit* /*who*/) override { }
 
-
         void UpdateAI(uint32 diff) override
         {
             if (!VashjGUID)
@@ -848,12 +846,9 @@ public:
         {
             Initialize();
             me->SetDisplayId(11686); // invisible
-
-            me->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
         }
 
         void MoveInLineOfSight(Unit* /*who*/) override { }
-
 
         void UpdateAI(uint32 diff) override
         {

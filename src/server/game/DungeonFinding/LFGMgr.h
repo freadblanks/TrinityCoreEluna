@@ -316,6 +316,11 @@ class TC_GAME_API LFGMgr
         ~LFGMgr();
 
     public:
+        LFGMgr(LFGMgr const& right) = delete;
+        LFGMgr(LFGMgr&& right) = delete;
+        LFGMgr& operator=(LFGMgr const& right) = delete;
+        LFGMgr& operator=(LFGMgr&& right) = delete;
+
         static LFGMgr* instance();
 
         // Functions used outside lfg namespace
@@ -441,6 +446,7 @@ class TC_GAME_API LFGMgr
 
     private:
         uint8 GetTeam(ObjectGuid guid);
+        uint8 FilterClassRoles(Player* player, uint8 roles);
         void RestoreState(ObjectGuid guid, char const* debugMsg);
         void ClearState(ObjectGuid guid, char const* debugMsg);
         void SetDungeon(ObjectGuid guid, uint32 dungeon);

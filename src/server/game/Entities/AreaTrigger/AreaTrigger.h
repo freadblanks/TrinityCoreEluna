@@ -19,6 +19,7 @@
 #define TRINITYCORE_AREATRIGGER_H
 
 #include "Object.h"
+#include "GridObject.h"
 #include "MapObject.h"
 #include "AreaTriggerTemplate.h"
 
@@ -53,6 +54,17 @@ class TC_GAME_API AreaTrigger : public WorldObject, public GridObject<AreaTrigge
         void BuildValuesUpdateForPlayerWithMask(UpdateData* data, UF::ObjectData::Mask const& requestedObjectMask,
             UF::AreaTriggerData::Mask const& requestedAreaTriggerMask, Player const* target) const;
 
+        struct ValuesUpdateForPlayerWithMaskSender // sender compatible with MessageDistDeliverer
+        {
+            explicit ValuesUpdateForPlayerWithMaskSender(AreaTrigger const* owner) : Owner(owner) { }
+
+            AreaTrigger const* Owner;
+            UF::ObjectData::Base ObjectMask;
+            UF::AreaTriggerData::Base AreaTriggerMask;
+
+            void operator()(Player const* player) const;
+        };
+
         void AddToWorld() override;
         void RemoveFromWorld() override;
 
@@ -63,7 +75,7 @@ class TC_GAME_API AreaTrigger : public WorldObject, public GridObject<AreaTrigge
 
         bool IsServerSide() const { return _areaTriggerTemplate->Id.IsServerSide; }
 
-        bool IsNeverVisibleFor(WorldObject const* /*seer*/) const override { return IsServerSide(); }
+        bool IsNeverVisibleFor(WorldObject const* seer) const override { return WorldObject::IsNeverVisibleFor(seer) || IsServerSide(); }
 
     private:
         bool Create(uint32 areaTriggerCreatePropertiesId, Unit* caster, Unit* target, SpellInfo const* spell, Position const& pos, int32 duration, SpellCastVisual spellVisual, ObjectGuid const& castId, AuraEffect const* aurEff);
@@ -128,6 +140,7 @@ class TC_GAME_API AreaTrigger : public WorldObject, public GridObject<AreaTrigge
         void SearchUnitInBox(std::vector<Unit*>& targetList);
         void SearchUnitInPolygon(std::vector<Unit*>& targetList);
         void SearchUnitInCylinder(std::vector<Unit*>& targetList);
+        void SearchUnitInDisk(std::vector<Unit*>& targetList);
         bool CheckIsInPolygon2D(Position const* pos) const;
         void HandleUnitEnterExit(std::vector<Unit*> const& targetList);
 

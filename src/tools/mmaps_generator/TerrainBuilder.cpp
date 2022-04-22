@@ -23,6 +23,7 @@
 #include "ModelInstance.h"
 #include "Util.h"
 #include "VMapManager2.h"
+#include <map>
 
 namespace MMAP
 {
@@ -378,7 +379,6 @@ namespace MMAP
                     else
                         useLiquid = false;
                 }
-
 
                 // if there is no terrain, don't use terrain
                 if (!ttriangles.size())

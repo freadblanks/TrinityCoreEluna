@@ -158,7 +158,7 @@ public:
                 events.SetPhase(PHASE_INTRO);
                 me->setActive(true);
                 me->SetFarVisible(true);
-                me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
                 me->GetMotionMaster()->MoveAlongSplineChain(POINT_INTRO_START, SPLINE_CHAIN_INTRO_START, false);
                 HandleTerraceDoors(false);
             }
@@ -188,7 +188,7 @@ public:
             SetupGroundPhase();
         }
 
-        void DamageTaken(Unit* /*attacker*/, uint32& damage) override
+        void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
         {
             if (events.IsInPhase(PHASE_FLY))
             {
@@ -211,7 +211,7 @@ public:
                 switch (pointId)
                 {
                     case POINT_INTRO_START:
-                        me->SetAnimTier(UNIT_BYTE1_FLAG_NONE, false);
+                        me->SetStandState(UNIT_STAND_STATE_STAND);
                         events.ScheduleEvent(EVENT_START_INTRO_PATH, Milliseconds(1));
                         break;
                     case POINT_INTRO_END:
@@ -428,7 +428,7 @@ class go_blackened_urn : public GameObjectScript
 
             InstanceScript* instance;
 
-            bool GossipHello(Player* /*player*/) override
+            bool OnGossipHello(Player* /*player*/) override
             {
                 if (me->HasFlag(GO_FLAG_IN_USE))
                     return false;
@@ -438,7 +438,7 @@ class go_blackened_urn : public GameObjectScript
 
                 if (Creature* nightbane = ObjectAccessor::GetCreature(*me, instance->GetGuidData(DATA_NIGHTBANE)))
                 {
-                    me->AddFlag(GO_FLAG_IN_USE);
+                    me->SetFlag(GO_FLAG_IN_USE);
                     nightbane->AI()->DoAction(ACTION_SUMMON);
                 }
                 return false;

@@ -105,7 +105,7 @@ bool Bag::Create(ObjectGuid::LowType guidlow, uint32 itemid, ItemContext context
     return true;
 }
 
-void Bag::SaveToDB(CharacterDatabaseTransaction& trans)
+void Bag::SaveToDB(CharacterDatabaseTransaction trans)
 {
     Item::SaveToDB(trans);
 }
@@ -128,7 +128,7 @@ bool Bag::LoadFromDB(ObjectGuid::LowType guid, ObjectGuid owner_guid, Field* fie
     return true;
 }
 
-void Bag::DeleteFromDB(CharacterDatabaseTransaction& trans)
+void Bag::DeleteFromDB(CharacterDatabaseTransaction trans)
 {
     for (uint8 i = 0; i < MAX_BAG_SIZE; ++i)
         if (m_bagslot[i])
@@ -246,6 +246,17 @@ void Bag::BuildValuesUpdateForPlayerWithMask(UpdateData* data, UF::ObjectData::M
     buffer.put<uint32>(sizePos, buffer.wpos() - sizePos - 4);
 
     data->AddUpdateBlock(buffer);
+}
+
+void Bag::ValuesUpdateForPlayerWithMaskSender::operator()(Player const* player) const
+{
+    UpdateData udata(player->GetMapId());
+    WorldPacket packet;
+
+    Owner->BuildValuesUpdateForPlayerWithMask(&udata, ObjectMask.GetChangesMask(), ItemMask.GetChangesMask(), ContainerMask.GetChangesMask(), player);
+
+    udata.BuildPacket(&packet);
+    player->SendDirectMessage(&packet);
 }
 
 void Bag::ClearUpdateMask(bool remove)

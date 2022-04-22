@@ -47,14 +47,13 @@
 #include "PhasingHandler.h"
 #include "PoolMgr.h"
 #include "ScriptMgr.h"
+#include "SpellAuras.h"
 #include "Transport.h"
 #include "Vehicle.h"
 #include "VMapFactory.h"
+#include "VMapManager2.h"
 #include "Weather.h"
 #include "WeatherMgr.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 #include "World.h"
 #include "WorldSession.h"
 #include <sstream>
@@ -67,7 +66,6 @@ BOOST_1_74_FIBONACCI_HEAP_MSVC_COMPILE_FIX(RespawnListContainer::value_type)
 #define MAX_CREATURE_ATTACK_RADIUS  (45.0f * sWorld->getRate(RATE_CREATURE_AGGRO))
 
 GridState* si_GridStates[MAX_GRID_STATE];
-
 
 ZoneDynamicInfo::ZoneDynamicInfo() : MusicId(0), DefaultWeather(nullptr), WeatherId(WEATHER_STATE_FINE),
     Intensity(0.0f) { }
@@ -912,6 +910,20 @@ void Map::Update(uint32 t_diff)
             for (Unit* unit : toVisit)
                 VisitNearbyCellsOf(unit, grid_object_update, world_object_update);
         }
+
+        { // Update player's summons
+            std::vector<Unit*> toVisit;
+
+            // Totems
+            for (ObjectGuid const& summonGuid : player->m_SummonSlot)
+                if (!summonGuid.IsEmpty())
+                    if (Creature* unit = GetCreature(summonGuid))
+                        if (unit->GetMapId() == player->GetMapId() && !unit->IsWithinDistInMap(player, GetVisibilityRange(), false))
+                            toVisit.push_back(unit);
+
+            for (Unit* unit : toVisit)
+                VisitNearbyCellsOf(unit, grid_object_update, world_object_update);
+        }
     }
 
     // non-player active objects, increasing iterator in the loop in case of object removal
@@ -1082,7 +1094,7 @@ void Map::RemovePlayerFromMap(Player* player, bool remove)
     SendRemoveTransports(player);
 
     if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
-        player->DestroyForNearbyPlayers(); // previous player->UpdateObjectVisibility(true)
+        player->UpdateObjectVisibilityOnDestroy();
 
     if (player->IsInGrid())
         player->RemoveFromGrid();
@@ -1104,7 +1116,7 @@ void Map::RemoveFromMap(T *obj, bool remove)
     GetMultiPersonalPhaseTracker().UnregisterTrackedObject(obj);
 
     if (!inWorld) // if was in world, RemoveFromWorld() called DestroyForNearbyPlayers()
-        obj->DestroyForNearbyPlayers(); // previous obj->UpdateObjectVisibility(true)
+        obj->UpdateObjectVisibilityOnDestroy();
 
     obj->RemoveFromGrid();
 
@@ -2380,7 +2392,7 @@ float GridMap::getMinHeight(float x, float y) const
     if (!_minHeightPlanes)
         return -500.0f;
 
-    GridCoord gridCoord = Trinity::ComputeGridCoord(x, y);
+    GridCoord gridCoord = Trinity::ComputeGridCoordSimple(x, y);
 
     int32 doubleGridX = int32(std::floor(-(x - MAP_HALFSIZE) / CENTER_GRID_OFFSET));
     int32 doubleGridY = int32(std::floor(-(y - MAP_HALFSIZE) / CENTER_GRID_OFFSET));
@@ -2544,7 +2556,7 @@ float Map::GetWaterOrGroundLevel(PhaseShift const& phaseShift, float x, float y,
     if (GetGrid(PhasingHandler::GetTerrainMapId(phaseShift, this, x, y), x, y))
     {
         // we need ground level (including grid height version) for proper return water level in point
-        float ground_z = GetHeight(phaseShift, x, y, z + collisionHeight, true, 50.0f);
+        float ground_z = GetHeight(phaseShift, x, y, z + Z_OFFSET_FIND_HEIGHT, true, 50.0f);
         if (ground)
             *ground = ground_z;
 
@@ -3146,47 +3158,42 @@ bool Map::CheckRespawn(RespawnInfo* info)
         return false;
     }
 
-    uint32 poolId = info->spawnId ? sPoolMgr->IsPartOfAPool(info->type, info->spawnId) : 0;
     // Next, check if there's already an instance of this object that would block the respawn
-    // Only do this for unpooled spawns
-    if (!poolId)
+    bool alreadyExists = false;
+    switch (info->type)
     {
-        bool doDelete = false;
-        switch (info->type)
+        case SPAWN_TYPE_CREATURE:
         {
-            case SPAWN_TYPE_CREATURE:
-            {
-                // escort check for creatures only (if the world config boolean is set)
-                bool const isEscort = (sWorld->getBoolConfig(CONFIG_RESPAWN_DYNAMIC_ESCORTNPC) && data->spawnGroupData->flags & SPAWNGROUP_FLAG_ESCORTQUESTNPC);
+            // escort check for creatures only (if the world config boolean is set)
+            bool const isEscort = (sWorld->getBoolConfig(CONFIG_RESPAWN_DYNAMIC_ESCORTNPC) && data->spawnGroupData->flags & SPAWNGROUP_FLAG_ESCORTQUESTNPC);
 
-                auto range = _creatureBySpawnIdStore.equal_range(info->spawnId);
-                for (auto it = range.first; it != range.second; ++it)
-                {
-                    Creature* creature = it->second;
-                    if (!creature->IsAlive())
-                        continue;
-                    // escort NPCs are allowed to respawn as long as all other instances are already escorting
-                    if (isEscort && creature->IsEscorted())
-                        continue;
-                    doDelete = true;
-                    break;
-                }
+            auto range = _creatureBySpawnIdStore.equal_range(info->spawnId);
+            for (auto it = range.first; it != range.second; ++it)
+            {
+                Creature* creature = it->second;
+                if (!creature->IsAlive())
+                    continue;
+                // escort NPCs are allowed to respawn as long as all other instances are already escorting
+                if (isEscort && creature->IsEscorted())
+                    continue;
+                alreadyExists = true;
                 break;
             }
-            case SPAWN_TYPE_GAMEOBJECT:
-                // gameobject check is simpler - they cannot be dead or escorting
-                if (_gameobjectBySpawnIdStore.find(info->spawnId) != _gameobjectBySpawnIdStore.end())
-                    doDelete = true;
-                break;
-            default:
-                ABORT_MSG("Invalid spawn type %u with spawnId " UI64FMTD " on map %u", uint32(info->type), info->spawnId, GetId());
-                return true;
+            break;
         }
-        if (doDelete)
-        {
-            info->respawnTime = 0;
-            return false;
-        }
+        case SPAWN_TYPE_GAMEOBJECT:
+            // gameobject check is simpler - they cannot be dead or escorting
+            if (_gameobjectBySpawnIdStore.find(info->spawnId) != _gameobjectBySpawnIdStore.end())
+                alreadyExists = true;
+            break;
+        default:
+            ABORT_MSG("Invalid spawn type %u with spawnId " UI64FMTD " on map %u", uint32(info->type), info->spawnId, GetId());
+            return true;
+    }
+    if (alreadyExists)
+    {
+        info->respawnTime = 0;
+        return false;
     }
 
     // next, check linked respawn time
@@ -3206,27 +3213,14 @@ bool Map::CheckRespawn(RespawnInfo* info)
         info->respawnTime = respawnTime;
         return false;
     }
-
-    // now, check if we're part of a pool
-    if (poolId)
-    {
-        // ok, part of a pool - hand off to pool logic to handle this, we're just going to remove the respawn and call it a day
-        if (info->type == SPAWN_TYPE_GAMEOBJECT)
-            sPoolMgr->UpdatePool<GameObject>(poolId, info->spawnId);
-        else if (info->type == SPAWN_TYPE_CREATURE)
-            sPoolMgr->UpdatePool<Creature>(poolId, info->spawnId);
-        else
-            ABORT_MSG("Invalid spawn type %u (spawnid " UI64FMTD ") on map %u", uint32(info->type), info->spawnId, GetId());
-        info->respawnTime = 0;
-        return false;
-    }
-
     // everything ok, let's spawn
     return true;
 }
 
 void Map::Respawn(RespawnInfo* info, CharacterDatabaseTransaction dbTrans)
 {
+    if (info->respawnTime <= GameTime::GetGameTime())
+        return;
     info->respawnTime = GameTime::GetGameTime();
     _respawnTimes.increase(info->handle);
     SaveRespawnInfoDB(*info, dbTrans);
@@ -3290,14 +3284,14 @@ bool Map::AddRespawnInfo(RespawnInfo const& info)
     return true;
 }
 
-static void PushRespawnInfoFrom(std::vector<RespawnInfo*>& data, RespawnInfoMap const& map)
+static void PushRespawnInfoFrom(std::vector<RespawnInfo const*>& data, RespawnInfoMap const& map)
 {
     data.reserve(data.size() + map.size());
     for (auto const& pair : map)
         data.push_back(pair.second);
 }
 
-void Map::GetRespawnInfo(std::vector<RespawnInfo*>& respawnData, SpawnObjectTypeMask types) const
+void Map::GetRespawnInfo(std::vector<RespawnInfo const*>& respawnData, SpawnObjectTypeMask types) const
 {
     if (types & SPAWN_TYPEMASK_CREATURE)
         PushRespawnInfoFrom(respawnData, _creatureRespawnTimesBySpawnId);
@@ -3394,22 +3388,42 @@ void Map::ProcessRespawns()
         RespawnInfo* next = _respawnTimes.top();
         if (now < next->respawnTime) // done for this tick
             break;
-        if (CheckRespawn(next)) // see if we're allowed to respawn
-        {
-            // ok, respawn
+
+        if (uint32 poolId = sPoolMgr->IsPartOfAPool(next->type, next->spawnId)) // is this part of a pool?
+        { // if yes, respawn will be handled by (external) pooling logic, just delete the respawn time
+            // step 1: remove entry from maps to avoid it being reachable by outside logic
             _respawnTimes.pop();
             ASSERT_NOTNULL(GetRespawnMapForType(next->type))->erase(next->spawnId);
+
+            // step 2: tell pooling logic to do its thing
+            sPoolMgr->UpdatePool(poolId, next->type, next->spawnId);
+
+            // step 3: get rid of the actual entry
+            RemoveRespawnTime(next->type, next->spawnId, nullptr, true);
+            delete next;
+        }
+        else if (CheckRespawn(next)) // see if we're allowed to respawn
+        { // ok, respawn
+            // step 1: remove entry from maps to avoid it being reachable by outside logic
+            _respawnTimes.pop();
+            ASSERT_NOTNULL(GetRespawnMapForType(next->type))->erase(next->spawnId);
+
+            // step 2: do the respawn, which involves external logic
             DoRespawn(next->type, next->spawnId, next->gridId);
+
+            // step 3: get rid of the actual entry
+            RemoveRespawnTime(next->type, next->spawnId, nullptr, true);
             delete next;
         }
-        else if (!next->respawnTime) // just remove respawn entry without rescheduling
-        {
+        else if (!next->respawnTime)
+        { // just remove this respawn entry without rescheduling
             _respawnTimes.pop();
             ASSERT_NOTNULL(GetRespawnMapForType(next->type))->erase(next->spawnId);
+            RemoveRespawnTime(next->type, next->spawnId, nullptr, true);
             delete next;
         }
-        else // value changed, update heap position
-        {
+        else
+        { // new respawn time, update heap position
             ASSERT(now < next->respawnTime); // infinite loop guard
             _respawnTimes.decrease(next->handle);
             SaveRespawnInfoDB(*next);
@@ -3529,6 +3543,10 @@ bool Map::SpawnGroupSpawn(uint32 groupId, bool ignoreRespawn, bool force, std::v
 
     for (SpawnData const* data : toSpawn)
     {
+        // don't spawn if the current map difficulty is not used by the spawn
+        if (std::find(data->spawnDifficulties.begin(), data->spawnDifficulties.end(), GetDifficultyID()) == data->spawnDifficulties.end())
+            continue;
+
         // don't spawn if the grid isn't loaded (will be handled in grid loader)
         if (!IsGridLoaded(data->spawnPoint))
             continue;
@@ -3670,13 +3688,7 @@ void Map::AddObjectToRemoveList(WorldObject* obj)
 {
     ASSERT(obj->GetMapId() == GetId() && obj->GetInstanceId() == GetInstanceId());
 
-#ifdef ELUNA
-    if (Creature* creature = obj->ToCreature())
-        sEluna->OnRemove(creature);
-    else if (GameObject* gameobject = obj->ToGameObject())
-        sEluna->OnRemove(gameobject);
-#endif
-
+    obj->SetDestroyedObject(true);
     obj->CleanupsBeforeDelete(false);                            // remove or simplify at least cross referenced links
 
     i_objectsToRemove.insert(obj);
@@ -3908,10 +3920,10 @@ template TC_GAME_API void Map::RemoveFromMap(Conversation*, bool);
 
 /* ******* Dungeon Instance Maps ******* */
 
-InstanceMap::InstanceMap(uint32 id, time_t expiry, uint32 InstanceId, Difficulty SpawnMode, Map* _parent)
+InstanceMap::InstanceMap(uint32 id, time_t expiry, uint32 InstanceId, Difficulty SpawnMode, Map* _parent, TeamId InstanceTeam)
   : Map(id, expiry, InstanceId, SpawnMode, _parent),
     m_resetAfterUnload(false), m_unloadWhenEmpty(false),
-    i_data(nullptr), i_script_id(0), i_scenario(nullptr)
+    i_data(nullptr), i_script_id(0), i_script_team(InstanceTeam), i_scenario(nullptr)
 {
     //lets initialize visibility distance for dungeons
     InstanceMap::InitVisibilityDistance();
@@ -4012,7 +4024,7 @@ bool InstanceMap::AddPlayerToMap(Player* player, bool initPlayer /*= true*/)
                 // cannot enter other instances if bound permanently
                 if (playerBind->save != mapSave)
                 {
-                    TC_LOG_ERROR("maps", "InstanceMap::Add: player %s %s is permanently bound to instance %s %d, %d, %d, %d, %d, %d but he is being put into instance %s %d, %d, %d, %d, %d, %d", player->GetName().c_str(), player->GetGUID().ToString().c_str(), GetMapName(), playerBind->save->GetMapId(), playerBind->save->GetInstanceId(), playerBind->save->GetDifficultyID(), playerBind->save->GetPlayerCount(), playerBind->save->GetGroupCount(), playerBind->save->CanReset(), GetMapName(), mapSave->GetMapId(), mapSave->GetInstanceId(), mapSave->GetDifficultyID(), mapSave->GetPlayerCount(), mapSave->GetGroupCount(), mapSave->CanReset());
+                    TC_LOG_ERROR("maps", "InstanceMap::Add: player %s %s is permanently bound to instance %s %d, %d, %d, %d, %d, %d but he is being put into instance %s %d, %d, %d, %d, %d, %d", player->GetName().c_str(), player->GetGUID().ToString().c_str(), GetMapName(), playerBind->save->GetMapId(), playerBind->save->GetInstanceId(), static_cast<uint32>(playerBind->save->GetDifficultyID()), playerBind->save->GetPlayerCount(), playerBind->save->GetGroupCount(), playerBind->save->CanReset(), GetMapName(), mapSave->GetMapId(), mapSave->GetInstanceId(), static_cast<uint32>(mapSave->GetDifficultyID()), mapSave->GetPlayerCount(), mapSave->GetGroupCount(), mapSave->CanReset());
                     return false;
                 }
             }
@@ -4024,9 +4036,9 @@ bool InstanceMap::AddPlayerToMap(Player* player, bool initPlayer /*= true*/)
                     InstanceGroupBind* groupBind = group->GetBoundInstance(this);
                     if (playerBind && playerBind->save != mapSave)
                     {
-                        TC_LOG_ERROR("maps", "InstanceMap::Add: player %s %s is being put into instance %s %d, %d, %d, %d, %d, %d but he is in group %s and is bound to instance %d, %d, %d, %d, %d, %d!", player->GetName().c_str(), player->GetGUID().ToString().c_str(), GetMapName(), mapSave->GetMapId(), mapSave->GetInstanceId(), mapSave->GetDifficultyID(), mapSave->GetPlayerCount(), mapSave->GetGroupCount(), mapSave->CanReset(), group->GetLeaderGUID().ToString().c_str(), playerBind->save->GetMapId(), playerBind->save->GetInstanceId(), playerBind->save->GetDifficultyID(), playerBind->save->GetPlayerCount(), playerBind->save->GetGroupCount(), playerBind->save->CanReset());
+                        TC_LOG_ERROR("maps", "InstanceMap::Add: player %s %s is being put into instance %s %d, %d, %d, %d, %d, %d but he is in group %s and is bound to instance %d, %d, %d, %d, %d, %d!", player->GetName().c_str(), player->GetGUID().ToString().c_str(), GetMapName(), mapSave->GetMapId(), mapSave->GetInstanceId(), static_cast<uint32>(mapSave->GetDifficultyID()), mapSave->GetPlayerCount(), mapSave->GetGroupCount(), mapSave->CanReset(), group->GetLeaderGUID().ToString().c_str(), playerBind->save->GetMapId(), playerBind->save->GetInstanceId(), static_cast<uint32>(playerBind->save->GetDifficultyID()), playerBind->save->GetPlayerCount(), playerBind->save->GetGroupCount(), playerBind->save->CanReset());
                         if (groupBind)
-                            TC_LOG_ERROR("maps", "InstanceMap::Add: the group is bound to the instance %s %d, %d, %d, %d, %d, %d", GetMapName(), groupBind->save->GetMapId(), groupBind->save->GetInstanceId(), groupBind->save->GetDifficultyID(), groupBind->save->GetPlayerCount(), groupBind->save->GetGroupCount(), groupBind->save->CanReset());
+                            TC_LOG_ERROR("maps", "InstanceMap::Add: the group is bound to the instance %s %d, %d, %d, %d, %d, %d", GetMapName(), groupBind->save->GetMapId(), groupBind->save->GetInstanceId(), static_cast<uint32>(groupBind->save->GetDifficultyID()), groupBind->save->GetPlayerCount(), groupBind->save->GetGroupCount(), groupBind->save->CanReset());
                         //ABORT();
                         return false;
                     }
@@ -4038,7 +4050,7 @@ bool InstanceMap::AddPlayerToMap(Player* player, bool initPlayer /*= true*/)
                         // cannot jump to a different instance without resetting it
                         if (groupBind->save != mapSave)
                         {
-                            TC_LOG_ERROR("maps", "InstanceMap::Add: player %s %s is being put into instance %d, %d, %d but he is in group %s which is bound to instance %d, %d, %d!", player->GetName().c_str(), player->GetGUID().ToString().c_str(), mapSave->GetMapId(), mapSave->GetInstanceId(), mapSave->GetDifficultyID(), group->GetLeaderGUID().ToString().c_str(), groupBind->save->GetMapId(), groupBind->save->GetInstanceId(), groupBind->save->GetDifficultyID());
+                            TC_LOG_ERROR("maps", "InstanceMap::Add: player %s %s is being put into instance %d, %d, %d but he is in group %s which is bound to instance %d, %d, %d!", player->GetName().c_str(), player->GetGUID().ToString().c_str(), mapSave->GetMapId(), mapSave->GetInstanceId(), static_cast<uint32>(mapSave->GetDifficultyID()), group->GetLeaderGUID().ToString().c_str(), groupBind->save->GetMapId(), groupBind->save->GetInstanceId(), static_cast<uint32>(groupBind->save->GetDifficultyID()));
                             TC_LOG_ERROR("maps", "MapSave players: %d, group count: %d", mapSave->GetPlayerCount(), mapSave->GetGroupCount());
                             if (groupBind->save)
                                 TC_LOG_ERROR("maps", "GroupBind save players: %d, group count: %d", groupBind->save->GetPlayerCount(), groupBind->save->GetGroupCount());
@@ -4135,23 +4147,11 @@ void InstanceMap::CreateInstanceData(bool load)
     if (i_data != nullptr)
         return;
 
-    bool isElunaAI = false;
-
-#ifdef ELUNA
-    i_data = sEluna->GetInstanceData(this);
-    if (i_data)
-        isElunaAI = true;
-#endif
-
-    // if Eluna AI was fetched succesfully we should not call CreateInstanceData nor set the unused scriptID
-    if (!isElunaAI)
+    InstanceTemplate const* mInstance = sObjectMgr->GetInstanceTemplate(GetId());
+    if (mInstance)
     {
-        InstanceTemplate const* mInstance = sObjectMgr->GetInstanceTemplate(GetId());
-        if (mInstance)
-        {
-            i_script_id = mInstance->ScriptId;
-            i_data = sScriptMgr->CreateInstanceData(this);
-        }
+        i_script_id = mInstance->ScriptId;
+        i_data = sScriptMgr->CreateInstanceData(this);
     }
 
     if (!i_data)
@@ -4173,7 +4173,7 @@ void InstanceMap::CreateInstanceData(bool load)
             i_data->SetEntranceLocation(fields[2].GetUInt32());
             if (!data.empty())
             {
-                TC_LOG_DEBUG("maps", "Loading instance data for `%s` with id %u", isElunaAI ? "ElunaAI" : sObjectMgr->GetScriptName(i_script_id).c_str(), i_InstanceId);
+                TC_LOG_DEBUG("maps", "Loading instance data for `%s` with id %u", sObjectMgr->GetScriptName(i_script_id).c_str(), i_InstanceId);
                 i_data->Load(data.c_str());
             }
         }
@@ -4249,7 +4249,7 @@ void InstanceMap::PermBindAllPlayers()
     InstanceSave* save = sInstanceSaveMgr->GetInstanceSave(GetInstanceId());
     if (!save)
     {
-        TC_LOG_ERROR("maps", "Cannot bind players to instance map (Name: %s, Entry: %u, Difficulty: %u, ID: %u) because no instance save is available!", GetMapName(), GetId(), GetDifficultyID(), GetInstanceId());
+        TC_LOG_ERROR("maps", "Cannot bind players to instance map (Name: %s, Entry: %u, Difficulty: %u, ID: %u) because no instance save is available!", GetMapName(), GetId(), static_cast<uint32>(GetDifficultyID()), GetInstanceId());
         return;
     }
 
@@ -4266,11 +4266,11 @@ void InstanceMap::PermBindAllPlayers()
         {
             if (bind->save && bind->save->GetInstanceId() != save->GetInstanceId())
             {
-                TC_LOG_ERROR("maps", "Player (%s, Name: %s) is in instance map (Name: %s, Entry: %u, Difficulty: %u, ID: %u) that is being bound, but already has a save for the map on ID %u!", player->GetGUID().ToString().c_str(), player->GetName().c_str(), GetMapName(), save->GetMapId(), save->GetDifficultyID(), save->GetInstanceId(), bind->save->GetInstanceId());
+                TC_LOG_ERROR("maps", "Player (%s, Name: %s) is in instance map (Name: %s, Entry: %u, Difficulty: %u, ID: %u) that is being bound, but already has a save for the map on ID %u!", player->GetGUID().ToString().c_str(), player->GetName().c_str(), GetMapName(), save->GetMapId(), static_cast<uint32>(save->GetDifficultyID()), save->GetInstanceId(), bind->save->GetInstanceId());
             }
             else if (!bind->save)
             {
-                TC_LOG_ERROR("maps", "Player (%s, Name: %s) is in instance map (Name: %s, Entry: %u, Difficulty: %u, ID: %u) that is being bound, but already has a bind (without associated save) for the map!", player->GetGUID().ToString().c_str(), player->GetName().c_str(), GetMapName(), save->GetMapId(), save->GetDifficultyID(), save->GetInstanceId());
+                TC_LOG_ERROR("maps", "Player (%s, Name: %s) is in instance map (Name: %s, Entry: %u, Difficulty: %u, ID: %u) that is being bound, but already has a bind (without associated save) for the map!", player->GetGUID().ToString().c_str(), player->GetName().c_str(), GetMapName(), save->GetMapId(), static_cast<uint32>(save->GetDifficultyID()), save->GetInstanceId());
             }
         }
         else
@@ -4319,7 +4319,7 @@ void InstanceMap::SetResetSchedule(bool on)
             sInstanceSaveMgr->ScheduleReset(on, save->GetResetTime(), InstanceSaveManager::InstResetEvent(0, GetId(), GetDifficultyID(), GetInstanceId()));
         else
             TC_LOG_ERROR("maps", "InstanceMap::SetResetSchedule: cannot turn schedule %s, there is no save information for instance (map [id: %u, name: %s], instance id: %u, difficulty: %u)",
-                on ? "on" : "off", GetId(), GetMapName(), GetInstanceId(), GetDifficultyID());
+                on ? "on" : "off", GetId(), GetMapName(), GetInstanceId(), static_cast<uint32>(GetDifficultyID()));
     }
 }
 
@@ -4453,8 +4453,8 @@ BattlegroundMap::~BattlegroundMap()
 void BattlegroundMap::InitVisibilityDistance()
 {
     //init visibility distance for BG/Arenas
-    m_VisibleDistance = World::GetMaxVisibleDistanceInBGArenas();
-    m_VisibilityNotifyPeriod = World::GetVisibilityNotifyPeriodInBGArenas();
+    m_VisibleDistance        = IsBattleArena() ? World::GetMaxVisibleDistanceInArenas() : World::GetMaxVisibleDistanceInBG();
+    m_VisibilityNotifyPeriod = IsBattleArena() ? World::GetVisibilityNotifyPeriodInArenas() : World::GetVisibilityNotifyPeriodInBG();
 }
 
 Map::EnterState BattlegroundMap::CannotEnter(Player* player)
@@ -4810,7 +4810,7 @@ void Map::RemoveCorpse(Corpse* corpse)
 {
     ASSERT(corpse);
 
-    corpse->DestroyForNearbyPlayers();
+    corpse->UpdateObjectVisibilityOnDestroy();
     if (corpse->IsInGrid())
         RemoveFromMap(corpse, false);
     else
@@ -4851,7 +4851,7 @@ Corpse* Map::ConvertCorpseToBones(ObjectGuid const& ownerGuid, bool insignia /*=
         bones = new Corpse();
         bones->Create(corpse->GetGUID().GetCounter(), this);
 
-        bones->SetCorpseDynamicFlags(CorpseDynFlags(*corpse->m_corpseData->DynamicFlags));
+        bones->ReplaceAllCorpseDynamicFlags(corpse->GetCorpseDynamicFlags());
         bones->SetOwnerGUID(corpse->m_corpseData->Owner);
         bones->SetPartyGUID(corpse->m_corpseData->PartyGUID);
         bones->SetGuildGUID(corpse->m_corpseData->GuildGUID);
@@ -4860,7 +4860,7 @@ Corpse* Map::ConvertCorpseToBones(ObjectGuid const& ownerGuid, bool insignia /*=
         bones->SetSex(corpse->m_corpseData->Sex);
         bones->SetClass(corpse->m_corpseData->Class);
         bones->SetCustomizations(Trinity::Containers::MakeIteratorPair(corpse->m_corpseData->Customizations.begin(), corpse->m_corpseData->Customizations.end()));
-        bones->SetFlags(corpse->m_corpseData->Flags | CORPSE_FLAG_BONES);
+        bones->ReplaceAllFlags(corpse->m_corpseData->Flags | CORPSE_FLAG_BONES);
         bones->SetFactionTemplate(corpse->m_corpseData->FactionTemplate);
 
         bones->SetCellCoord(corpse->GetCellCoord());
@@ -5022,7 +5022,7 @@ void Map::SetZoneWeather(uint32 zoneId, WeatherState weatherId, float intensity)
     }
 }
 
-void Map::SetZoneOverrideLight(uint32 zoneId, uint32 areaLightId, uint32 overrideLightId, uint32 transitionMilliseconds)
+void Map::SetZoneOverrideLight(uint32 zoneId, uint32 areaLightId, uint32 overrideLightId, Milliseconds transitionTime)
 {
     ZoneDynamicInfo& info = _zoneDynamicInfo[zoneId];
     // client can support only one override for each light (zone independent)
@@ -5037,7 +5037,7 @@ void Map::SetZoneOverrideLight(uint32 zoneId, uint32 areaLightId, uint32 overrid
         ZoneDynamicInfo::LightOverride& lightOverride = info.LightOverrides.emplace_back();
         lightOverride.AreaLightId = areaLightId;
         lightOverride.OverrideLightId = overrideLightId;
-        lightOverride.TransitionMilliseconds = transitionMilliseconds;
+        lightOverride.TransitionMilliseconds = static_cast<uint32>(transitionTime.count());
     }
 
     Map::PlayerList const& players = GetPlayers();
@@ -5046,7 +5046,7 @@ void Map::SetZoneOverrideLight(uint32 zoneId, uint32 areaLightId, uint32 overrid
         WorldPackets::Misc::OverrideLight overrideLight;
         overrideLight.AreaLightID = areaLightId;
         overrideLight.OverrideLightID = overrideLightId;
-        overrideLight.TransitionMilliseconds = transitionMilliseconds;
+        overrideLight.TransitionMilliseconds = static_cast<uint32>(transitionTime.count());
         overrideLight.Write();
 
         for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)

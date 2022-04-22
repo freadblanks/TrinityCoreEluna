@@ -30,9 +30,7 @@
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "PoolMgr.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
+#include "StringConvert.h"
 #include "World.h"
 #include "WorldStatePackets.h"
 
@@ -149,12 +147,6 @@ bool GameEventMgr::StartEvent(uint16 event_id, bool overwrite)
 
         // When event is started, set its worldstate to current time
         sWorld->setWorldState(event_id, GameTime::GetGameTime());
-
-#ifdef ELUNA
-        if (IsActiveEvent(event_id))
-            sEluna->OnGameEventStart(event_id);
-#endif
-
         return false;
     }
     else
@@ -177,11 +169,6 @@ bool GameEventMgr::StartEvent(uint16 event_id, bool overwrite)
         // or to scedule another update where the next event will be started
         if (overwrite && conditions_met)
             sWorld->ForceGameEventUpdate();
-
-#ifdef ELUNA
-        if (IsActiveEvent(event_id))
-            sEluna->OnGameEventStart(event_id);
-#endif
 
         return conditions_met;
     }
@@ -228,11 +215,6 @@ void GameEventMgr::StopEvent(uint16 event_id, bool overwrite)
             CharacterDatabase.CommitTransaction(trans);
         }
     }
-
-#ifdef ELUNA
-    if (IsActiveEvent(event_id))
-        sEluna->OnGameEventStart(event_id);
-#endif
 }
 
 void GameEventMgr::LoadFromDB()
@@ -875,9 +857,9 @@ void GameEventMgr::LoadFromDB()
                 vItem.PlayerConditionId = fields[8].GetUInt32();
                 vItem.IgnoreFiltering   = fields[9].GetBool();
 
-                Tokenizer bonusListIDsTok(fields[7].GetString(), ' ');
-                for (char const* token : bonusListIDsTok)
-                    vItem.BonusListIDs.push_back(int32(atol(token)));
+                for (std::string_view token : Trinity::Tokenize(fields[7].GetStringView(), ' ', false))
+                    if (Optional<int32> bonusListID = Trinity::StringTo<int32>(token))
+                        vItem.BonusListIDs.push_back(*bonusListID);
 
                 // check validity with event's npcflag
                 if (!sObjectMgr->IsVendorItemValid(entry, vItem, nullptr, nullptr, event_npc_flag))
@@ -1202,8 +1184,8 @@ void GameEventMgr::UpdateEventNPCFlags(uint16 event_id)
                     if (CreatureTemplate const* creatureTemplate = creature->GetCreatureTemplate())
                         npcflag |= creatureTemplate->npcflag;
 
-                    creature->SetNpcFlags(NPCFlags(npcflag & 0xFFFFFFFF));
-                    creature->SetNpcFlags2(NPCFlags2(npcflag >> 32));
+                    creature->ReplaceAllNpcFlags(NPCFlags(npcflag & 0xFFFFFFFF));
+                    creature->ReplaceAllNpcFlags2(NPCFlags2(npcflag >> 32));
                     // reset gossip options, since the flag change might have added / removed some
                     //cr->ResetGossipOptions();
                 }

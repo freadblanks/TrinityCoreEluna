@@ -23,7 +23,6 @@
 #include "Duration.h"
 #include <iosfwd>
 #include <map>
-#include <memory>
 #include <set>
 
 #define OUT_SAVE_INST_DATA             TC_LOG_DEBUG("scripts", "Saving Instance Data for Instance %s (Map %d, Instance Id %d)", instance->GetMapName(), instance->GetId(), instance->GetInstanceId())
@@ -66,6 +65,7 @@ enum EncounterFrameType
     ENCOUNTER_FRAME_ADD_COMBAT_RES_LIMIT    = 10
 };
 
+// EnumUtils: DESCRIBE THIS
 enum EncounterState
 {
     NOT_STARTED   = 0,
@@ -158,7 +158,7 @@ class TC_GAME_API InstanceScript : public ZoneScript
     public:
         explicit InstanceScript(InstanceMap* map);
 
-        virtual ~InstanceScript() { }
+        virtual ~InstanceScript();
 
         InstanceMap* instance;
 

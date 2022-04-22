@@ -23,7 +23,6 @@ SDCategory: Temple of Ahn'Qiraj
 EndScriptData */
 
 #include "ScriptMgr.h"
-#include "Creature.h"
 #include "InstanceScript.h"
 #include "temple_of_ahnqiraj.h"
 
@@ -37,7 +36,6 @@ ObjectData const creatureData[] =
     { NPC_SARTURA,   DATA_SARTURA   },
     { 0,             0              } // END
 };
-
 
 DoorData const doorData[] =
 {

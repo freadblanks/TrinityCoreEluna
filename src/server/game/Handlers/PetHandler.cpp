@@ -25,7 +25,6 @@
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
-#include "Opcodes.h"
 #include "Pet.h"
 #include "PetPackets.h"
 #include "Player.h"
@@ -37,8 +36,6 @@
 #include "SpellPackets.h"
 #include "PetAI.h"
 #include "Util.h"
-#include "World.h"
-#include "WorldPacket.h"
 
 void WorldSession::HandleDismissCritter(WorldPackets::Pet::DismissCritter& packet)
 {
@@ -532,11 +529,13 @@ void WorldSession::HandlePetRename(WorldPackets::Pet::PetRename& packet)
     std::string name = packet.RenameData.NewName;
     Optional<DeclinedName> const& declinedname = packet.RenameData.DeclinedNames;
 
+    PetStable* petStable = _player->GetPetStable();
     Pet* pet = ObjectAccessor::GetPet(*_player, petguid);
                                                             // check it!
     if (!pet || !pet->IsPet() || ((Pet*)pet)->getPetType() != HUNTER_PET ||
         !pet->HasPetFlag(UNIT_PET_FLAG_CAN_BE_RENAMED) ||
-        pet->GetOwnerGUID() != _player->GetGUID() || !pet->GetCharmInfo())
+        pet->GetOwnerGUID() != _player->GetGUID() || !pet->GetCharmInfo() ||
+        !petStable || !petStable->GetCurrentPet() || petStable->GetCurrentPet()->PetNumber != pet->GetCharmInfo()->GetPetNumber())
         return;
 
     PetNameInvalidReason res = ObjectMgr::CheckPetName(name);
@@ -557,6 +556,9 @@ void WorldSession::HandlePetRename(WorldPackets::Pet::PetRename& packet)
     pet->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_PET_NAME);
 
     pet->RemovePetFlag(UNIT_PET_FLAG_CAN_BE_RENAMED);
+
+    petStable->GetCurrentPet()->Name = name;
+    petStable->GetCurrentPet()->WasRenamed = true;
 
     if (declinedname)
     {

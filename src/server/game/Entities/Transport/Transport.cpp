@@ -90,7 +90,7 @@ bool Transport::Create(ObjectGuid::LowType guidlow, uint32 entry, uint32 mapid, 
     if (GameObjectOverride const* goOverride = GetGameObjectOverride())
     {
         SetFaction(goOverride->Faction);
-        SetFlags(GameObjectFlags(goOverride->Flags));
+        ReplaceAllFlags(GameObjectFlags(goOverride->Flags));
     }
 
     m_goValue.Transport.PathProgress = 0;
@@ -477,7 +477,8 @@ TempSummon* Transport::SummonPassenger(uint32 entry, Position const& pos, TempSu
     if (summoner && !(properties && properties->GetFlags().HasFlag(SummonPropertiesFlags::IgnoreSummonerPhase)))
         phaseShiftOwner = summoner;
 
-    PhasingHandler::InheritPhaseShift(summon, phaseShiftOwner);
+    if (phaseShiftOwner)
+        PhasingHandler::InheritPhaseShift(summon, phaseShiftOwner);
 
     summon->SetCreatedBySpell(spellId);
 

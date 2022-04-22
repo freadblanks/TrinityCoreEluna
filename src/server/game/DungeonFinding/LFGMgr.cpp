@@ -27,7 +27,6 @@
 #include "LFGGroupData.h"
 #include "LFGPlayerData.h"
 #include "LFGQueue.h"
-#include "LFGScripts.h"
 #include "Log.h"
 #include "Map.h"
 #include "ObjectAccessor.h"
@@ -397,12 +396,13 @@ void LFGMgr::JoinLfg(Player* player, uint8 roles, LfgDungeonSet& dungeons)
     if (!player || !player->GetSession() || dungeons.empty())
         return;
 
+    // Sanitize input roles
+    roles &= PLAYER_ROLE_ANY;
+    roles = FilterClassRoles(player, roles);
+
     // At least 1 role must be selected
     if (!(roles & (PLAYER_ROLE_TANK | PLAYER_ROLE_HEALER | PLAYER_ROLE_DAMAGE)))
         return;
-
-    // Sanitize input roles
-    roles &= PLAYER_ROLE_ANY;
 
     Group* grp = player->GetGroup();
     ObjectGuid guid = player->GetGUID();
@@ -725,6 +725,14 @@ void LFGMgr::UpdateRoleCheck(ObjectGuid gguid, ObjectGuid guid /* = ObjectGuid::
 
     // Sanitize input roles
     roles &= PLAYER_ROLE_ANY;
+
+    if (!guid.IsEmpty())
+    {
+        if (Player* player = ObjectAccessor::FindPlayer(guid))
+            roles = FilterClassRoles(player, roles);
+        else
+            return;
+    }
 
     LfgRoleCheck& roleCheck = itRoleCheck->second;
     bool sendRoleChosen = roleCheck.state != LFG_ROLECHECK_DEFAULT && !guid.IsEmpty();
@@ -1298,20 +1306,25 @@ void LFGMgr::UpdateBoot(ObjectGuid guid, bool accept)
 
     boot.votes[guid] = LfgAnswer(accept);
 
-    uint8 votesNum = 0;
     uint8 agreeNum = 0;
+    uint8 denyNum = 0;
     for (LfgAnswerContainer::const_iterator itVotes = boot.votes.begin(); itVotes != boot.votes.end(); ++itVotes)
     {
-        if (itVotes->second != LFG_ANSWER_PENDING)
+        switch (itVotes->second)
         {
-            ++votesNum;
-            if (itVotes->second == LFG_ANSWER_AGREE)
+            case LFG_ANSWER_PENDING:
+                break;
+            case LFG_ANSWER_AGREE:
                 ++agreeNum;
+                break;
+            case LFG_ANSWER_DENY:
+                ++denyNum;
+                break;
         }
     }
 
     // if we don't have enough votes (agree or deny) do nothing
-    if (agreeNum < LFG_GROUP_KICK_VOTES_NEEDED && (votesNum - agreeNum) < LFG_GROUP_KICK_VOTES_NEEDED)
+    if (agreeNum < LFG_GROUP_KICK_VOTES_NEEDED && (boot.votes.size() - denyNum) >= LFG_GROUP_KICK_VOTES_NEEDED)
         return;
 
     // Send update info to all players
@@ -1739,7 +1752,6 @@ LfgLockMap LFGMgr::GetLockedDungeons(ObjectGuid guid)
                 if (player->GetTeam() == HORDE && ar->quest_H && !player->GetQuestRewardStatus(ar->quest_H))
                     return LFG_LOCKSTATUS_QUEST_NOT_COMPLETED;
 
-
                 if (ar->item)
                 {
                     if (!player->HasItemCount(ar->item) && (!ar->item2 || !player->HasItemCount(ar->item2)))
@@ -1890,6 +1902,16 @@ uint8 LFGMgr::GetTeam(ObjectGuid guid)
     uint8 team = PlayersStore[guid].GetTeam();
     TC_LOG_TRACE("lfg.data.player.team.get", "Player: %s, Team: %u", guid.ToString().c_str(), team);
     return team;
+}
+
+uint8 LFGMgr::FilterClassRoles(Player* player, uint8 roles)
+{
+    uint8 allowedRoles = PLAYER_ROLE_LEADER;
+    for (uint32 i = 0; i < MAX_SPECIALIZATIONS; ++i)
+        if (ChrSpecializationEntry const* specialization = sDB2Manager.GetChrSpecializationByIndex(player->GetClass(), i))
+            allowedRoles |= 1 << (specialization->Role + 1);
+
+    return roles & allowedRoles;
 }
 
 uint8 LFGMgr::RemovePlayerFromGroup(ObjectGuid gguid, ObjectGuid guid)

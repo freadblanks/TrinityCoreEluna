@@ -97,7 +97,7 @@ struct BonusData
     void Initialize(ItemTemplate const* proto);
     void Initialize(WorldPackets::Item::ItemInstance const& itemInstance);
     void AddBonusList(uint32 bonusListId);
-    void AddBonus(uint32 type, int32 const (&values)[4]);
+    void AddBonus(uint32 type, std::array<int32, 4> const& values);
 
 private:
     struct
@@ -176,6 +176,7 @@ class TC_GAME_API Item : public Object
         Item* CloneItem(uint32 count, Player const* player = nullptr) const;
 
         Item();
+        ~Item();
 
         virtual bool Create(ObjectGuid::LowType guidlow, uint32 itemId, ItemContext context, Player const* owner);
 
@@ -200,24 +201,26 @@ class TC_GAME_API Item : public Object
         void SetBinding(bool val)
         {
             if (val)
-                AddItemFlag(ITEM_FIELD_FLAG_SOULBOUND);
+                SetItemFlag(ITEM_FIELD_FLAG_SOULBOUND);
             else
                 RemoveItemFlag(ITEM_FIELD_FLAG_SOULBOUND);
         }
         bool HasItemFlag(ItemFieldFlags flag) const { return (*m_itemData->DynamicFlags & flag) != 0; }
-        void AddItemFlag(ItemFieldFlags flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::DynamicFlags), flags); }
+        void SetItemFlag(ItemFieldFlags flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::DynamicFlags), flags); }
         void RemoveItemFlag(ItemFieldFlags flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::DynamicFlags), flags); }
-        void SetItemFlags(ItemFieldFlags flags) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::DynamicFlags), flags); }
+        void ReplaceAllItemFlags(ItemFieldFlags flags) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::DynamicFlags), flags); }
+
         bool HasItemFlag2(ItemFieldFlags2 flag) const { return (*m_itemData->DynamicFlags2 & flag) != 0; }
-        void AddItemFlag2(ItemFieldFlags2 flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::DynamicFlags2), flags); }
+        void SetItemFlag2(ItemFieldFlags2 flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::DynamicFlags2), flags); }
         void RemoveItemFlag2(ItemFieldFlags2 flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::DynamicFlags2), flags); }
-        void SetItemFlags2(ItemFieldFlags2 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::DynamicFlags2), flags); }
+        void ReplaceAllItemFlags2(ItemFieldFlags2 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Item::m_itemData).ModifyValue(&UF::ItemData::DynamicFlags2), flags); }
+
         bool IsSoulBound() const { return HasItemFlag(ITEM_FIELD_FLAG_SOULBOUND); }
         bool IsBoundAccountWide() const { return GetTemplate()->HasFlag(ITEM_FLAG_IS_BOUND_TO_ACCOUNT); }
         bool IsBattlenetAccountBound() const { return GetTemplate()->HasFlag(ITEM_FLAG2_BNET_ACCOUNT_TRADE_OK); }
         bool IsBindedNotWith(Player const* player) const;
         bool IsBoundByEnchant() const;
-        virtual void SaveToDB(CharacterDatabaseTransaction& trans);
+        virtual void SaveToDB(CharacterDatabaseTransaction trans);
         virtual bool LoadFromDB(ObjectGuid::LowType guid, ObjectGuid ownerGuid, Field* fields, uint32 entry);
         void LoadArtifactData(Player const* owner, uint64 xp, uint32 artifactAppearanceId, uint32 artifactTier, std::vector<ArtifactPowerData>& powers);  // must be called after LoadFromDB to have gems (relics) initialized
         void CheckArtifactRelicSlotUnlock(Player const* owner);
@@ -226,11 +229,11 @@ class TC_GAME_API Item : public Object
         void SetBonuses(std::vector<int32> bonusListIDs);
         void ClearBonuses();
 
-        static void DeleteFromDB(CharacterDatabaseTransaction& trans, ObjectGuid::LowType itemGuid);
-        virtual void DeleteFromDB(CharacterDatabaseTransaction& trans);
-        static void DeleteFromInventoryDB(CharacterDatabaseTransaction& trans, ObjectGuid::LowType itemGuid);
+        static void DeleteFromDB(CharacterDatabaseTransaction trans, ObjectGuid::LowType itemGuid);
+        virtual void DeleteFromDB(CharacterDatabaseTransaction trans);
+        static void DeleteFromInventoryDB(CharacterDatabaseTransaction trans, ObjectGuid::LowType itemGuid);
 
-        void DeleteFromInventoryDB(CharacterDatabaseTransaction& trans);
+        void DeleteFromInventoryDB(CharacterDatabaseTransaction trans);
         void SaveRefundDataToDB();
         void DeleteRefundDataFromDB(CharacterDatabaseTransaction* trans);
 
@@ -256,6 +259,8 @@ class TC_GAME_API Item : public Object
         bool CanBeTraded(bool mail = false, bool trade = false) const;
         void SetInTrade(bool b = true) { mb_in_trade = b; }
         bool IsInTrade() const { return mb_in_trade; }
+
+        uint64 CalculateDurabilityRepairCost(float discount) const;
 
         bool HasEnchantRequiredSkill(Player const* player) const;
         uint32 GetEnchantRequiredLevel() const;
@@ -377,6 +382,18 @@ class TC_GAME_API Item : public Object
         void BuildValuesUpdateWithFlag(ByteBuffer* data, UF::UpdateFieldFlag flags, Player const* target) const override;
         void BuildValuesUpdateForPlayerWithMask(UpdateData* data, UF::ObjectData::Mask const& requestedObjectMask,
             UF::ItemData::Mask const& requestedItemMask, Player const* target) const;
+
+        struct ValuesUpdateForPlayerWithMaskSender // sender compatible with MessageDistDeliverer
+        {
+            explicit ValuesUpdateForPlayerWithMaskSender(Item const* owner) : Owner(owner) { }
+
+            Item const* Owner;
+            UF::ObjectData::Base ObjectMask;
+            UF::ItemData::Base ItemMask;
+
+            void operator()(Player const* player) const;
+        };
+
         bool AddToObjectUpdate() override;
         void RemoveFromObjectUpdate() override;
 

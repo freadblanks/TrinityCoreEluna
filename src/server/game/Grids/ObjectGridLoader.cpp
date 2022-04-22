@@ -31,8 +31,6 @@
 #include "ObjectMgr.h"
 #include "PhasingHandler.h"
 #include "SceneObject.h"
-#include "World.h"
-#include "ScriptMgr.h"
 
 void ObjectGridEvacuator::Visit(CreatureMapType &m)
 {
@@ -282,7 +280,10 @@ template<class T>
 void ObjectGridCleaner::Visit(GridRefManager<T> &m)
 {
     for (typename GridRefManager<T>::iterator iter = m.begin(); iter != m.end(); ++iter)
+    {
+        iter->GetSource()->SetDestroyedObject(true);
         iter->GetSource()->CleanupsBeforeDelete();
+    }
 }
 
 template void ObjectGridUnloader::Visit(CreatureMapType &);

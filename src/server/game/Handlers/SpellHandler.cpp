@@ -19,6 +19,7 @@
 #include "CollectionMgr.h"
 #include "Common.h"
 #include "DatabaseEnv.h"
+#include "DB2Stores.h"
 #include "GameObjectAI.h"
 #include "GameObjectPackets.h"
 #include "Guild.h"
@@ -233,7 +234,7 @@ void WorldSession::HandleOpenWrappedItemCallback(uint16 pos, ObjectGuid itemGuid
 
     item->SetGiftCreator(ObjectGuid::Empty);
     item->SetEntry(entry);
-    item->SetItemFlags(ItemFieldFlags(flags));
+    item->ReplaceAllItemFlags(ItemFieldFlags(flags));
     item->SetMaxDurability(item->GetTemplate()->MaxDurability);
     item->SetState(ITEM_CHANGED, GetPlayer());
 
@@ -316,7 +317,6 @@ void WorldSession::HandleCastSpellOpcode(WorldPackets::Spells::CastSpell& cast)
     if (caster->GetTypeId() == TYPEID_PLAYER && !caster->ToPlayer()->HasActiveSpell(spellInfo->Id) && !spellInfo->HasEffect(SPELL_EFFECT_CHANGE_RAID_MARKER) && !spellInfo->HasAttribute(SPELL_ATTR8_RAID_MARKER))
     {
         bool allow = false;
-
 
         // allow casting of unknown spells for special lock cases
         if (GameObject* go = targets.GetGOTarget())
@@ -509,11 +509,15 @@ void WorldSession::HandleTotemDestroyed(WorldPackets::Totem::TotemDestroyed& tot
 
 void WorldSession::HandleSelfResOpcode(WorldPackets::Spells::SelfRes& selfRes)
 {
-    if (_player->HasAuraType(SPELL_AURA_PREVENT_RESURRECTION))
-        return; // silent return, client should display error by itself and not send this opcode
-
     if (_player->m_activePlayerData->SelfResSpells.FindIndex(selfRes.SpellID) < 0)
         return;
+
+    SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(selfRes.SpellID, _player->GetMap()->GetDifficultyID());
+    if (!spellInfo)
+        return;
+
+    if (_player->HasAuraType(SPELL_AURA_PREVENT_RESURRECTION) && !spellInfo->HasAttribute(SPELL_ATTR7_BYPASS_NO_RESURRECT_AURA))
+        return; // silent return, client should display error by itself and not send this opcode
 
     _player->CastSpell(_player, selfRes.SpellID, _player->GetMap()->GetDifficultyID());
     _player->RemoveSelfResSpell(selfRes.SpellID);
@@ -559,7 +563,6 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPackets::Spells::GetMirrorI
         mirrorImageComponentedData.RaceID = creator->GetRace();
         mirrorImageComponentedData.Gender = creator->GetGender();
         mirrorImageComponentedData.ClassID = creator->GetClass();
-
 
         for (UF::ChrCustomizationChoice const& customization : player->m_playerData->Customizations)
             mirrorImageComponentedData.Customizations.push_back(customization);

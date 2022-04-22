@@ -18,7 +18,6 @@
 #include "ScriptMgr.h"
 #include "hyjal.h"
 #include "hyjal_trash.h"
-#include "hyjalAI.h"
 #include "InstanceScript.h"
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
@@ -192,7 +191,7 @@ hyjal_trashAI::hyjal_trashAI(Creature* creature) : EscortAI(creature)
     Reset();
 }
 
-void hyjal_trashAI::DamageTaken(Unit* done_by, uint32 &damage)
+void hyjal_trashAI::DamageTaken(Unit* done_by, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/)
 {
     if (!done_by || done_by->GetTypeId() == TYPEID_PLAYER || done_by->IsPet())
     {
@@ -421,7 +420,7 @@ public:
             CanMove = false;
             Delay = rand32() % 30000;
             me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
-            me->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+            me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
             me->SetDisplayId(MODEL_INVIS);
             go = false;
             Initialize();
@@ -487,7 +486,7 @@ public:
                 if (spawnTimer <= diff)
                 {
                     me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
-                    me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                    me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
                     me->SetDisplayId(me->GetNativeDisplayId());
                     CanMove = true;
                     if (instance->GetData(DATA_ALLIANCE_RETREAT) && !instance->GetData(DATA_HORDE_RETREAT))

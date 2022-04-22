@@ -20,7 +20,6 @@
 
 #include "ARC4.h"
 #include "AuthDefines.h"
-#include "ByteBuffer.h"
 #include "Optional.h"
 #include "WardenCheckMgr.h"
 #include <array>
@@ -91,6 +90,9 @@ class TC_GAME_API Warden
         virtual void Init(WorldSession* session, SessionKey const& K) = 0;
         void Update(uint32 diff);
         void HandleData(ByteBuffer& buff);
+        bool ProcessLuaCheckResponse(std::string const& msg);
+
+        virtual size_t DEBUG_ForceSpecificChecks(std::vector<uint16> const& checks) = 0;
 
     protected:
         void DecryptData(uint8* buffer, uint32 length);

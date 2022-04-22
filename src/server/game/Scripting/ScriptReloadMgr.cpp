@@ -17,7 +17,6 @@
 
 #include "ScriptReloadMgr.h"
 #include "Errors.h"
-#include "Optional.h"
 
 #ifndef TRINITY_API_USE_DYNAMIC_LINKING
 
@@ -44,6 +43,7 @@ ScriptReloadMgr* ScriptReloadMgr::instance()
 #include "Duration.h"
 #include "Log.h"
 #include "MPSCQueue.h"
+#include "Optional.h"
 #include "Regex.h"
 #include "ScriptMgr.h"
 #include "StartProcess.h"
@@ -612,7 +612,7 @@ public:
         boost::system::error_code code;
         if ((!fs::exists(temporary_cache_path_, code)
              || (fs::remove_all(temporary_cache_path_, code) > 0)) &&
-             !fs::create_directory(temporary_cache_path_, code))
+             !fs::create_directories(temporary_cache_path_, code))
         {
             TC_LOG_ERROR("scripts.hotswap", "Couldn't create the cache directory at \"%s\".",
                 temporary_cache_path_.generic_string().c_str());

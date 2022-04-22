@@ -576,7 +576,7 @@ public:
 
                 // Adjust gossip flag based on whether we have a gossip menu or not
                 if (target.HasGossip)
-                    me->AddNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+                    me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
                 else
                     me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
 
@@ -1465,7 +1465,7 @@ public:
                     case RP5_EVENT_CHROMIE_SPAWN:
                         if (Creature* chromie = instance->instance->SummonCreature(NPC_CHROMIE_3, ArthasPositions[RP5_CHROMIE_SPAWN]))
                         {
-                            chromie->RemoveNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
+                            chromie->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER);
                             Movement::PointsArray path(ChromieSplinePos, ChromieSplinePos + chromiePathSize);
                             Movement::MoveSplineInit init(chromie);
                             init.SetFly();
@@ -1476,14 +1476,14 @@ public:
                         break;
                     case RP5_EVENT_CHROMIE_LAND:
                         if (Creature* chromie = me->FindNearestCreature(NPC_CHROMIE_3, 100.0f, true))
-                            chromie->SetAnimTier(UNIT_BYTE1_FLAG_NONE, true);
+                            chromie->SetAnimTier(AnimTier::Ground, true);
                         break;
                     case RP5_EVENT_CHROMIE_TRANSFORM:
                         if (Creature* chromie = me->FindNearestCreature(NPC_CHROMIE_3, 100.0f, true))
                         {
                             chromie->CastSpell(chromie, SPELL_CHROMIE_3_TRANSFORM);
                             chromie->AI()->Talk(RP5_LINE_CHROMIE0);
-                            chromie->AddNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
+                            chromie->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER);
                         }
                         break;
                     default:
@@ -1595,7 +1595,7 @@ public:
                 instance->SetGuidData(command, cause->GetGUID());
         }
 
-        bool GossipSelect(Player* player, uint32 /*sender*/, uint32 listId) override
+        bool OnGossipSelect(Player* player, uint32 /*sender*/, uint32 listId) override
         {
             uint32 const action = GetGossipActionFor(player, listId);
             TC_LOG_TRACE("scripts.cos", "npc_arthas_stratholmeAI::GossipSelect: '%s' selects action '%u' on '%s'", player->GetGUID().ToString().c_str(), action, me->GetGUID().ToString().c_str());
@@ -1608,7 +1608,7 @@ public:
             return true;
         }
 
-        bool GossipHello(Player* /*player*/) override
+        bool OnGossipHello(Player* /*player*/) override
         {
             return false;
         }
@@ -1651,6 +1651,7 @@ struct npc_stratholme_rp_dummy : NullCreatureAI
     }
 };
 
+// 50773 - Crusader Strike
 class spell_stratholme_crusader_strike : public SpellScript
 {
     PrepareSpellScript(spell_stratholme_crusader_strike);

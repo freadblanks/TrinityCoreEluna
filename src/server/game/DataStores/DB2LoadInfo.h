@@ -876,6 +876,7 @@ struct BroadcastTextLoadInfo
             { false, FT_SHORT, "EmotesID" },
             { false, FT_BYTE, "Flags" },
             { false, FT_INT, "ChatBubbleDurationMs" },
+            { true, FT_INT, "VoiceOverPriorityID" },
             { false, FT_INT, "SoundKitID1" },
             { false, FT_INT, "SoundKitID2" },
             { false, FT_SHORT, "EmoteID1" },
@@ -3448,6 +3449,8 @@ struct ItemSparseLoadInfo
             { false, FT_INT, "DurationInInventory" },
             { false, FT_FLOAT, "QualityModifier" },
             { false, FT_INT, "BagFamily" },
+            { true, FT_INT, "StartQuestID" },
+            { true, FT_INT, "LanguageID" },
             { false, FT_FLOAT, "ItemRange" },
             { false, FT_FLOAT, "StatPercentageOfSocket1" },
             { false, FT_FLOAT, "StatPercentageOfSocket2" },
@@ -3496,7 +3499,6 @@ struct ItemSparseLoadInfo
             { false, FT_SHORT, "ZoneBound2" },
             { false, FT_SHORT, "ItemSet" },
             { false, FT_SHORT, "LockID" },
-            { false, FT_SHORT, "StartQuestID" },
             { false, FT_SHORT, "PageID" },
             { false, FT_SHORT, "ItemDelay" },
             { false, FT_SHORT, "MinFactionID" },
@@ -3513,7 +3515,6 @@ struct ItemSparseLoadInfo
             { false, FT_BYTE, "SheatheType" },
             { false, FT_BYTE, "Material" },
             { false, FT_BYTE, "PageMaterialID" },
-            { false, FT_BYTE, "LanguageID" },
             { false, FT_BYTE, "Bonding" },
             { false, FT_BYTE, "DamageDamageType" },
             { true, FT_BYTE, "StatModifierBonusStat1" },
@@ -3778,6 +3779,9 @@ struct LanguagesLoadInfo
         {
             { false, FT_INT, "ID" },
             { false, FT_STRING, "Name" },
+            { true, FT_INT, "Flags" },
+            { true, FT_INT, "UiTextureKitID" },
+            { true, FT_INT, "UiTextureKitElementCount" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, LanguagesMeta::Instance(), HOTFIX_SEL_LANGUAGES);
         return &loadInfo;
@@ -6363,7 +6367,7 @@ struct TaxiNodesLoadInfo
             { false, FT_SHORT, "ContinentID" },
             { true, FT_INT, "ConditionID" },
             { false, FT_SHORT, "CharacterBitNumber" },
-            { false, FT_BYTE, "Flags" },
+            { false, FT_SHORT, "Flags" },
             { true, FT_INT, "UiTextureKitID" },
             { true, FT_INT, "MinimapAtlasMemberID" },
             { false, FT_FLOAT, "Facing" },

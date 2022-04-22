@@ -183,7 +183,7 @@ public:
             _RavenousworgGUID.Clear();
         }
 
-        void QuestAccept(Player* player, Quest const* quest) override
+        void OnQuestAccept(Player* player, Quest const* quest) override
         {
             if (quest->GetQuestId() == QUEST_PERILOUS_ADVENTURE)
             {
@@ -239,7 +239,6 @@ public:
         void EnterEvadeMode(EvadeReason /*why*/) override { }
 
         void MoveInLineOfSight(Unit* /*who*/) override { }
-
 
         void UpdateAI(uint32 /*diff*/) override
         {
@@ -373,7 +372,7 @@ public:
                 {
                     me->SetStandState(UNIT_STAND_STATE_DEAD);
                     me->SetImmuneToPC(true);
-                    me->AddDynamicFlag(UNIT_DYNFLAG_DEAD);
+                    me->SetDynamicFlag(UNIT_DYNFLAG_DEAD);
                 }
                 _phase = 0;
             }
@@ -627,7 +626,7 @@ public:
         {
             if (spellInfo->Id == SPELL_SMOKE_BOMB && caster->GetTypeId() == TYPEID_PLAYER)
             {
-                me->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+                me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
                 me->SetImmuneToPC(true);
                 me->SetReactState(REACT_PASSIVE);
                 me->CombatStop(false);
@@ -727,7 +726,7 @@ public:
                             _events.ScheduleEvent(EVENT_LAKEFROG_3, 3s);
                             break;
                         case EVENT_LAKEFROG_3:
-                            me->AddNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+                            me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
                             _events.ScheduleEvent(EVENT_LAKEFROG_4, 25s);
                             break;
                         case EVENT_LAKEFROG_4:
@@ -774,7 +773,7 @@ public:
                 }
             }
 
-            bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 /*gossipListId*/) override
+            bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 /*gossipListId*/) override
             {
                 DoCast(player, SPELL_SUMMON_ASHWOOD_BRAND);
                 return false;
@@ -835,6 +834,7 @@ enum InfectedWorgenBite
     SPELL_WORGENS_CALL         = 53095
 };
 
+// 53094 - Infected Worgen Bite
 class spell_infected_worgen_bite : public SpellScriptLoader
 {
     public:

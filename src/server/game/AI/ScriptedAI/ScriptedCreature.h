@@ -21,6 +21,7 @@
 #include "CreatureAI.h"
 #include "Creature.h"  // convenience include for scripts, all uses of ScriptedCreature also need Creature (except ScriptedCreature itself doesn't need Creature)
 #include "DBCEnums.h"
+#include "EventMap.h"
 #include "TaskScheduler.h"
 
 class InstanceScript;
@@ -388,9 +389,9 @@ inline Creature* GetClosestCreatureWithEntry(WorldObject* source, uint32 entry, 
     return source->FindNearestCreature(entry, maxSearchRange, alive);
 }
 
-inline GameObject* GetClosestGameObjectWithEntry(WorldObject* source, uint32 entry, float maxSearchRange)
+inline GameObject* GetClosestGameObjectWithEntry(WorldObject* source, uint32 entry, float maxSearchRange, bool spawnedOnly = true)
 {
-    return source->FindNearestGameObject(entry, maxSearchRange);
+    return source->FindNearestGameObject(entry, maxSearchRange, spawnedOnly);
 }
 
 template <typename Container>
@@ -406,9 +407,9 @@ inline void GetGameObjectListWithEntryInGrid(Container& container, WorldObject* 
 }
 
 template <typename Container>
-inline void GetPlayerListInGrid(Container& container, WorldObject* source, float maxSearchRange)
+inline void GetPlayerListInGrid(Container& container, WorldObject* source, float maxSearchRange, bool alive = true)
 {
-    source->GetPlayerListInGrid(container, maxSearchRange);
+    source->GetPlayerListInGrid(container, maxSearchRange, alive);
 }
 
 #endif // TRINITY_SCRIPTEDCREATURE_H

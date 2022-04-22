@@ -28,7 +28,6 @@ Category: Caverns of Time, The Black Morass
 #include "Log.h"
 #include "Map.h"
 #include "Player.h"
-#include "SpellInfo.h"
 #include "the_black_morass.h"
 #include "TemporarySummon.h"
 
@@ -298,9 +297,6 @@ public:
                     TEMPSUMMON_CORPSE_DESPAWN);
                 if (temp)
                 {
-                    temp->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
-                    temp->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
-
                     if (Creature* boss = SummonedPortalBoss(temp))
                     {
                         if (boss->GetEntry() == NPC_AEONUS)

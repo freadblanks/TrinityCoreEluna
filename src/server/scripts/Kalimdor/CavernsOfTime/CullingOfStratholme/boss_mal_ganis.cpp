@@ -18,13 +18,9 @@
 #include "culling_of_stratholme.h"
 #include "InstanceScript.h"
 #include "Map.h"
-#include "MotionMaster.h"
-#include "ObjectAccessor.h"
 #include "PassiveAI.h"
-#include "Player.h"
 #include "ScriptedCreature.h"
 #include "ScriptMgr.h"
-#include "SpellMgr.h"
 
 enum Spells
 {
@@ -78,7 +74,7 @@ class boss_mal_ganis : public CreatureScript
                     instance->SetBossState(DATA_MAL_GANIS, NOT_STARTED);
             }
 
-            void DamageTaken(Unit* /*source*/, uint32 &damage) override
+            void DamageTaken(Unit* /*source*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
             {
                 if (damage >= me->GetHealth())
                 {

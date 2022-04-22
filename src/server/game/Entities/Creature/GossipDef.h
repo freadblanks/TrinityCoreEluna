@@ -20,7 +20,6 @@
 
 #include "Common.h"
 #include "ObjectGuid.h"
-#include "NPCHandler.h"
 #include <map>
 
 class Object;
@@ -132,6 +131,7 @@ struct GossipMenuItem
     uint32           OptionType;
     std::string      BoxMessage;
     uint32           BoxMoney;
+    uint32           Language;
 };
 
 // need an ordered container

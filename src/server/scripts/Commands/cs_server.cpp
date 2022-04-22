@@ -24,6 +24,7 @@ EndScriptData */
 
 #include "ScriptMgr.h"
 #include "Chat.h"
+#include "ChatCommand.h"
 #include "Config.h"
 #include "DatabaseEnv.h"
 #include "DatabaseLoader.h"
@@ -32,21 +33,22 @@ EndScriptData */
 #include "Language.h"
 #include "Log.h"
 #include "MySQLThreading.h"
-#include "ObjectAccessor.h"
-#include "Player.h"
 #include "RBAC.h"
 #include "Realm.h"
 #include "UpdateTime.h"
 #include "Util.h"
 #include "VMapFactory.h"
+#include "VMapManager2.h"
 #include "World.h"
 #include "WorldSession.h"
-
-#include <numeric>
-
 #include <boost/filesystem/operations.hpp>
 #include <openssl/crypto.h>
 #include <openssl/opensslv.h>
+#include <numeric>
+
+#if TRINITY_COMPILER == TRINITY_COMPILER_GNU
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 class server_commandscript : public CommandScript
 {
@@ -211,7 +213,8 @@ public:
             auto end = boost::filesystem::directory_iterator();
             std::size_t folderSize = std::accumulate(boost::filesystem::directory_iterator(mapPath), end, std::size_t(0), [](std::size_t val, boost::filesystem::path const& mapFile)
             {
-                if (boost::filesystem::is_regular_file(mapFile))
+                boost::system::error_code ec;
+                if (boost::filesystem::is_regular_file(mapFile, ec))
                     val += boost::filesystem::file_size(mapFile);
                 return val;
             });
@@ -246,6 +249,10 @@ public:
         handler->PSendSysMessage("Using %s DBC Locale as default. All available DBC locales: %s", localeNames[defaultLocale], availableLocales.c_str());
 
         handler->PSendSysMessage("Using World DB: %s", sWorld->GetDBVersion());
+
+        handler->PSendSysMessage("LoginDatabase queue size: %zu", LoginDatabase.QueueSize());
+        handler->PSendSysMessage("CharacterDatabase queue size: %zu", CharacterDatabase.QueueSize());
+        handler->PSendSysMessage("WorldDatabase queue size: %zu", WorldDatabase.QueueSize());
         return true;
     }
 

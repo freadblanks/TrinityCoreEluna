@@ -34,10 +34,7 @@
 #include "Object.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
-#include "WorldPacket.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
+#include "SpellMgr.h"
 
 class AELootCreatureCheck
 {
@@ -143,6 +140,8 @@ void WorldSession::HandleAutostoreLootItemOpcode(WorldPackets::Loot::LootItem& p
             player->UpdateCriteria(CriteriaType::LootAnyItem, resultValue.item->GetEntry(), resultValue.count);
         }
     }
+
+    Unit::ProcSkillsAndAuras(player, nullptr, PROC_FLAG_LOOTED, PROC_FLAG_NONE, PROC_SPELL_TYPE_MASK_ALL, PROC_SPELL_PHASE_NONE, PROC_HIT_NONE, nullptr, nullptr, nullptr);
 }
 
 void WorldSession::HandleLootMoneyOpcode(WorldPackets::Loot::LootMoney& /*packet*/)
@@ -255,10 +254,6 @@ void WorldSession::HandleLootMoneyOpcode(WorldPackets::Loot::LootMoney& /*packet
             SendPacket(packet.Write());
         }
 
-#ifdef ELUNA
-        sEluna->OnLootMoney(player, loot->gold);
-#endif
-
         loot->gold = 0;
 
         // Delete the money loot record from the DB
@@ -276,6 +271,12 @@ void WorldSession::HandleLootOpcode(WorldPackets::Loot::LootUnit& packet)
     // Check possible cheat
     if (!GetPlayer()->IsAlive() || !packet.Unit.IsCreatureOrVehicle())
         return;
+
+    // interrupt cast
+    if (GetPlayer()->IsNonMeleeSpellCast(false))
+        GetPlayer()->InterruptNonMeleeSpells(false);
+
+    GetPlayer()->RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags::Looting);
 
     std::list<Creature*> corpses;
     AELootCreatureCheck check(_player, packet.Unit);
@@ -298,12 +299,6 @@ void WorldSession::HandleLootOpcode(WorldPackets::Loot::LootUnit& packet)
             SendPacket(WorldPackets::Loot::AELootTargetsAck().Write());
         }
     }
-
-    // interrupt cast
-    if (GetPlayer()->IsNonMeleeSpellCast(false))
-        GetPlayer()->InterruptNonMeleeSpells(false);
-
-    GetPlayer()->RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags::Looting);
 }
 
 void WorldSession::HandleLootReleaseOpcode(WorldPackets::Loot::LootRelease& packet)
@@ -539,10 +534,6 @@ void WorldSession::HandleLootMasterGiveOpcode(WorldPackets::Loot::MasterLootItem
         // now move item from loot to target inventory
         Item* newitem = target->StoreNewItem(dest, item.itemid, true, item.randomBonusListId, item.GetAllowedLooters(), item.context, item.BonusListIDs);
         aeResult.Add(newitem, item.count, loot->loot_type);
-
-#ifdef ELUNA
-        sEluna->OnLootItem(target, newitem, item.count, lootguid);
-#endif
 
         // mark as looted
         item.count = 0;

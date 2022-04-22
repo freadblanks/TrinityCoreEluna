@@ -126,7 +126,7 @@ class npc_wg_demolisher_engineer : public CreatureScript
         {
             npc_wg_demolisher_engineerAI(Creature* creature) : ScriptedAI(creature) { }
 
-            bool GossipHello(Player* player) override
+            bool OnGossipHello(Player* player) override
             {
                 if (me->IsQuestGiver())
                     player->PrepareQuestMenu(me->GetGUID());
@@ -149,7 +149,7 @@ class npc_wg_demolisher_engineer : public CreatureScript
                 return true;
             }
 
-            bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
+            bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
             {
                 uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
                 CloseGossipMenuFor(player);
@@ -214,7 +214,7 @@ class npc_wg_spirit_guide : public CreatureScript
                     DoCast(me, SPELL_CHANNEL_SPIRIT_HEAL);
             }
 
-            bool GossipHello(Player* player) override
+            bool OnGossipHello(Player* player) override
             {
                 if (me->IsQuestGiver())
                     player->PrepareQuestMenu(me->GetGUID());
@@ -232,7 +232,7 @@ class npc_wg_spirit_guide : public CreatureScript
                 return true;
             }
 
-            bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
+            bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
             {
                 uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
                 CloseGossipMenuFor(player);
@@ -294,7 +294,7 @@ class npc_wg_queue : public CreatureScript
             DoMeleeAttackIfReady();
         }
 
-        bool GossipHello(Player* player) override
+        bool OnGossipHello(Player* player) override
         {
             if (me->IsQuestGiver())
                 player->PrepareQuestMenu(me->GetGUID());
@@ -323,7 +323,7 @@ class npc_wg_queue : public CreatureScript
             return true;
         }
 
-        bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 /*gossipListId*/) override
+        bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 /*gossipListId*/) override
         {
             CloseGossipMenuFor(player);
 
@@ -399,6 +399,11 @@ class go_wg_vehicle_teleporter : public GameObjectScript
         }
 };
 
+/* 49899 - Activate Robotic Arms
+   56659 - Build Demolisher (Force)
+   56662 - Build Siege Vehicle (Force)
+   56664 - Build Catapult (Force)
+   61409 - Build Siege Vehicle (Force) */
 class spell_wintergrasp_force_building : public SpellScriptLoader
 {
     public:
@@ -437,6 +442,7 @@ class spell_wintergrasp_force_building : public SpellScriptLoader
         }
 };
 
+// 61178 - Grab Passenger
 class spell_wintergrasp_grab_passenger : public SpellScriptLoader
 {
     public:
@@ -493,6 +499,7 @@ enum WgTeleport
     SPELL_WINTERGRASP_TELEPORT_TRIGGER = 54643,
 };
 
+// 54640 - Teleport
 class spell_wintergrasp_defender_teleport : public SpellScriptLoader
 {
 public:
@@ -524,6 +531,7 @@ public:
     }
 };
 
+// 54643 - Teleport
 class spell_wintergrasp_defender_teleport_trigger : public SpellScriptLoader
 {
 public:
@@ -554,8 +562,8 @@ public:
     }
 };
 
-// 58549 Tenacity
-// 59911 Tenacity
+// 58549 - Tenacity
+// 59911 - Tenacity
 class spell_wintergrasp_tenacity_refresh : public AuraScript
 {
     PrepareAuraScript(spell_wintergrasp_tenacity_refresh);
@@ -640,7 +648,7 @@ void AddSC_wintergrasp()
     new achievement_wg_didnt_stand_a_chance();
     new spell_wintergrasp_defender_teleport();
     new spell_wintergrasp_defender_teleport_trigger();
-    RegisterAuraScript(spell_wintergrasp_tenacity_refresh);
+    RegisterSpellScript(spell_wintergrasp_tenacity_refresh);
     new condition_is_wintergrasp_horde();
     new condition_is_wintergrasp_alliance();
 }
