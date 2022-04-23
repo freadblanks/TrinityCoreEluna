@@ -31,6 +31,7 @@ EndScriptData */
 #include "CharacterTemplateDataStore.h"
 #include "Chat.h"
 #include "ChatCommand.h"
+#include "CreatureOutfit.h"
 #include "ConversationDataStore.h"
 #include "CreatureTextMgr.h"
 #include "DatabaseEnv.h"
@@ -202,6 +203,7 @@ public:
             { "creature_template_addons",      rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadCreatureTemplateAddCommand,		   "" },
             { "creature_addons",			   rbac::RBAC_PERM_COMMAND_RELOAD_ALL,							    true,  &HandleReloadCreatureAddonsCommand,			   "" },
             { "creature_template_all",         rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_TEMPLATE,                true,  &HandleReloadCreatureTemplateAllCommand,        "" },
+            { "creature_template_outfits",     rbac::RBAC_PERM_COMMAND_RELOAD_CREATURE_TEMPLATE,                true,  &HandleReloadCreatureTemplateOutfitsCommand,    "" },
         };
         static std::vector<ChatCommand> commandTable =
         {
@@ -1386,6 +1388,24 @@ public:
         handler->SendGlobalGMSysMessage("DB table `creature_template` reloaded.");
         TC_LOG_INFO("server.loading", "Initialize query data...");
         sObjectMgr->InitializeQueriesData(QUERY_DATA_CREATURES);
+        return true;
+    }
+
+    static bool HandleReloadCreatureTemplateOutfitsCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        TC_LOG_INFO("misc", "Loading Creature Outfits... (`creature_template_outfits`)");
+        sObjectMgr->LoadCreatureOutfits();
+        sMapMgr->DoForAllMaps([](Map* map)
+        {
+            for (auto e : map->GetCreatureBySpawnIdStore())
+            {
+                auto const& outfit = e.second->GetOutfit();
+                if (outfit && outfit->GetId())
+                    e.second->SetDisplayId(outfit->GetId());
+            }
+        });
+
+        handler->SendGlobalGMSysMessage("DB table `creature_template_outfits` reloaded.");
         return true;
     }
 };

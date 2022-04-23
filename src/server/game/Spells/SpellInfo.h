@@ -590,6 +590,7 @@ class TC_GAME_API SpellInfo
 
         std::vector<SpellEffectInfo> const& GetEffects() const { return _effects; }
         SpellEffectInfo const& GetEffect(SpellEffIndex index) const { ASSERT(index < _effects.size()); return _effects[index]; } // ASSERT causes crash when using eluna
+        //SpellEffectInfo const& GetEffect(SpellEffIndex index) const { return index < _effects.size() ? _effects[index] : ; }
 
         // spell diminishing returns
         DiminishingGroup GetDiminishingReturnsGroupForSpell() const;

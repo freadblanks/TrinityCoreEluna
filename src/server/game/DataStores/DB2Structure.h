@@ -2731,6 +2731,12 @@ struct NPCModelItemSlotDisplayInfoEntry
     uint32 ExtendedDisplayID;
 };
 
+struct CreatureDisplayInfoStore
+{
+    bool HasRecord(uint32 id) const;
+    const CreatureDisplayInfoEntry* LookupEntry(uint32 id) const;
+};
+
 struct NumTalentsAtLevelEntry
 {
     uint32 ID;

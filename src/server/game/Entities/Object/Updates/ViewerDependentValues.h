@@ -142,7 +142,7 @@ public:
 
             if (cinfo->flags_extra & CREATURE_FLAG_EXTRA_TRIGGER)
                 if (receiver->IsGameMaster())
-                    displayId = cinfo->GetFirstVisibleModel()->CreatureDisplayID;
+                    displayId = sObjectMgr->GetRealDisplayId(cinfo->GetFirstVisibleModel()->CreatureDisplayID);
         }
 
         return displayId;

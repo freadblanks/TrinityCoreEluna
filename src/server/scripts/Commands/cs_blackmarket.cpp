@@ -56,7 +56,7 @@ public:
         return commandTable;
     }
 
-    static bool HandleBMSetAuctionDurationCommand(ChatHandler* handler, const char* args)
+    static bool HandleBMSetAuctionDurationCommand(ChatHandler* /*handler*/, const char* args)
     {
         if (!*args)
             return false;

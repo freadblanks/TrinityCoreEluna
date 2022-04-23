@@ -110,6 +110,9 @@ enum WorldDatabaseStatements : uint32
     WORLD_INS_WP_DELAY,
     WORLD_UPD_WP_DELAY,
 
+    //Creature template Outfit Customisation (9.0)
+    WORLD_SEL_OUTFIT_CUSTOMIZATIONS,
+
     WORLD_INS_SET_ANIM,
     WORLD_UPD_SET_ANIM,
     WORLD_INS_SET_AURA,
