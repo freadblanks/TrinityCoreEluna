@@ -610,7 +610,7 @@ namespace LuaWorldObject
         uint32 respawnDelay = Eluna::CHECKVAL<uint32>(L, 7, 30);
 
         QuaternionData rot = QuaternionData::fromEulerAnglesZYX(o, 0.f, 0.f);
-        Eluna::Push(L, obj->SummonGameObject(entry, Position(x, y, z, o), rot, respawnDelay));
+        Eluna::Push(L, obj->SummonGameObject(entry, Position(x, y, z, o), rot, Seconds(respawnDelay)));
         return 1;
     }
 
@@ -680,7 +680,7 @@ namespace LuaWorldObject
             default:
                 return luaL_argerror(L, 7, "valid SpawnType expected");
         }
-        Eluna::Push(L, obj->SummonCreature(entry, x, y, z, o, type, despawnTimer));
+        Eluna::Push(L, obj->SummonCreature(entry, x, y, z, o, type, Milliseconds(despawnTimer)));
         return 1;
     }
 

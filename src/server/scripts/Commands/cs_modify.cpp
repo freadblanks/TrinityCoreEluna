@@ -81,7 +81,6 @@ public:
             { "talentpoints", rbac::RBAC_PERM_COMMAND_MODIFY_TALENTPOINTS, false, &HandleModifyTalentCommand,        "" },
             { "xp",           rbac::RBAC_PERM_COMMAND_MODIFY_XP,           false, &HandleModifyXPCommand,            "" },
             { "power",        rbac::RBAC_PERM_COMMAND_MODIFY_POWER,        false, &HandleModifyPowerCommand,         "" },
-            { "credit",       rbac::RBAC_PERM_COMMAND_MODIFY_BP_CREDITS,   false, &HandleModifyBPCreditCommand,      "" },
         };
         static std::vector<ChatCommand> commandTable =
         {
@@ -1097,37 +1096,6 @@ public:
         powerAmount *= powerType->DisplayModifier;
         target->SetMaxPower(Powers(powerType->PowerTypeEnum), powerAmount);
         target->SetPower(Powers(powerType->PowerTypeEnum), powerAmount);
-        return true;
-    }
-
-    static bool HandleModifyBPCreditCommand(ChatHandler* handler, const char* args)
-    {
-        if (!*args)
-            return false;
-
-        uint64 amount = strtoull(args, nullptr, 10);
-        Player* target = handler->getSelectedPlayerOrSelf();
-        if (amount < 1)
-        {
-            handler->SendSysMessage(LANG_BAD_VALUE);
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-
-        if (!target)
-        {
-            handler->SendSysMessage(LANG_NO_CHAR_SELECTED);
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-
-        if (handler->HasLowerSecurity(target, ObjectGuid::Empty))
-            return false;
-
-        uint64 getActualCredit = target->GetBattlePayCredits();
-        uint64 calcNewCredit = getActualCredit + amount;
-        target->ModifyBattlePayCredits(calcNewCredit);
-
         return true;
     }
 };

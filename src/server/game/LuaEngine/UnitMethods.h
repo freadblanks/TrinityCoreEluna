@@ -1621,9 +1621,9 @@ namespace LuaUnit
 
         if (apply)
         {
-            unit->AddPvpFlag(UNIT_BYTE2_FLAG_FFA_PVP);
+            unit->SetPvpFlag(UNIT_BYTE2_FLAG_FFA_PVP);
             for (Unit::ControlList::iterator itr = unit->m_Controlled.begin(); itr != unit->m_Controlled.end(); ++itr)
-                (*itr)->AddPvpFlag(UNIT_BYTE2_FLAG_FFA_PVP);
+                (*itr)->SetPvpFlag(UNIT_BYTE2_FLAG_FFA_PVP);
         }
         else
         {
@@ -1645,7 +1645,7 @@ namespace LuaUnit
 
         if (apply)
         {
-            unit->AddPvpFlag(UNIT_BYTE2_FLAG_SANCTUARY);
+            unit->SetPvpFlag(UNIT_BYTE2_FLAG_SANCTUARY);
             unit->CombatStop();
             unit->CombatStopWithPets();
         }
@@ -1766,7 +1766,11 @@ namespace LuaUnit
      */
     int UnitEmote(lua_State* L, Unit* unit)
     {
-        unit->HandleEmoteCommand(Eluna::CHECKVAL<uint32>(L, 2));
+        const char* msg = Eluna::CHECKVAL<const char*>(L, 2);
+        Unit* receiver = Eluna::CHECKOBJ<Unit>(L, 3, false);
+        bool bossEmote = Eluna::CHECKVAL<bool>(L, 4, false);
+        if (std::string(msg).length() > 0)
+        unit->TextEmote(msg, receiver, bossEmote);
         return 0;
     }
 

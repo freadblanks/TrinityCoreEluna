@@ -371,7 +371,7 @@ public:
     void GetDialogStatus(const Player* pPlayer, const GameObject* pGameObject);
     void OnDestroyed(GameObject* pGameObject, WorldObject* attacker);
     void OnDamaged(GameObject* pGameObject, WorldObject* attacker);
-    void OnLootStateChanged(GameObject* pGameObject, uint32 state, Unit* unit);
+    void OnLootStateChanged(GameObject* pGameObject, uint32 state);
     void OnGameObjectStateChanged(GameObject* pGameObject, uint32 state);
     void UpdateAI(GameObject* pGameObject, const uint32 diff);
     void OnSpawn(GameObject* gameobject);

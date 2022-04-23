@@ -775,7 +775,7 @@ namespace LuaCreature
     {
         uint32 flags = Eluna::CHECKVAL<uint32>(L, 2);
 
-        creature->AddNpcFlag((NPCFlags)flags);
+        creature->SetNpcFlag((NPCFlags)flags);
         return 0;
     }
 
@@ -870,7 +870,7 @@ namespace LuaCreature
         if (allow)
             creature->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
         else
-            creature->AddUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
+            creature->SetUnitFlag(UNIT_FLAG_IMMUNE_TO_NPC);
 
         return 0;
     }

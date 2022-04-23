@@ -74,6 +74,8 @@ public:
             { "add",            HandleGameObjectAddCommand,       rbac::RBAC_PERM_COMMAND_GOBJECT_ADD,            Console::No },
             { "set phase",      HandleGameObjectSetPhaseCommand,  rbac::RBAC_PERM_COMMAND_GOBJECT_SET_PHASE,      Console::No },
             { "set state",      HandleGameObjectSetStateCommand,  rbac::RBAC_PERM_COMMAND_GOBJECT_SET_STATE,      Console::No },
+            { "scale",          HandleGameObjectSetScaleCommand,  rbac::RBAC_PERM_COMMAND_GOBJECT_SET_SCALE,      Console::No },
+            { "visibility",     HandleGameVisibilityCommand,      rbac::RBAC_PERM_COMMAND_GOBJECT_DELETE,         Console::No },
         };
         static ChatCommandTable commandTable =
         {
@@ -342,7 +344,11 @@ public:
 
         Map* map = object->GetMap();
         object->Relocate(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), *oz);
+        object->RelocateStationaryPosition(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), object->GetOrientation());
         object->SetLocalRotationAngles(*oz, oy.value_or(0.0f), ox.value_or(0.0f));
+        object->DestroyForNearbyPlayers();
+        object->UpdateObjectVisibility();
+
         object->SaveToDB();
 
         // Generate a completely new spawn with new guid
@@ -391,13 +397,17 @@ public:
 
         Map* map = object->GetMap();
 
-        pos.SetOrientation(object->GetOrientation());
-        object->Relocate(pos);
+        //pos.SetOrientation(object->GetOrientation());
+        //object->Relocate(pos);
+        object->DestroyForNearbyPlayers();
+        object->RelocateStationaryPosition(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), object->GetOrientation());
+        object->GetMap()->GameObjectRelocation(object, object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), object->GetOrientation());
+        object->SaveToDB();
 
         // update which cell has this gameobject registered for loading
-        sObjectMgr->RemoveGameobjectFromGrid(object->GetGameObjectData());
+        /*sObjectMgr->RemoveGameobjectFromGrid(object->GetGameObjectData());
         object->SaveToDB();
-        sObjectMgr->AddGameobjectToGrid(object->GetGameObjectData());
+        sObjectMgr->AddGameobjectToGrid(object->GetGameObjectData());*/
 
         // Generate a completely new spawn with new guid
         // 3.3.5a client caches recently deleted objects and brings them back to life
@@ -623,6 +633,128 @@ public:
                 break;
         }
         handler->PSendSysMessage("Set gobject type %d state %u", objectType, *objectState);
+        return true;
+    }
+
+    static bool HandleGameVisibilityCommand(ChatHandler* handler, char const* args)
+    {
+        // number or [name] Shift-click form |color|Hgameobject:go_id|h[name]|h|r
+
+        std::string trinityArgs(args);
+
+        std::string id = handler->extractKeyFromLink((char*)args, "Hgameobject");
+
+        if (!std::all_of(id.begin(), id.end(), ::isdigit))
+            return false;
+
+        ObjectGuid::LowType guidLow = std::stoull(id);
+        if (!guidLow)
+            return false;
+
+        float distance;
+
+        try {
+            distance = std::atof((char*)args);
+        }
+        catch (...) {
+            return false;
+        }
+
+        GameObject* object = handler->GetObjectFromPlayerMapByDbGuid(guidLow);
+        if (!object)
+        {
+            handler->PSendSysMessage(LANG_COMMAND_OBJNOTFOUND, guidLow);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        if (distance >= 5000)
+            return false;
+
+        if (distance > SIZE_OF_GRIDS) {
+            object->GetMap()->AddInfiniteGameObject(object->GetGUID());
+            //handler->PSendSysMessage("Visibles : %d \n", object->GetMap()->GetInfiniteGameObjects().size());
+        }
+        else {
+            std::set<ObjectGuid> infinites = object->GetMap()->GetInfiniteGameObjects();
+            if (std::find(infinites.begin(), infinites.end(), object->GetGUID()) != infinites.end())
+                object->GetMap()->RemoveInfiniteGameObject(object->GetGUID());
+
+            //handler->PSendSysMessage("Visibles : %d \n", object->GetMap()->GetInfiniteGameObjects().size());
+        }
+
+        float oldVisibility = const_cast<GameObjectData*>(object->GetGameObjectData())->visibility;
+
+        const_cast<GameObjectData*>(object->GetGameObjectData())->visibility = distance;
+
+        Map* map = object->GetMap();
+        object->SetVisibilityDistanceOverride(distance);
+        object->Relocate(object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), object->GetOrientation());
+        object->SaveToDB(map->GetId(), { map->GetDifficultyID() });
+        object->Delete();
+
+        object = GameObject::CreateGameObjectFromDB(guidLow, map);
+
+        if (!object)
+            return false;
+
+        for (Map::PlayerList::const_iterator itr = map->GetPlayers().begin(); itr != map->GetPlayers().end(); ++itr)
+            itr->GetSource()->UpdateVisibilityOf(object);
+
+        handler->PSendSysMessage("Visibility set for object %s to %f\n", object->GetGUID().ToString().c_str(), distance);
+    }
+
+    static bool HandleGameObjectSetScaleCommand(ChatHandler* handler, char const* args)
+    {
+        // number or [name] Shift-click form |color|Hgameobject:go_id|h[name]|h|r
+        char* id = handler->extractKeyFromLink((char*)args, "Hgameobject");
+        if (!id)
+            return false;
+
+        ObjectGuid::LowType guidLow = atoull(id);
+        if (!guidLow)
+            return false;
+
+        GameObject* object = handler->GetObjectFromPlayerMapByDbGuid(guidLow);
+        if (!object)
+        {
+            handler->PSendSysMessage(LANG_COMMAND_OBJNOTFOUND, guidLow);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        char* scale_temp = strtok(NULL, " ");
+        if (!scale_temp)
+        {
+            handler->SendSysMessage(LANG_BAD_VALUE);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        float scale = atof(scale_temp);
+
+        if (scale <= 0.0f)
+        {
+            scale = object->GetGOInfo()->size;
+            const_cast<GameObjectData*>(object->GetGameObjectData())->size = -1.0f;
+        }
+        else
+        {
+            const_cast<GameObjectData*>(object->GetGameObjectData())->size = scale;
+        }
+
+        object->SetObjectScale(scale);
+        object->DestroyForNearbyPlayers();
+        object->UpdateObjectVisibility();
+        object->SaveToDB();
+
+        Map* map = object->GetMap();
+
+        object->Delete(); object = GameObject::CreateGameObjectFromDB(guidLow, map);
+        if (!object)
+            return false;
+
+        handler->PSendSysMessage("Set %s scale to %f", object->GetGUID().ToString(), scale);
         return true;
     }
 };

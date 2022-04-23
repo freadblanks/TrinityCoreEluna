@@ -360,7 +360,7 @@ namespace LuaItem
      */
     int GetDisplayId(lua_State* L, Item* item)
     {
-        Eluna::Push(L, item->GetTemplate()->ExtendedData->Display.Str);
+        Eluna::Push(L, item->GetTemplate()->ExtendedData->Display.Str[(LocaleConstant)0]);
         return 1;
     }
 

@@ -60,11 +60,11 @@ struct ElunaCreatureAI : ScriptedAI
     }
 
     // Called at any Damage from any attacker (before damage apply)
-    void DamageTaken(Unit* attacker, uint32& damage) override
+    void DamageTaken(Unit* attacker, uint32& damage, DamageEffectType damageType, SpellInfo const* spellInfo) override
     {
         if (!sEluna->DamageTaken(me, attacker, damage))
         {
-            ScriptedAI::DamageTaken(attacker, damage);
+            ScriptedAI::DamageTaken(attacker, damage, damageType, spellInfo);
         }
     }
 

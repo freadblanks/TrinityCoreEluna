@@ -40,7 +40,6 @@
 #include <memory>
 #include <unordered_map>
 
-class BattlepayManager;
 class BlackMarketEntry;
 class CollectionMgr;
 class Creature;
@@ -70,12 +69,6 @@ namespace BattlePets
     class BattlePetMgr;
 }
 
-namespace Battlepay
-{
-    struct Purchase;
-    enum Error : uint32;
-}
-
 namespace lfg
 {
     struct LfgJoinResultData;
@@ -97,13 +90,6 @@ namespace UF
 {
     struct ChrCustomizationChoice;
 }
-
-enum AuthFlags
-{
-    AT_AUTH_FLAG_NONE = 0x0,
-    AT_AUTH_FLAG_50_LVL_UP = 0x1,
-    AT_AUTH_FLAG_RESTORE_DELETED_CHARACTER = 0x2,
-};
 
 namespace WorldPackets
 {
@@ -208,22 +194,6 @@ namespace WorldPackets
     {
         class ChangeRealmTicket;
         class Request;
-    }
-
-    namespace BattlePay
-    {
-        class DistributionAssignToTarget;
-        class StartPurchase;
-        class PurchaseProduct;
-        class ConfirmPurchaseResponse;
-        class GetProductList;
-        class GetPurchaseListQuery;
-        class UpdateVasPurchaseStates;
-        class BattlePayAckFailedResponse;
-        class BattlePayQueryClassTrialResult;
-        class BattlePayTrialBoostCharacter;
-        class BattlePayPurchaseDetailsResponse;
-        class BattlePayPurchaseUnkResponse;
     }
 
     namespace BattlePet
@@ -1139,13 +1109,6 @@ class TC_GAME_API WorldSession
         void SendAuctionClosedNotification(AuctionPosting const* auction, float mailDelay, bool sold);
         void SendAuctionOwnerBidNotification(AuctionPosting const* auction);
 
-        // Battle Pay
-        AuthFlags GetAF() const { return atAuthFlag; }
-        bool HasAuthFlag(AuthFlags f) const { return atAuthFlag & f; }
-        void AddAuthFlag(AuthFlags f);
-        void RemoveAuthFlag(AuthFlags f);
-        void SaveAuthFlag();
-
         // Black Market
         void SendBlackMarketOpenResult(ObjectGuid guid, Creature* auctioneer);
         void SendBlackMarketBidOnItemResult(int32 result, int32 marketId, WorldPackets::Item::ItemInstance& item);
@@ -1800,20 +1763,6 @@ class TC_GAME_API WorldSession
         void HandleSaveCUFProfiles(WorldPackets::Misc::SaveCUFProfiles& packet);
         void SendLoadCUFProfiles();
 
-        // Battle Pay
-        void HandleBattlePayDistributionAssign(WorldPackets::BattlePay::DistributionAssignToTarget& packet);
-        void HandleBattlePayStartPurchase(WorldPackets::BattlePay::StartPurchase& packet);
-        void HandleBattlePayConfirmPurchase(WorldPackets::BattlePay::ConfirmPurchaseResponse& packet);
-        void HandleBattlePayAckFailedResponse(WorldPackets::BattlePay::BattlePayAckFailedResponse& packet);
-        void HandleGetPurchaseListQuery(WorldPackets::BattlePay::GetPurchaseListQuery& packet);
-        void HandleUpdateVasPurchaseStates(WorldPackets::BattlePay::UpdateVasPurchaseStates& packet);
-        void HandleGetProductList(WorldPackets::BattlePay::GetProductList& packet);
-        void SendDisplayPromo(int32 promotionID = 0);
-        void SendPurchaseUpdate(WorldSession* session, Battlepay::Purchase const& purchase, uint32 result);
-        void SendStartPurchaseResponse(WorldSession* session, Battlepay::Purchase const& purchase, Battlepay::Error const& result);
-        void SendMakePurchase(ObjectGuid targetCharacter, uint32 clientToken, uint32 productID, WorldSession* session);
-        void SendSyncWowEntitlements();
-
         //Garrison
         void HandleGetGarrisonInfo(WorldPackets::Garrison::GetGarrisonInfo& getGarrisonInfo);
         void HandleGarrisonPurchaseBuilding(WorldPackets::Garrison::GarrisonPurchaseBuilding& garrisonPurchaseBuilding);
@@ -1887,8 +1836,6 @@ class TC_GAME_API WorldSession
         QueryCallbackProcessor& GetQueryProcessor() { return _queryProcessor; }
         TransactionCallback& AddTransactionCallback(TransactionCallback&& callback);
         SQLQueryHolderCallback& AddQueryHolderCallback(SQLQueryHolderCallback&& callback);
-
-        BattlepayManager* GetBattlePayMgr() const { return _battlePayMgr.get(); }
 
     private:
         void ProcessQueryCallbacks();
@@ -1968,8 +1915,6 @@ class TC_GAME_API WorldSession
         // Warden
         std::unique_ptr<Warden> _warden;                                    // Remains NULL if Warden system is not enabled by config
 
-        std::shared_ptr<BattlepayManager> _battlePayMgr;
-
         time_t _logoutTime;
         bool m_inQueue;                                     // session wait in auth.queue
         ObjectGuid m_playerLoading;                         // code processed in LoginPlayer
@@ -2006,8 +1951,6 @@ class TC_GAME_API WorldSession
         std::unique_ptr<BattlePets::BattlePetMgr> _battlePetMgr;
 
         std::unique_ptr<CollectionMgr> _collectionMgr;
-
-        AuthFlags atAuthFlag = AT_AUTH_FLAG_NONE;
 
         ConnectToKey _instanceConnectKey;
 

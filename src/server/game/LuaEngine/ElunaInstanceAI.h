@@ -10,7 +10,6 @@
 #include "LuaEngine.h"
 #include "InstanceScript.h"
 
-
 /*
  * This class is a small wrapper around `InstanceData`,
  *   allowing instances to be scripted with Eluna.
@@ -61,7 +60,7 @@ public:
     {
     }
 
-    void Initialize() override;
+    void Initialize();
 
     /*
      * These are responsible for serializing/deserializing the instance's

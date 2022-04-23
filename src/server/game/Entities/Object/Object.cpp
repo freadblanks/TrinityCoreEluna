@@ -1478,13 +1478,6 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool ignoreStealth, boo
     if (!obj->CheckPrivateObjectOwnerVisibility(this))
         return false;
 
-    if (SmoothPhasing const* smoothPhasing = obj->GetSmoothPhasing())
-        if (smoothPhasing->IsBeingReplacedForSeer(GetGUID()))
-            return false;
-
-    if (!sConditionMgr->IsObjectMeetingVisibilityByObjectIdConditions(obj->GetTypeId(), obj->GetEntry(), const_cast<WorldObject*>(this)))
-        return false;
-
     if (const GameObject* object = obj->ToGameObject()) {
         const std::set<ObjectGuid> infinites = object->GetMap()->GetInfiniteGameObjects();
         if (std::find(infinites.begin(), infinites.end(), object->GetGUID()) != infinites.end()) {
@@ -1493,6 +1486,13 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool ignoreStealth, boo
             return true && (distance <= object->GetVisibilityRange());
         }
     }
+
+    if (SmoothPhasing const* smoothPhasing = obj->GetSmoothPhasing())
+        if (smoothPhasing->IsBeingReplacedForSeer(GetGUID()))
+            return false;
+
+    if (!sConditionMgr->IsObjectMeetingVisibilityByObjectIdConditions(obj->GetTypeId(), obj->GetEntry(), const_cast<WorldObject*>(this)))
+        return false;
 
     bool corpseVisibility = false;
     if (distanceCheck)

@@ -24,3 +24,5 @@ cmake-build-*/
 .vs
 *.user
 src/server/scripts/Custom/custom_script_loader.cpp
+src/server/scripts/Custom/cs_custom.cpp
+src/server/scripts/Custom/custom_commandscript.cpp

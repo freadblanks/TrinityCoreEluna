@@ -161,7 +161,7 @@ namespace LuaGlobalFunctions
         int tbl = lua_gettop(L);
         uint32 i = 0;
 
-        boost::shared_lock<boost::shared_mutex> lock(*HashMapHolder<Player>::GetLock());
+        std::shared_lock<std::shared_mutex> lock(*HashMapHolder<Player>::GetLock());
         const HashMapHolder<Player>::MapType& m = eObjectAccessor()GetPlayers();
         for (HashMapHolder<Player>::MapType::const_iterator it = m.begin(); it != m.end(); ++it)
         {

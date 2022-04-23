@@ -1433,7 +1433,7 @@ namespace LuaPlayer
 
         if (apply)
         {
-            player->AddUnitFlag(UnitFlags(UnitFlags::UNIT_FLAG_PACIFIED | UnitFlags::UNIT_FLAG_SILENCED));
+            player->SetUnitFlag(UnitFlags(UnitFlags::UNIT_FLAG_PACIFIED | UnitFlags::UNIT_FLAG_SILENCED));
             player->SetClientControl(player, 0);
         }
         else
@@ -2045,12 +2045,11 @@ namespace LuaPlayer
     int DurabilityRepair(lua_State* L, Player* player)
     {
         uint16 position = Eluna::CHECKVAL<uint16>(L, 2);
-        bool cost = Eluna::CHECKVAL<bool>(L, 3, true);
-        float discountMod = Eluna::CHECKVAL<float>(L, 4);
-        bool guildBank = Eluna::CHECKVAL<bool>(L, 5, false);
+        bool takeCost = Eluna::CHECKVAL<bool>(L, 3, true);
+        float discountMod = Eluna::CHECKVAL<float>(L, 4, 1.0f);
 
-        Eluna::Push(L, player->DurabilityRepair(position, cost, discountMod, guildBank));
-        return 1;
+        player->DurabilityRepair(position, takeCost, discountMod);
+        return 0;
     }
 
     /**
@@ -2063,12 +2062,12 @@ namespace LuaPlayer
      */
     int DurabilityRepairAll(lua_State* L, Player* player)
     {
-        bool cost = Eluna::CHECKVAL<bool>(L, 2, true);
+        bool takeCost = Eluna::CHECKVAL<bool>(L, 2, true);
         float discountMod = Eluna::CHECKVAL<float>(L, 3, 1.0f);
         bool guildBank = Eluna::CHECKVAL<bool>(L, 4, false);
 
-        Eluna::Push(L, player->DurabilityRepairAll(cost, discountMod, guildBank));
-        return 1;
+        player->DurabilityRepairAll(takeCost, discountMod, guildBank);
+        return 0;
     }
 
     /**
@@ -2961,21 +2960,6 @@ namespace LuaPlayer
         int32 amt = Eluna::CHECKVAL<int32>(L, 2);
 
         player->ModifyMoney(amt);
-        return 1;
-    }
-
-    /**
-     * Adds or subtracts from the [Player]s battlepay credit
-     *
-     * @param int32 copperAmt : negative to remove, positive to add
-     */
-    int ModifyBattlePayCredits(lua_State* L, Player* player)
-    {
-        int32 amt = Eluna::CHECKVAL<int32>(L, 2);
-
-        uint64 getActualCredit = player->GetBattlePayCredits();
-        uint64 calcNewCredit = getActualCredit + amt;
-        player->ModifyBattlePayCredits(calcNewCredit);
         return 1;
     }
 
