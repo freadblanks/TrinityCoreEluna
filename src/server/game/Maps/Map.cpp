@@ -4419,6 +4419,11 @@ bool Map::IsBattlegroundOrArena() const
     return i_mapEntry && i_mapEntry->IsBattlegroundOrArena();
 }
 
+bool Map::IsScenario() const
+{
+    return i_mapEntry && i_mapEntry->IsScenario();
+}
+
 bool Map::IsGarrison() const
 {
     return i_mapEntry && i_mapEntry->IsGarrison();
@@ -4890,10 +4895,10 @@ Corpse* Map::ConvertCorpseToBones(ObjectGuid const& ownerGuid, bool insignia /*=
 
         PhasingHandler::InheritPhaseShift(bones, corpse);
 
+        AddCorpse(bones);
+
         bones->UpdatePositionData();
         bones->SetZoneScript();
-
-        AddCorpse(bones);
 
         // add bones in grid store if grid loaded where corpse placed
         AddToMap(bones);

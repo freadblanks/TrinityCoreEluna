@@ -25,6 +25,7 @@
 #include "CreatureAISelector.h"
 #include "DatabaseEnv.h"
 #include "DB2Stores.h"
+#include "GameEventSender.h"
 #include "GameObjectAI.h"
 #include "GameObjectModel.h"
 #include "GameObjectPackets.h"
@@ -49,9 +50,6 @@
 #include "SpellMgr.h"
 #include "Transport.h"
 #include "World.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 #include <G3D/Box.h>
 #include <G3D/CoordinateFrame.h>
 #include <G3D/Quat.h>
@@ -236,10 +234,6 @@ void GameObject::AddToWorld()
 
         EnableCollision(toggledState);
         WorldObject::AddToWorld();
-
-#ifdef ELUNA
-        sEluna->OnAddToWorld(this);
-#endif
     }
 }
 
@@ -248,10 +242,6 @@ void GameObject::RemoveFromWorld()
     ///- Remove the gameobject from the accessor
     if (IsInWorld())
     {
-#ifdef ELUNA
-        sEluna->OnRemoveFromWorld(this);
-#endif
-
         if (m_zoneScript)
             m_zoneScript->OnGameObjectRemove(this);
 
@@ -268,13 +258,11 @@ void GameObject::RemoveFromWorld()
 
         if (m_spawnId)
             Trinity::Containers::MultimapErasePair(GetMap()->GetGameObjectBySpawnIdStore(), m_spawnId, this);
-
-        GetMap()->RemoveInfiniteGameObject(GetGUID());
         GetMap()->GetObjectsStore().Remove<GameObject>(GetGUID());
     }
 }
 
-bool GameObject::Create(uint32 entry, Map* map, Position const& pos, QuaternionData const& rotation, uint32 animProgress, GOState goState, uint32 artKit, bool dynamic, ObjectGuid::LowType spawnid, float size /*= -1*/, float visibility)
+bool GameObject::Create(uint32 entry, Map* map, Position const& pos, QuaternionData const& rotation, uint32 animProgress, GOState goState, uint32 artKit, bool dynamic, ObjectGuid::LowType spawnid)
 {
     ASSERT(map);
     SetMap(map);
@@ -344,10 +332,7 @@ bool GameObject::Create(uint32 entry, Map* map, Position const& pos, QuaternionD
 
     SetParentRotation(parentRotation);
 
-    if (size > 0.0f)
-        SetObjectScale(size);
-    else
-        SetObjectScale(goInfo->size);
+    SetObjectScale(goInfo->size);
 
     if (GameObjectOverride const* goOverride = GetGameObjectOverride())
     {
@@ -519,12 +504,6 @@ bool GameObject::Create(uint32 entry, Map* map, Position const& pos, QuaternionD
     if (goInfo->IsLargeGameObject())
         SetVisibilityDistanceOverride(VisibilityDistanceType::Large);
 
-    SetVisibilityDistanceOverride(visibility);
-
-    if (GetVisibilityRange() > SIZE_OF_GRIDS) {
-        GetMap()->AddInfiniteGameObject(this->GetGUID());
-    }
-
     return true;
 }
 
@@ -558,9 +537,6 @@ GameObject* GameObject::CreateGameObjectFromDB(ObjectGuid::LowType spawnId, Map*
 
 void GameObject::Update(uint32 diff)
 {
-#ifdef ELUNA
-    sEluna->UpdateAI(this, diff);
-#endif
     m_Events.Update(diff);
 
     if (AI())
@@ -665,7 +641,6 @@ void GameObject::Update(uint32 diff)
                             udata.BuildPacket(&packet);
                             caster->ToPlayer()->SendDirectMessage(&packet);
 
-                            SetGoAnimProgress(0);
                             SendCustomAnim(GetGoAnimProgress());
                         }
 
@@ -838,8 +813,9 @@ void GameObject::Update(uint32 diff)
                                 {
                                     if (Battleground* bg = map->GetBG())
                                     {
-                                        EventInform(GetGOInfo()->capturePoint.CaptureEventHorde);
-                                        bg->SendBroadcastText(GetGOInfo()->capturePoint.CaptureBroadcastHorde, CHAT_MSG_BG_SYSTEM_HORDE);
+                                        if (goInfo->capturePoint.CaptureEventHorde)
+                                            GameEvents::Trigger(goInfo->capturePoint.CaptureEventHorde, this, this);
+                                        bg->SendBroadcastText(goInfo->capturePoint.CaptureBroadcastHorde, CHAT_MSG_BG_SYSTEM_HORDE);
                                     }
                                 }
                             }
@@ -850,8 +826,9 @@ void GameObject::Update(uint32 diff)
                                 {
                                     if (Battleground* bg = map->GetBG())
                                     {
-                                        EventInform(GetGOInfo()->capturePoint.CaptureEventAlliance);
-                                        bg->SendBroadcastText(GetGOInfo()->capturePoint.CaptureBroadcastAlliance, CHAT_MSG_BG_SYSTEM_ALLIANCE);
+                                        if (goInfo->capturePoint.CaptureEventAlliance)
+                                            GameEvents::Trigger(goInfo->capturePoint.CaptureEventAlliance, this, this);
+                                        bg->SendBroadcastText(goInfo->capturePoint.CaptureBroadcastAlliance, CHAT_MSG_BG_SYSTEM_ALLIANCE);
                                     }
                                 }
                             }
@@ -1214,27 +1191,8 @@ void GameObject::SaveToDB(uint32 mapid, std::vector<Difficulty> const& spawnDiff
     data.goState = GetGoState();
     data.spawnDifficulties = spawnDifficulties;
     data.artKit = GetGoArtKit();
-    data.isActive = isActiveObject();
     if (!data.spawnGroupData)
         data.spawnGroupData = sObjectMgr->GetDefaultSpawnGroup();
-    if (data.size == 0.0f)
-    {
-        // first save, use default if scale matches template or use custom scale if not
-        if (goI && goI->size == GetObjectScale())
-            data.size = -1.0f;
-        else
-            data.size = GetObjectScale();
-    }
-    else if (data.size < 0.0f || (goI && goI->size == data.size))
-    {
-        // scale is negative or matches template, use default
-        data.size = -1.0f;
-    }
-    else
-    {
-        // scale is positive and does not match template
-        // using data.size or could do data.size = GetObjectScale()
-    }
 
     data.phaseId = GetDBPhase() > 0 ? GetDBPhase() : data.phaseId;
     data.phaseGroup = GetDBPhase() < 0 ? -GetDBPhase() : data.phaseGroup;
@@ -1279,9 +1237,6 @@ void GameObject::SaveToDB(uint32 mapid, std::vector<Difficulty> const& spawnDiff
     stmt->setInt32(index++, int32(m_respawnDelayTime));
     stmt->setUInt8(index++, GetGoAnimProgress());
     stmt->setUInt8(index++, uint8(GetGoState()));
-    stmt->setUInt32(index++, uint8(isActiveObject()));
-    stmt->setFloat(index++, data.size);
-    stmt->setFloat(index++, GetVisibilityRange());
     trans->Append(stmt);
 
     WorldDatabase.CommitTransaction(trans);
@@ -1302,12 +1257,10 @@ bool GameObject::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap
     uint32 animprogress = data->animprogress;
     GOState go_state = data->goState;
     uint32 artKit = data->artKit;
-    float size = data->size;
-    float visibility = data->visibility;
 
     m_spawnId = spawnId;
     m_respawnCompatibilityMode = ((data->spawnGroupData->flags & SPAWNGROUP_FLAG_COMPATIBILITY_MODE) != 0);
-    if (!Create(entry, map, data->spawnPoint, data->rotation, animprogress, go_state, artKit, !m_respawnCompatibilityMode, spawnId, size, visibility))
+    if (!Create(entry, map, data->spawnPoint, data->rotation, animprogress, go_state, artKit, !m_respawnCompatibilityMode, spawnId))
         return false;
 
     PhasingHandler::InitDbPhaseShift(GetPhaseShift(), data->phaseUseFlags, data->phaseId, data->phaseGroup);
@@ -1350,8 +1303,6 @@ bool GameObject::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap
     }
 
     m_goData = data;
-
-    setActive(data->isActive || GetGoType() == GAMEOBJECT_TYPE_PHASEABLE_MO);
 
     if (addToMap && !GetMap()->AddToMap(this))
         return false;
@@ -1879,12 +1830,6 @@ void GameObject::Use(Unit* user)
             playerUser->RemoveAurasByType(SPELL_AURA_MOUNTED);
 
         playerUser->PlayerTalkClass->ClearMenus();
-
-#ifdef ELUNA
-        if (sEluna->OnGossipHello(playerUser, this))
-            return;
-#endif
-
         if (AI()->OnGossipHello(playerUser))
             return;
     }
@@ -1966,8 +1911,7 @@ void GameObject::Use(Unit* user)
             for (ChairSlotAndUser::iterator itr = ChairListSlots.begin(); itr != ChairListSlots.end(); ++itr)
             {
                 // the distance between this slot and the center of the go - imagine a 1D space
-                //float relativeDistance = (info->size*itr->first) - (info->size*(info->chair.chairslots - 1) / 2.0f);
-                float relativeDistance = (GetObjectScale() * itr->first) - (GetObjectScale() * (info->chair.chairslots - 1) / 2.0f);
+                float relativeDistance = (info->size*itr->first) - (info->size*(info->chair.chairslots - 1) / 2.0f);
 
                 float x_i = GetPositionX() + relativeDistance * std::cos(orthogonalOrientation);
                 float y_i = GetPositionY() + relativeDistance * std::sin(orthogonalOrientation);
@@ -2007,6 +1951,8 @@ void GameObject::Use(Unit* user)
                     itr->second = player->GetGUID(); //this slot in now used by player
                     player->TeleportTo(GetMapId(), x_lowest, y_lowest, GetPositionZ(), GetOrientation(), TELE_TO_NOT_LEAVE_TRANSPORT | TELE_TO_NOT_LEAVE_COMBAT | TELE_TO_NOT_UNSUMMON_PET);
                     player->SetStandState(UnitStandStateType(UNIT_STAND_STATE_SIT_LOW_CHAIR + info->chair.chairheight));
+                    if (info->chair.triggeredEvent)
+                        GameEvents::Trigger(info->chair.triggeredEvent, player, this);
                     return;
                 }
             }
@@ -2035,8 +1981,7 @@ void GameObject::Use(Unit* user)
                 if (info->goober.eventID)
                 {
                     TC_LOG_DEBUG("maps.script", "Goober ScriptStart id %u for GO entry %u (GUID " UI64FMTD ").", info->goober.eventID, GetEntry(), GetSpawnId());
-                    GetMap()->ScriptsStart(sEventScripts, info->goober.eventID, player, this);
-                    EventInform(info->goober.eventID, user);
+                    GameEvents::Trigger(info->goober.eventID, player, this);
                 }
 
                 // possible quest objective for active quests
@@ -2093,10 +2038,7 @@ void GameObject::Use(Unit* user)
                 player->SendCinematicStart(info->camera.camera);
 
             if (info->camera.eventID)
-            {
-                GetMap()->ScriptsStart(sEventScripts, info->camera.eventID, player, this);
-                EventInform(info->camera.eventID, user);
-            }
+                GameEvents::Trigger(info->camera.eventID, player, this);
 
             return;
         }
@@ -2422,6 +2364,9 @@ void GameObject::Use(Unit* user)
                                 bg->EventPlayerClickedOnFlag(player, this);
                             break;
                     }
+
+                    if (info->flagDrop.eventID)
+                        GameEvents::Trigger(info->flagDrop.eventID, player, this);
                 }
                 //this cause to call return, all flags must be deleted here!!
                 spellId = 0;
@@ -2584,22 +2529,6 @@ bool GameObject::IsInRange(float x, float y, float z, float radius) const
         && dz < info->GeoBoxMax.Z + radius && dz > info->GeoBoxMin.Z - radius;
 }
 
-void GameObject::EventInform(uint32 eventId, WorldObject* invoker /*= nullptr*/)
-{
-    if (!eventId)
-        return;
-
-    if (AI())
-        AI()->EventInform(eventId);
-
-    if (GetZoneScript())
-        GetZoneScript()->ProcessEvent(this, eventId, invoker);
-
-    if (BattlegroundMap* bgMap = GetMap()->ToBattlegroundMap())
-        if (bgMap->GetBG())
-            bgMap->GetBG()->ProcessEvent(this, eventId, invoker);
-}
-
 uint32 GameObject::GetScriptId() const
 {
     if (GameObjectData const* gameObjectData = GetGameObjectData())
@@ -2705,6 +2634,9 @@ void GameObject::ModifyHealth(int32 change, WorldObject* attackerOrHealer /*= nu
         player->SendDirectMessage(packet.Write());
     }
 
+    if (change < 0 && GetGOInfo()->destructibleBuilding.DamageEvent)
+        GameEvents::Trigger(GetGOInfo()->destructibleBuilding.DamageEvent, attackerOrHealer, this);
+
     GameObjectDestructibleState newState = GetDestructibleState();
 
     if (!m_goValue.Building.Health)
@@ -2739,10 +2671,8 @@ void GameObject::SetDestructibleState(GameObjectDestructibleState state, WorldOb
             break;
         case GO_DESTRUCTIBLE_DAMAGED:
         {
-#ifdef ELUNA
-            sEluna->OnDamaged(this, attackerOrHealer);
-#endif
-            EventInform(m_goInfo->destructibleBuilding.DamagedEvent, attackerOrHealer);
+            if (GetGOInfo()->destructibleBuilding.DamagedEvent)
+                GameEvents::Trigger(GetGOInfo()->destructibleBuilding.DamagedEvent, attackerOrHealer, this);
             AI()->Damaged(attackerOrHealer, m_goInfo->destructibleBuilding.DamagedEvent);
 
             RemoveFlag(GO_FLAG_DESTROYED);
@@ -2767,10 +2697,8 @@ void GameObject::SetDestructibleState(GameObjectDestructibleState state, WorldOb
         }
         case GO_DESTRUCTIBLE_DESTROYED:
         {
-#ifdef ELUNA
-            sEluna->OnDestroyed(this, attackerOrHealer);
-#endif
-            EventInform(m_goInfo->destructibleBuilding.DestroyedEvent, attackerOrHealer);
+            if (GetGOInfo()->destructibleBuilding.DestroyedEvent)
+                GameEvents::Trigger(GetGOInfo()->destructibleBuilding.DestroyedEvent, attackerOrHealer, this);
             AI()->Destroyed(attackerOrHealer, m_goInfo->destructibleBuilding.DestroyedEvent);
 
             if (Player* player = attackerOrHealer ? attackerOrHealer->GetCharmerOrOwnerPlayerOrPlayerItself() : nullptr)
@@ -2796,7 +2724,8 @@ void GameObject::SetDestructibleState(GameObjectDestructibleState state, WorldOb
         }
         case GO_DESTRUCTIBLE_REBUILDING:
         {
-            EventInform(m_goInfo->destructibleBuilding.RebuildingEvent, attackerOrHealer);
+            if (GetGOInfo()->destructibleBuilding.RebuildingEvent)
+                GameEvents::Trigger(GetGOInfo()->destructibleBuilding.RebuildingEvent, attackerOrHealer, this);
             RemoveFlag(GO_FLAG_DAMAGED | GO_FLAG_DESTROYED);
 
             uint32 modelId = m_goInfo->displayId;
@@ -2825,9 +2754,6 @@ void GameObject::SetLootState(LootState state, Unit* unit)
     else
         m_lootStateUnitGUID.Clear();
 
-#ifdef ELUNA
-    sEluna->OnLootStateChanged(this, state);
-#endif
     AI()->OnLootStateChanged(state, unit);
 
     // Start restock timer if the chest is partially looted or not looted at all
@@ -2856,9 +2782,6 @@ void GameObject::SetLootGenerationTime()
 void GameObject::SetGoState(GOState state)
 {
     SetUpdateFieldValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::State), state);
-#ifdef ELUNA
-    sEluna->OnGameObjectStateChanged(this, state);
-#endif
     if (AI())
         AI()->OnStateChanged(state);
     if (m_model && !IsTransport())
@@ -3235,7 +3158,8 @@ void GameObject::AssaultCapturePoint(Player* player)
             m_goValue.CapturePoint.State = WorldPackets::Battleground::BattlegroundCapturePointState::HordeCaptured;
             battleground->SendBroadcastText(GetGOInfo()->capturePoint.DefendedBroadcastHorde, CHAT_MSG_BG_SYSTEM_HORDE, player);
             UpdateCapturePoint();
-            EventInform(GetGOInfo()->capturePoint.DefendedEventHorde, player);
+            if (GetGOInfo()->capturePoint.DefendedEventHorde)
+                GameEvents::Trigger(GetGOInfo()->capturePoint.DefendedEventHorde, player, this);
             return;
         }
 
@@ -3247,7 +3171,8 @@ void GameObject::AssaultCapturePoint(Player* player)
                 m_goValue.CapturePoint.State = WorldPackets::Battleground::BattlegroundCapturePointState::ContestedHorde;
                 battleground->SendBroadcastText(GetGOInfo()->capturePoint.AssaultBroadcastHorde, CHAT_MSG_BG_SYSTEM_HORDE, player);
                 UpdateCapturePoint();
-                EventInform(GetGOInfo()->capturePoint.AssaultBroadcastHorde, player);
+                if (GetGOInfo()->capturePoint.ContestedEventHorde)
+                    GameEvents::Trigger(GetGOInfo()->capturePoint.ContestedEventHorde, player, this);
                 m_goValue.CapturePoint.AssaultTimer = GetGOInfo()->capturePoint.CaptureTime;
                 break;
             default:
@@ -3262,7 +3187,8 @@ void GameObject::AssaultCapturePoint(Player* player)
             m_goValue.CapturePoint.State = WorldPackets::Battleground::BattlegroundCapturePointState::AllianceCaptured;
             battleground->SendBroadcastText(GetGOInfo()->capturePoint.DefendedBroadcastAlliance, CHAT_MSG_BG_SYSTEM_ALLIANCE, player);
             UpdateCapturePoint();
-            EventInform(GetGOInfo()->capturePoint.DefendedEventAlliance, player);
+            if (GetGOInfo()->capturePoint.DefendedEventAlliance)
+                GameEvents::Trigger(GetGOInfo()->capturePoint.DefendedEventAlliance, player, this);
             return;
         }
 
@@ -3274,7 +3200,8 @@ void GameObject::AssaultCapturePoint(Player* player)
                 m_goValue.CapturePoint.State = WorldPackets::Battleground::BattlegroundCapturePointState::ContestedAlliance;
                 battleground->SendBroadcastText(GetGOInfo()->capturePoint.AssaultBroadcastAlliance, CHAT_MSG_BG_SYSTEM_ALLIANCE, player);
                 UpdateCapturePoint();
-                EventInform(GetGOInfo()->capturePoint.ContestedEventAlliance, player);
+                if (GetGOInfo()->capturePoint.ContestedEventAlliance)
+                    GameEvents::Trigger(GetGOInfo()->capturePoint.ContestedEventAlliance, player, this);
                 m_goValue.CapturePoint.AssaultTimer = GetGOInfo()->capturePoint.CaptureTime;
                 break;
             default:
