@@ -172,11 +172,7 @@ namespace LuaSpell
     int IsMountSummon(lua_State* L, Spell* spell)
     {
         SpellInfo const* spellInfo = spell->m_spellInfo;
-
-        for (SpellEffectInfo const& effect : spellInfo->GetEffects())
-        {
-            Eluna::Push(L, (spellInfo->GetEffectMechanic(effect.EffectIndex) == MECHANIC_MOUNT));
-        }
+        Eluna::Push(L, (spellInfo->GetEffectMechanic(EFFECT_0) == MECHANIC_MOUNT));
         return 1;
     }
 

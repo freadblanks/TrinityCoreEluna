@@ -269,10 +269,10 @@ void WorldSession::HandleGameobjectReportUse(WorldPackets::GameObject::GameObjRe
 
     if (GameObject* go = GetPlayer()->GetGameObjectIfCanInteractWith(packet.Guid))
     {
-#ifdef ELUNA
-        if (sEluna->OnGameObjectUse(_player, go))
-            return;
-#endif
+//#ifdef ELUNA
+//        if (sEluna->OnGameObjectUse(_player, go))
+//            return;
+//#endif
 
         if (go->AI()->OnReportUse(_player))
             return;

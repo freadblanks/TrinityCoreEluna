@@ -1470,6 +1470,7 @@ class TC_GAME_API Unit : public WorldObject
         float GetTotalAuraMultiplierByAffectMask(AuraType auraType, SpellInfo const* affectedSpell) const;
         int32 GetMaxPositiveAuraModifierByAffectMask(AuraType auraType, SpellInfo const* affectedSpell) const;
         int32 GetMaxNegativeAuraModifierByAffectMask(AuraType auraType, SpellInfo const* affectedSpell) const;
+        int32 GetTotalSpellPowerValue(SpellSchoolMask mask, bool heal) const;
 
         void InitStatBuffMods();
         void UpdateStatBuffMod(Stats stat);

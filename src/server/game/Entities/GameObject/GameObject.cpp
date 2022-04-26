@@ -1887,6 +1887,9 @@ void GameObject::Use(Unit* user)
 #ifdef ELUNA
         if (sEluna->OnGossipHello(playerUser, this))
             return;
+
+        if (sEluna->OnGameObjectUse(playerUser, this))
+            return;
 #endif
 
         if (AI()->OnGossipHello(playerUser))

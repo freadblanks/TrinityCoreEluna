@@ -237,22 +237,24 @@ namespace LuaGameObject
     {
         bool deldb = Eluna::CHECKVAL<bool>(L, 2, false);
 
-        // cs_gobject.cpp copy paste
-        ObjectGuid ownerGuid = go->GetOwnerGUID();
-        if (!ownerGuid)
-            return 0;
+        //// cs_gobject.cpp copy paste
+        //ObjectGuid ownerGuid = go->GetOwnerGUID();
+        //if (!ownerGuid)
+        //    return 0;
 
-        Unit* owner = eObjectAccessor()GetUnit(*go, ownerGuid);
-        if (!owner || !ownerGuid.IsPlayer())
-            return 0;
+        //Unit* owner = eObjectAccessor()GetUnit(*go, ownerGuid);
+        //if (!owner || !ownerGuid.IsPlayer())
+        //    return 0;
 
-        owner->RemoveGameObject(go, false);
+        //owner->RemoveGameObject(go, false);
 
-        if (deldb)
-            GameObject::DeleteFromDB(go->GetSpawnId());
+        //if (deldb)
+        //    GameObject::DeleteFromDB(go->GetSpawnId());
 
         go->SetRespawnTime(0);
         go->Delete();
+        if (deldb)
+            go->DeleteFromDB(go->GetSpawnId());
 
         Eluna::CHECKOBJ<ElunaObject>(L, 1)->Invalidate();
         return 0;
