@@ -386,7 +386,7 @@ TC_API_EXPORT EnumText EnumUtils<SpellAttr1>::ToString(SpellAttr1 value)
         case SPELL_ATTR1_NO_REFLECTION: return { "SPELL_ATTR1_NO_REFLECTION", "No Reflection", "Spell will pierce through Spell Reflection and similar" };
         case SPELL_ATTR1_ONLY_PEACEFUL_TARGETS: return { "SPELL_ATTR1_ONLY_PEACEFUL_TARGETS", "Only Peaceful Targets", "Target cannot be in combat" };
         case SPELL_ATTR1_INITIATES_COMBAT_ENABLES_AUTO_ATTACK: return { "SPELL_ATTR1_INITIATES_COMBAT_ENABLES_AUTO_ATTACK", "Initiates Combat (Enables Auto-Attack) (client only)", "Caster will begin auto-attacking the target on cast" };
-        case SPELL_ATTR1_NO_THREAT: return { "SPELL_ATTR1_NO_THREAT", "Does not generate threat", "Also does not cause target to engage" };
+        case SPELL_ATTR1_NO_THREAT: return { "SPELL_ATTR1_NO_THREAT", "No Threat", "Also does not cause target to engage" };
         case SPELL_ATTR1_AURA_UNIQUE: return { "SPELL_ATTR1_AURA_UNIQUE", "Aura Unique", "Aura will not refresh its duration when recast" };
         case SPELL_ATTR1_FAILURE_BREAKS_STEALTH: return { "SPELL_ATTR1_FAILURE_BREAKS_STEALTH", "Failure Breaks Stealth", "" };
         case SPELL_ATTR1_TOGGLE_FAR_SIGHT: return { "SPELL_ATTR1_TOGGLE_FAR_SIGHT", "Toggle Far Sight (client only)", "" };
@@ -634,38 +634,38 @@ TC_API_EXPORT EnumText EnumUtils<SpellAttr3>::ToString(SpellAttr3 value)
 {
     switch (value)
     {
-        case SPELL_ATTR3_UNK0: return { "SPELL_ATTR3_UNK0", "Unknown attribute 0@Attr3", "" };
+        case SPELL_ATTR3_PVP_ENABLING: return { "SPELL_ATTR3_PVP_ENABLING", "PvP Enabling", "" };
         case SPELL_ATTR3_NO_PROC_EQUIP_REQUIREMENT: return { "SPELL_ATTR3_NO_PROC_EQUIP_REQUIREMENT", "No Proc Equip Requirement", "Ignores subclass mask check when checking proc" };
-        case SPELL_ATTR3_UNK2: return { "SPELL_ATTR3_UNK2", "Unknown attribute 2@Attr3", "" };
-        case SPELL_ATTR3_BLOCKABLE_SPELL: return { "SPELL_ATTR3_BLOCKABLE_SPELL", "Blockable spell", "" };
-        case SPELL_ATTR3_IGNORE_RESURRECTION_TIMER: return { "SPELL_ATTR3_IGNORE_RESURRECTION_TIMER", "Ignore resurrection timer", "" };
+        case SPELL_ATTR3_NO_CASTING_BAR_TEXT: return { "SPELL_ATTR3_NO_CASTING_BAR_TEXT", "No Casting Bar Text", "" };
+        case SPELL_ATTR3_COMPLETELY_BLOCKED: return { "SPELL_ATTR3_COMPLETELY_BLOCKED", "Completely Blocked", "" };
+        case SPELL_ATTR3_NO_RES_TIMER: return { "SPELL_ATTR3_NO_RES_TIMER", "No Res Timer", "" };
         case SPELL_ATTR3_NO_DURABILITY_LOSS: return { "SPELL_ATTR3_NO_DURABILITY_LOSS", "No Durability Loss", "" };
-        case SPELL_ATTR3_UNK6: return { "SPELL_ATTR3_UNK6", "Unknown attribute 6@Attr3", "" };
-        case SPELL_ATTR3_STACK_FOR_DIFF_CASTERS: return { "SPELL_ATTR3_STACK_FOR_DIFF_CASTERS", "Stack separately for each caster", "" };
-        case SPELL_ATTR3_ONLY_TARGET_PLAYERS: return { "SPELL_ATTR3_ONLY_TARGET_PLAYERS", "Can only target players", "" };
+        case SPELL_ATTR3_NO_AVOIDANCE: return { "SPELL_ATTR3_NO_AVOIDANCE", "No Avoidance", "" };
+        case SPELL_ATTR3_DOT_STACKING_RULE: return { "SPELL_ATTR3_DOT_STACKING_RULE", "DoT Stacking Rule", "Stack separately for each caster" };
+        case SPELL_ATTR3_ONLY_ON_PLAYER: return { "SPELL_ATTR3_ONLY_ON_PLAYER", "Only On Player", "" };
         case SPELL_ATTR3_NOT_A_PROC: return { "SPELL_ATTR3_NOT_A_PROC", "Not a Proc", "Without this attribute, any triggered spell will be unable to trigger other auras' procs" };
-        case SPELL_ATTR3_MAIN_HAND: return { "SPELL_ATTR3_MAIN_HAND", "Require main hand weapon", "" };
-        case SPELL_ATTR3_BATTLEGROUND: return { "SPELL_ATTR3_BATTLEGROUND", "Can only be cast in battleground", "" };
-        case SPELL_ATTR3_ONLY_TARGET_GHOSTS: return { "SPELL_ATTR3_ONLY_TARGET_GHOSTS", "Can only target ghost players", "" };
-        case SPELL_ATTR3_DONT_DISPLAY_CHANNEL_BAR: return { "SPELL_ATTR3_DONT_DISPLAY_CHANNEL_BAR", "Do not display channel bar (client only)", "" };
-        case SPELL_ATTR3_IS_HONORLESS_TARGET: return { "SPELL_ATTR3_IS_HONORLESS_TARGET", "Honorless Target", "" };
-        case SPELL_ATTR3_UNK15: return { "SPELL_ATTR3_UNK15", "Unknown attribute 15@Attr3", "Auto Shoot, Shoot, Throw - ranged normal attack attribute?" };
-        case SPELL_ATTR3_CANT_TRIGGER_PROC: return { "SPELL_ATTR3_CANT_TRIGGER_PROC", "Cannot trigger procs", "" };
-        case SPELL_ATTR3_NO_INITIAL_AGGRO: return { "SPELL_ATTR3_NO_INITIAL_AGGRO", "No initial aggro", "" };
-        case SPELL_ATTR3_IGNORE_HIT_RESULT: return { "SPELL_ATTR3_IGNORE_HIT_RESULT", "Ignore hit result", "Spell cannot miss, or be dodged/parried/blocked" };
-        case SPELL_ATTR3_DISABLE_PROC: return { "SPELL_ATTR3_DISABLE_PROC", "Cannot trigger spells during aura proc", "" };
-        case SPELL_ATTR3_DEATH_PERSISTENT: return { "SPELL_ATTR3_DEATH_PERSISTENT", "Persists through death", "" };
-        case SPELL_ATTR3_UNK21: return { "SPELL_ATTR3_UNK21", "Unknown attribute 21@Attr3", "" };
-        case SPELL_ATTR3_REQ_WAND: return { "SPELL_ATTR3_REQ_WAND", "Requires equipped Wand", "" };
-        case SPELL_ATTR3_UNK23: return { "SPELL_ATTR3_UNK23", "Unknown attribute 23@Attr3", "" };
-        case SPELL_ATTR3_REQ_OFFHAND: return { "SPELL_ATTR3_REQ_OFFHAND", "Requires offhand weapon", "" };
-        case SPELL_ATTR3_TREAT_AS_PERIODIC: return { "SPELL_ATTR3_TREAT_AS_PERIODIC", "Treat as periodic effect", "" };
+        case SPELL_ATTR3_REQUIRES_MAIN_HAND_WEAPON: return { "SPELL_ATTR3_REQUIRES_MAIN_HAND_WEAPON", "Requires Main-Hand Weapon", "" };
+        case SPELL_ATTR3_ONLY_BATTLEGROUNDS: return { "SPELL_ATTR3_ONLY_BATTLEGROUNDS", "Only Battlegrounds", "" };
+        case SPELL_ATTR3_ONLY_ON_GHOSTS: return { "SPELL_ATTR3_ONLY_ON_GHOSTS", "Only On Ghosts", "" };
+        case SPELL_ATTR3_HIDE_CHANNEL_BAR: return { "SPELL_ATTR3_HIDE_CHANNEL_BAR", "Hide Channel Bar (client only)", "" };
+        case SPELL_ATTR3_HIDE_IN_RAID_FILTER: return { "SPELL_ATTR3_HIDE_IN_RAID_FILTER", "Hide In Raid Filter (client only)", "" };
+        case SPELL_ATTR3_NORMAL_RANGED_ATTACK: return { "SPELL_ATTR3_NORMAL_RANGED_ATTACK", "Normal Ranged Attack", "Auto Shoot, Shoot, Throw - ranged normal attack attribute?" };
+        case SPELL_ATTR3_SUPPRESS_CASTER_PROCS: return { "SPELL_ATTR3_SUPPRESS_CASTER_PROCS", "Suppress Caster Procs", "" };
+        case SPELL_ATTR3_SUPPRESS_TARGET_PROCS: return { "SPELL_ATTR3_SUPPRESS_TARGET_PROCS", "Suppress Target Procs", "" };
+        case SPELL_ATTR3_ALWAYS_HIT: return { "SPELL_ATTR3_ALWAYS_HIT", "Always Hit", "Spell cannot miss, or be dodged/parried/blocked" };
+        case SPELL_ATTR3_INSTANT_TARGET_PROCS: return { "SPELL_ATTR3_INSTANT_TARGET_PROCS", "Instant Target Procs", "Proc events are triggered before spell batching processes the spell hit on target" };
+        case SPELL_ATTR3_ALLOW_AURA_WHILE_DEAD: return { "SPELL_ATTR3_ALLOW_AURA_WHILE_DEAD", "Allow Aura While Dead", "" };
+        case SPELL_ATTR3_ONLY_PROC_OUTDOORS: return { "SPELL_ATTR3_ONLY_PROC_OUTDOORS", "Only Proc Outdoors", "" };
+        case SPELL_ATTR3_DO_NOT_TRIGGER_TARGET_STAND: return { "SPELL_ATTR3_DO_NOT_TRIGGER_TARGET_STAND", "Do Not Trigger Target Stand", "" };
+        case SPELL_ATTR3_NO_DAMAGE_HISTORY: return { "SPELL_ATTR3_NO_DAMAGE_HISTORY", "No Damage History", "" };
+        case SPELL_ATTR3_REQUIRES_OFF_HAND_WEAPON: return { "SPELL_ATTR3_REQUIRES_OFF_HAND_WEAPON", "Requires Off-Hand Weapon", "" };
+        case SPELL_ATTR3_TREAT_AS_PERIODIC: return { "SPELL_ATTR3_TREAT_AS_PERIODIC", "Treat As Periodic", "" };
         case SPELL_ATTR3_CAN_PROC_FROM_PROCS: return { "SPELL_ATTR3_CAN_PROC_FROM_PROCS", "Can Proc From Procs", "" };
-        case SPELL_ATTR3_DRAIN_SOUL: return { "SPELL_ATTR3_DRAIN_SOUL", "Drain Soul", "" };
-        case SPELL_ATTR3_UNK28: return { "SPELL_ATTR3_UNK28", "Unknown attribute 28@Attr3", "" };
-        case SPELL_ATTR3_NO_DONE_BONUS: return { "SPELL_ATTR3_NO_DONE_BONUS", "Damage dealt is unaffected by modifiers", "" };
-        case SPELL_ATTR3_DONT_DISPLAY_RANGE: return { "SPELL_ATTR3_DONT_DISPLAY_RANGE", "Do not show range in tooltip (client only)", "" };
-        case SPELL_ATTR3_UNK31: return { "SPELL_ATTR3_UNK31", "Unknown attribute 31@Attr3", "" };
+        case SPELL_ATTR3_ONLY_PROC_ON_CASTER: return { "SPELL_ATTR3_ONLY_PROC_ON_CASTER", "Only Proc on Caster", "" };
+        case SPELL_ATTR3_IGNORE_CASTER_AND_TARGET_RESTRICTIONS: return { "SPELL_ATTR3_IGNORE_CASTER_AND_TARGET_RESTRICTIONS", "Ignore Caster & Target Restrictions", "" };
+        case SPELL_ATTR3_IGNORE_CASTER_MODIFIERS: return { "SPELL_ATTR3_IGNORE_CASTER_MODIFIERS", "Ignore Caster Modifiers", "" };
+        case SPELL_ATTR3_DO_NOT_DISPLAY_RANGE: return { "SPELL_ATTR3_DO_NOT_DISPLAY_RANGE", "Do Not Display Range (client only)", "" };
+        case SPELL_ATTR3_NOT_ON_AOE_IMMUNE: return { "SPELL_ATTR3_NOT_ON_AOE_IMMUNE", "Not On AOE Immune", "" };
         default: throw std::out_of_range("value");
     }
 }
@@ -678,38 +678,38 @@ TC_API_EXPORT SpellAttr3 EnumUtils<SpellAttr3>::FromIndex(size_t index)
 {
     switch (index)
     {
-        case 0: return SPELL_ATTR3_UNK0;
+        case 0: return SPELL_ATTR3_PVP_ENABLING;
         case 1: return SPELL_ATTR3_NO_PROC_EQUIP_REQUIREMENT;
-        case 2: return SPELL_ATTR3_UNK2;
-        case 3: return SPELL_ATTR3_BLOCKABLE_SPELL;
-        case 4: return SPELL_ATTR3_IGNORE_RESURRECTION_TIMER;
+        case 2: return SPELL_ATTR3_NO_CASTING_BAR_TEXT;
+        case 3: return SPELL_ATTR3_COMPLETELY_BLOCKED;
+        case 4: return SPELL_ATTR3_NO_RES_TIMER;
         case 5: return SPELL_ATTR3_NO_DURABILITY_LOSS;
-        case 6: return SPELL_ATTR3_UNK6;
-        case 7: return SPELL_ATTR3_STACK_FOR_DIFF_CASTERS;
-        case 8: return SPELL_ATTR3_ONLY_TARGET_PLAYERS;
+        case 6: return SPELL_ATTR3_NO_AVOIDANCE;
+        case 7: return SPELL_ATTR3_DOT_STACKING_RULE;
+        case 8: return SPELL_ATTR3_ONLY_ON_PLAYER;
         case 9: return SPELL_ATTR3_NOT_A_PROC;
-        case 10: return SPELL_ATTR3_MAIN_HAND;
-        case 11: return SPELL_ATTR3_BATTLEGROUND;
-        case 12: return SPELL_ATTR3_ONLY_TARGET_GHOSTS;
-        case 13: return SPELL_ATTR3_DONT_DISPLAY_CHANNEL_BAR;
-        case 14: return SPELL_ATTR3_IS_HONORLESS_TARGET;
-        case 15: return SPELL_ATTR3_UNK15;
-        case 16: return SPELL_ATTR3_CANT_TRIGGER_PROC;
-        case 17: return SPELL_ATTR3_NO_INITIAL_AGGRO;
-        case 18: return SPELL_ATTR3_IGNORE_HIT_RESULT;
-        case 19: return SPELL_ATTR3_DISABLE_PROC;
-        case 20: return SPELL_ATTR3_DEATH_PERSISTENT;
-        case 21: return SPELL_ATTR3_UNK21;
-        case 22: return SPELL_ATTR3_REQ_WAND;
-        case 23: return SPELL_ATTR3_UNK23;
-        case 24: return SPELL_ATTR3_REQ_OFFHAND;
+        case 10: return SPELL_ATTR3_REQUIRES_MAIN_HAND_WEAPON;
+        case 11: return SPELL_ATTR3_ONLY_BATTLEGROUNDS;
+        case 12: return SPELL_ATTR3_ONLY_ON_GHOSTS;
+        case 13: return SPELL_ATTR3_HIDE_CHANNEL_BAR;
+        case 14: return SPELL_ATTR3_HIDE_IN_RAID_FILTER;
+        case 15: return SPELL_ATTR3_NORMAL_RANGED_ATTACK;
+        case 16: return SPELL_ATTR3_SUPPRESS_CASTER_PROCS;
+        case 17: return SPELL_ATTR3_SUPPRESS_TARGET_PROCS;
+        case 18: return SPELL_ATTR3_ALWAYS_HIT;
+        case 19: return SPELL_ATTR3_INSTANT_TARGET_PROCS;
+        case 20: return SPELL_ATTR3_ALLOW_AURA_WHILE_DEAD;
+        case 21: return SPELL_ATTR3_ONLY_PROC_OUTDOORS;
+        case 22: return SPELL_ATTR3_DO_NOT_TRIGGER_TARGET_STAND;
+        case 23: return SPELL_ATTR3_NO_DAMAGE_HISTORY;
+        case 24: return SPELL_ATTR3_REQUIRES_OFF_HAND_WEAPON;
         case 25: return SPELL_ATTR3_TREAT_AS_PERIODIC;
         case 26: return SPELL_ATTR3_CAN_PROC_FROM_PROCS;
-        case 27: return SPELL_ATTR3_DRAIN_SOUL;
-        case 28: return SPELL_ATTR3_UNK28;
-        case 29: return SPELL_ATTR3_NO_DONE_BONUS;
-        case 30: return SPELL_ATTR3_DONT_DISPLAY_RANGE;
-        case 31: return SPELL_ATTR3_UNK31;
+        case 27: return SPELL_ATTR3_ONLY_PROC_ON_CASTER;
+        case 28: return SPELL_ATTR3_IGNORE_CASTER_AND_TARGET_RESTRICTIONS;
+        case 29: return SPELL_ATTR3_IGNORE_CASTER_MODIFIERS;
+        case 30: return SPELL_ATTR3_DO_NOT_DISPLAY_RANGE;
+        case 31: return SPELL_ATTR3_NOT_ON_AOE_IMMUNE;
         default: throw std::out_of_range("index");
     }
 }
@@ -719,38 +719,38 @@ TC_API_EXPORT size_t EnumUtils<SpellAttr3>::ToIndex(SpellAttr3 value)
 {
     switch (value)
     {
-        case SPELL_ATTR3_UNK0: return 0;
+        case SPELL_ATTR3_PVP_ENABLING: return 0;
         case SPELL_ATTR3_NO_PROC_EQUIP_REQUIREMENT: return 1;
-        case SPELL_ATTR3_UNK2: return 2;
-        case SPELL_ATTR3_BLOCKABLE_SPELL: return 3;
-        case SPELL_ATTR3_IGNORE_RESURRECTION_TIMER: return 4;
+        case SPELL_ATTR3_NO_CASTING_BAR_TEXT: return 2;
+        case SPELL_ATTR3_COMPLETELY_BLOCKED: return 3;
+        case SPELL_ATTR3_NO_RES_TIMER: return 4;
         case SPELL_ATTR3_NO_DURABILITY_LOSS: return 5;
-        case SPELL_ATTR3_UNK6: return 6;
-        case SPELL_ATTR3_STACK_FOR_DIFF_CASTERS: return 7;
-        case SPELL_ATTR3_ONLY_TARGET_PLAYERS: return 8;
+        case SPELL_ATTR3_NO_AVOIDANCE: return 6;
+        case SPELL_ATTR3_DOT_STACKING_RULE: return 7;
+        case SPELL_ATTR3_ONLY_ON_PLAYER: return 8;
         case SPELL_ATTR3_NOT_A_PROC: return 9;
-        case SPELL_ATTR3_MAIN_HAND: return 10;
-        case SPELL_ATTR3_BATTLEGROUND: return 11;
-        case SPELL_ATTR3_ONLY_TARGET_GHOSTS: return 12;
-        case SPELL_ATTR3_DONT_DISPLAY_CHANNEL_BAR: return 13;
-        case SPELL_ATTR3_IS_HONORLESS_TARGET: return 14;
-        case SPELL_ATTR3_UNK15: return 15;
-        case SPELL_ATTR3_CANT_TRIGGER_PROC: return 16;
-        case SPELL_ATTR3_NO_INITIAL_AGGRO: return 17;
-        case SPELL_ATTR3_IGNORE_HIT_RESULT: return 18;
-        case SPELL_ATTR3_DISABLE_PROC: return 19;
-        case SPELL_ATTR3_DEATH_PERSISTENT: return 20;
-        case SPELL_ATTR3_UNK21: return 21;
-        case SPELL_ATTR3_REQ_WAND: return 22;
-        case SPELL_ATTR3_UNK23: return 23;
-        case SPELL_ATTR3_REQ_OFFHAND: return 24;
+        case SPELL_ATTR3_REQUIRES_MAIN_HAND_WEAPON: return 10;
+        case SPELL_ATTR3_ONLY_BATTLEGROUNDS: return 11;
+        case SPELL_ATTR3_ONLY_ON_GHOSTS: return 12;
+        case SPELL_ATTR3_HIDE_CHANNEL_BAR: return 13;
+        case SPELL_ATTR3_HIDE_IN_RAID_FILTER: return 14;
+        case SPELL_ATTR3_NORMAL_RANGED_ATTACK: return 15;
+        case SPELL_ATTR3_SUPPRESS_CASTER_PROCS: return 16;
+        case SPELL_ATTR3_SUPPRESS_TARGET_PROCS: return 17;
+        case SPELL_ATTR3_ALWAYS_HIT: return 18;
+        case SPELL_ATTR3_INSTANT_TARGET_PROCS: return 19;
+        case SPELL_ATTR3_ALLOW_AURA_WHILE_DEAD: return 20;
+        case SPELL_ATTR3_ONLY_PROC_OUTDOORS: return 21;
+        case SPELL_ATTR3_DO_NOT_TRIGGER_TARGET_STAND: return 22;
+        case SPELL_ATTR3_NO_DAMAGE_HISTORY: return 23;
+        case SPELL_ATTR3_REQUIRES_OFF_HAND_WEAPON: return 24;
         case SPELL_ATTR3_TREAT_AS_PERIODIC: return 25;
         case SPELL_ATTR3_CAN_PROC_FROM_PROCS: return 26;
-        case SPELL_ATTR3_DRAIN_SOUL: return 27;
-        case SPELL_ATTR3_UNK28: return 28;
-        case SPELL_ATTR3_NO_DONE_BONUS: return 29;
-        case SPELL_ATTR3_DONT_DISPLAY_RANGE: return 30;
-        case SPELL_ATTR3_UNK31: return 31;
+        case SPELL_ATTR3_ONLY_PROC_ON_CASTER: return 27;
+        case SPELL_ATTR3_IGNORE_CASTER_AND_TARGET_RESTRICTIONS: return 28;
+        case SPELL_ATTR3_IGNORE_CASTER_MODIFIERS: return 29;
+        case SPELL_ATTR3_DO_NOT_DISPLAY_RANGE: return 30;
+        case SPELL_ATTR3_NOT_ON_AOE_IMMUNE: return 31;
         default: throw std::out_of_range("value");
     }
 }
@@ -4837,28 +4837,27 @@ TC_API_EXPORT EnumText EnumUtils<ChatMsg>::ToString(ChatMsg value)
         case CHAT_MSG_TARGETICONS: return { "CHAT_MSG_TARGETICONS", "CHAT_MSG_TARGETICONS", "" };
         case CHAT_MSG_BN_WHISPER: return { "CHAT_MSG_BN_WHISPER", "CHAT_MSG_BN_WHISPER", "" };
         case CHAT_MSG_BN_WHISPER_INFORM: return { "CHAT_MSG_BN_WHISPER_INFORM", "CHAT_MSG_BN_WHISPER_INFORM", "" };
-        case CHAT_MSG_BN_CONVERSATION: return { "CHAT_MSG_BN_CONVERSATION", "CHAT_MSG_BN_CONVERSATION", "" };
-        case CHAT_MSG_BN_CONVERSATION_NOTICE: return { "CHAT_MSG_BN_CONVERSATION_NOTICE", "CHAT_MSG_BN_CONVERSATION_NOTICE", "" };
-        case CHAT_MSG_BN_CONVERSATION_LIST: return { "CHAT_MSG_BN_CONVERSATION_LIST", "CHAT_MSG_BN_CONVERSATION_LIST", "" };
         case CHAT_MSG_BN_INLINE_TOAST_ALERT: return { "CHAT_MSG_BN_INLINE_TOAST_ALERT", "CHAT_MSG_BN_INLINE_TOAST_ALERT", "" };
         case CHAT_MSG_BN_INLINE_TOAST_BROADCAST: return { "CHAT_MSG_BN_INLINE_TOAST_BROADCAST", "CHAT_MSG_BN_INLINE_TOAST_BROADCAST", "" };
         case CHAT_MSG_BN_INLINE_TOAST_BROADCAST_INFORM: return { "CHAT_MSG_BN_INLINE_TOAST_BROADCAST_INFORM", "CHAT_MSG_BN_INLINE_TOAST_BROADCAST_INFORM", "" };
         case CHAT_MSG_BN_INLINE_TOAST_CONVERSATION: return { "CHAT_MSG_BN_INLINE_TOAST_CONVERSATION", "CHAT_MSG_BN_INLINE_TOAST_CONVERSATION", "" };
         case CHAT_MSG_BN_WHISPER_PLAYER_OFFLINE: return { "CHAT_MSG_BN_WHISPER_PLAYER_OFFLINE", "CHAT_MSG_BN_WHISPER_PLAYER_OFFLINE", "" };
-        case CHAT_MSG_COMBAT_GUILD_XP_GAIN: return { "CHAT_MSG_COMBAT_GUILD_XP_GAIN", "CHAT_MSG_COMBAT_GUILD_XP_GAIN", "" };
         case CHAT_MSG_CURRENCY: return { "CHAT_MSG_CURRENCY", "CHAT_MSG_CURRENCY", "" };
         case CHAT_MSG_QUEST_BOSS_EMOTE: return { "CHAT_MSG_QUEST_BOSS_EMOTE", "CHAT_MSG_QUEST_BOSS_EMOTE", "" };
         case CHAT_MSG_PET_BATTLE_COMBAT_LOG: return { "CHAT_MSG_PET_BATTLE_COMBAT_LOG", "CHAT_MSG_PET_BATTLE_COMBAT_LOG", "" };
         case CHAT_MSG_PET_BATTLE_INFO: return { "CHAT_MSG_PET_BATTLE_INFO", "CHAT_MSG_PET_BATTLE_INFO", "" };
         case CHAT_MSG_INSTANCE_CHAT: return { "CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT", "" };
         case CHAT_MSG_INSTANCE_CHAT_LEADER: return { "CHAT_MSG_INSTANCE_CHAT_LEADER", "CHAT_MSG_INSTANCE_CHAT_LEADER", "" };
+        case CHAT_MSG_GUILD_ITEM_LOOTED: return { "CHAT_MSG_GUILD_ITEM_LOOTED", "CHAT_MSG_GUILD_ITEM_LOOTED", "" };
+        case CHAT_MSG_COMMUNITIES_CHANNEL: return { "CHAT_MSG_COMMUNITIES_CHANNEL", "CHAT_MSG_COMMUNITIES_CHANNEL", "" };
+        case CHAT_MSG_VOICE_TEXT: return { "CHAT_MSG_VOICE_TEXT", "CHAT_MSG_VOICE_TEXT", "" };
         case MAX_CHAT_MSG_TYPE: return { "MAX_CHAT_MSG_TYPE", "MAX_CHAT_MSG_TYPE", "" };
         default: throw std::out_of_range("value");
     }
 }
 
 template <>
-TC_API_EXPORT size_t EnumUtils<ChatMsg>::Count() { return 70; }
+TC_API_EXPORT size_t EnumUtils<ChatMsg>::Count() { return 69; }
 
 template <>
 TC_API_EXPORT ChatMsg EnumUtils<ChatMsg>::FromIndex(size_t index)
@@ -4919,22 +4918,21 @@ TC_API_EXPORT ChatMsg EnumUtils<ChatMsg>::FromIndex(size_t index)
         case 51: return CHAT_MSG_TARGETICONS;
         case 52: return CHAT_MSG_BN_WHISPER;
         case 53: return CHAT_MSG_BN_WHISPER_INFORM;
-        case 54: return CHAT_MSG_BN_CONVERSATION;
-        case 55: return CHAT_MSG_BN_CONVERSATION_NOTICE;
-        case 56: return CHAT_MSG_BN_CONVERSATION_LIST;
-        case 57: return CHAT_MSG_BN_INLINE_TOAST_ALERT;
-        case 58: return CHAT_MSG_BN_INLINE_TOAST_BROADCAST;
-        case 59: return CHAT_MSG_BN_INLINE_TOAST_BROADCAST_INFORM;
-        case 60: return CHAT_MSG_BN_INLINE_TOAST_CONVERSATION;
-        case 61: return CHAT_MSG_BN_WHISPER_PLAYER_OFFLINE;
-        case 62: return CHAT_MSG_COMBAT_GUILD_XP_GAIN;
-        case 63: return CHAT_MSG_CURRENCY;
-        case 64: return CHAT_MSG_QUEST_BOSS_EMOTE;
-        case 65: return CHAT_MSG_PET_BATTLE_COMBAT_LOG;
-        case 66: return CHAT_MSG_PET_BATTLE_INFO;
-        case 67: return CHAT_MSG_INSTANCE_CHAT;
-        case 68: return CHAT_MSG_INSTANCE_CHAT_LEADER;
-        case 69: return MAX_CHAT_MSG_TYPE;
+        case 54: return CHAT_MSG_BN_INLINE_TOAST_ALERT;
+        case 55: return CHAT_MSG_BN_INLINE_TOAST_BROADCAST;
+        case 56: return CHAT_MSG_BN_INLINE_TOAST_BROADCAST_INFORM;
+        case 57: return CHAT_MSG_BN_INLINE_TOAST_CONVERSATION;
+        case 58: return CHAT_MSG_BN_WHISPER_PLAYER_OFFLINE;
+        case 59: return CHAT_MSG_CURRENCY;
+        case 60: return CHAT_MSG_QUEST_BOSS_EMOTE;
+        case 61: return CHAT_MSG_PET_BATTLE_COMBAT_LOG;
+        case 62: return CHAT_MSG_PET_BATTLE_INFO;
+        case 63: return CHAT_MSG_INSTANCE_CHAT;
+        case 64: return CHAT_MSG_INSTANCE_CHAT_LEADER;
+        case 65: return CHAT_MSG_GUILD_ITEM_LOOTED;
+        case 66: return CHAT_MSG_COMMUNITIES_CHANNEL;
+        case 67: return CHAT_MSG_VOICE_TEXT;
+        case 68: return MAX_CHAT_MSG_TYPE;
         default: throw std::out_of_range("index");
     }
 }
@@ -4998,22 +4996,21 @@ TC_API_EXPORT size_t EnumUtils<ChatMsg>::ToIndex(ChatMsg value)
         case CHAT_MSG_TARGETICONS: return 51;
         case CHAT_MSG_BN_WHISPER: return 52;
         case CHAT_MSG_BN_WHISPER_INFORM: return 53;
-        case CHAT_MSG_BN_CONVERSATION: return 54;
-        case CHAT_MSG_BN_CONVERSATION_NOTICE: return 55;
-        case CHAT_MSG_BN_CONVERSATION_LIST: return 56;
-        case CHAT_MSG_BN_INLINE_TOAST_ALERT: return 57;
-        case CHAT_MSG_BN_INLINE_TOAST_BROADCAST: return 58;
-        case CHAT_MSG_BN_INLINE_TOAST_BROADCAST_INFORM: return 59;
-        case CHAT_MSG_BN_INLINE_TOAST_CONVERSATION: return 60;
-        case CHAT_MSG_BN_WHISPER_PLAYER_OFFLINE: return 61;
-        case CHAT_MSG_COMBAT_GUILD_XP_GAIN: return 62;
-        case CHAT_MSG_CURRENCY: return 63;
-        case CHAT_MSG_QUEST_BOSS_EMOTE: return 64;
-        case CHAT_MSG_PET_BATTLE_COMBAT_LOG: return 65;
-        case CHAT_MSG_PET_BATTLE_INFO: return 66;
-        case CHAT_MSG_INSTANCE_CHAT: return 67;
-        case CHAT_MSG_INSTANCE_CHAT_LEADER: return 68;
-        case MAX_CHAT_MSG_TYPE: return 69;
+        case CHAT_MSG_BN_INLINE_TOAST_ALERT: return 54;
+        case CHAT_MSG_BN_INLINE_TOAST_BROADCAST: return 55;
+        case CHAT_MSG_BN_INLINE_TOAST_BROADCAST_INFORM: return 56;
+        case CHAT_MSG_BN_INLINE_TOAST_CONVERSATION: return 57;
+        case CHAT_MSG_BN_WHISPER_PLAYER_OFFLINE: return 58;
+        case CHAT_MSG_CURRENCY: return 59;
+        case CHAT_MSG_QUEST_BOSS_EMOTE: return 60;
+        case CHAT_MSG_PET_BATTLE_COMBAT_LOG: return 61;
+        case CHAT_MSG_PET_BATTLE_INFO: return 62;
+        case CHAT_MSG_INSTANCE_CHAT: return 63;
+        case CHAT_MSG_INSTANCE_CHAT_LEADER: return 64;
+        case CHAT_MSG_GUILD_ITEM_LOOTED: return 65;
+        case CHAT_MSG_COMMUNITIES_CHANNEL: return 66;
+        case CHAT_MSG_VOICE_TEXT: return 67;
+        case MAX_CHAT_MSG_TYPE: return 68;
         default: throw std::out_of_range("value");
     }
 }
