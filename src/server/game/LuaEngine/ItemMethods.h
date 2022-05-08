@@ -437,7 +437,7 @@ namespace LuaItem
      */
     int GetAllowableRace(lua_State* L, Item* item)
     {
-        Eluna::Push(L, item->GetTemplate()->GetAllowableRace());
+        item->GetTemplate()->GetAllowableRace();
         return 1;
     }
 
