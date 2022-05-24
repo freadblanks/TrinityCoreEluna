@@ -1831,7 +1831,7 @@ void GameObject::ActivateObject(GameObjectActions action, int32 param, WorldObje
     }
 }
 
-void GameObject::SetGoArtKit(uint8 kit)
+void GameObject::SetGoArtKit(uint32 kit)
 {
     SetUpdateFieldValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::ArtKit), kit);
     GameObjectData* data = const_cast<GameObjectData*>(sObjectMgr->GetGameObjectData(m_spawnId));
@@ -1839,7 +1839,7 @@ void GameObject::SetGoArtKit(uint8 kit)
         data->artKit = kit;
 }
 
-void GameObject::SetGoArtKit(uint8 artkit, GameObject* go, ObjectGuid::LowType lowguid)
+void GameObject::SetGoArtKit(uint32 artkit, GameObject* go, ObjectGuid::LowType lowguid)
 {
     GameObjectData const* data = nullptr;
     if (go)
@@ -3378,7 +3378,7 @@ public:
     uint8 GetNameSetId() const override { return _owner->GetNameSetId(); }
     bool IsInPhase(PhaseShift const& phaseShift) const override { return _owner->GetPhaseShift().CanSee(phaseShift); }
     G3D::Vector3 GetPosition() const override { return G3D::Vector3(_owner->GetPositionX(), _owner->GetPositionY(), _owner->GetPositionZ()); }
-    float GetOrientation() const override { return _owner->GetOrientation(); }
+    G3D::Quat GetRotation() const override { return G3D::Quat(_owner->GetLocalRotation().x, _owner->GetLocalRotation().y, _owner->GetLocalRotation().z, _owner->GetLocalRotation().w); }
     float GetScale() const override { return _owner->GetObjectScale(); }
     void DebugVisualizeCorner(G3D::Vector3 const& corner) const override { _owner->SummonCreature(1, corner.x, corner.y, corner.z, 0, TEMPSUMMON_MANUAL_DESPAWN); }
 

@@ -1115,9 +1115,7 @@ struct GameObjectData : public SpawnData
     QuaternionData rotation;
     uint32 animprogress = 0;
     GOState goState = GO_STATE_ACTIVE;
-    uint8 artKit = 0;
-    float size = 0.0f;
-    float visibility = 533.3333f;
+    uint32 artKit = 0;
 };
 
 enum class GameObjectActions : uint32
