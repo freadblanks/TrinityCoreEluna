@@ -13767,7 +13767,7 @@ void Player::AddItemToBuyBackSlot(Item* pItem)
         // if current back slot non-empty search oldest or free
         if (m_items[slot])
         {
-            uint32 oldest_time = m_activePlayerData->BuybackTimestamp[0];
+            time_t oldest_time = m_activePlayerData->BuybackTimestamp[0];
             uint32 oldest_slot = BUYBACK_SLOT_START;
 
             for (uint32 i = BUYBACK_SLOT_START + 1; i < BUYBACK_SLOT_END; ++i)
@@ -13779,7 +13779,7 @@ void Player::AddItemToBuyBackSlot(Item* pItem)
                     break;
                 }
 
-                uint32 i_time = m_activePlayerData->BuybackTimestamp[i - BUYBACK_SLOT_START];
+                time_t i_time = m_activePlayerData->BuybackTimestamp[i - BUYBACK_SLOT_START];
 
                 if (oldest_time > i_time)
                 {
@@ -24162,11 +24162,11 @@ bool Player::IsNeverVisibleFor(WorldObject const* seer) const
     return false;
 }
 
-bool Player::CanNeverSee(WorldObject const* /*obj*/) const
+bool Player::CanNeverSee(WorldObject const* obj) const
 {
     // the intent is to delay sending visible objects until client is ready for them
     // some gameobjects dont function correctly if they are sent before TransportServerTime is correctly set (after CMSG_MOVE_INIT_ACTIVE_MOVER_COMPLETE)
-    return !HasPlayerLocalFlag(PLAYER_LOCAL_FLAG_OVERRIDE_TRANSPORT_SERVER_TIME);
+    return !HasPlayerLocalFlag(PLAYER_LOCAL_FLAG_OVERRIDE_TRANSPORT_SERVER_TIME) || WorldObject::CanNeverSee(obj);
 }
 
 bool Player::CanAlwaysSee(WorldObject const* obj) const

@@ -83,7 +83,7 @@ struct AdventureJournalLoadInfo
             { false, FT_STRING, "ContinueDescription" },
             { false, FT_BYTE, "Type" },
             { false, FT_INT, "PlayerConditionID" },
-            { false, FT_BYTE, "Flags" },
+            { true, FT_INT, "Flags" },
             { false, FT_BYTE, "ButtonActionType" },
             { true, FT_INT, "TextureFileDataID" },
             { false, FT_SHORT, "LfgDungeonID" },
@@ -1029,7 +1029,7 @@ struct ChrClassesLoadInfo
             { false, FT_INT, "SelectScreenFileDataID" },
             { false, FT_INT, "IconFileDataID" },
             { false, FT_INT, "LowResScreenFileDataID" },
-            { false, FT_INT, "Flags" },
+            { true, FT_INT, "Flags" },
             { false, FT_INT, "SpellTextureBlobFileDataID" },
             { false, FT_INT, "RolesMask" },
             { false, FT_INT, "ArmorTypeMask" },
@@ -1221,7 +1221,7 @@ struct ChrModelLoadInfo
             { false, FT_FLOAT, "CustomizeOffset2" },
             { false, FT_FLOAT, "CustomizeOffset3" },
             { false, FT_INT, "ID" },
-            { true, FT_INT, "Sex" },
+            { true, FT_BYTE, "Sex" },
             { true, FT_INT, "DisplayID" },
             { true, FT_INT, "CharComponentTextureLayoutID" },
             { true, FT_INT, "Flags" },
@@ -1757,8 +1757,8 @@ struct CurvePointLoadInfo
             { false, FT_INT, "ID" },
             { false, FT_FLOAT, "PosX" },
             { false, FT_FLOAT, "PosY" },
-            { false, FT_FLOAT, "PosPreSquishX" },
-            { false, FT_FLOAT, "PosPreSquishY" },
+            { false, FT_FLOAT, "PreSLSquishPosX" },
+            { false, FT_FLOAT, "PreSLSquishPosY" },
             { false, FT_SHORT, "CurveID" },
             { false, FT_BYTE, "OrderIndex" },
         };
@@ -2963,8 +2963,8 @@ struct ItemBonusTreeNodeLoadInfo
             { false, FT_SHORT, "ChildItemBonusTreeID" },
             { false, FT_SHORT, "ChildItemBonusListID" },
             { false, FT_SHORT, "ChildItemLevelSelectorID" },
-            { true, FT_INT, "ItemBonusListGroupID" },
-            { true, FT_INT, "ParentItemBonusTreeNodeID" },
+            { true, FT_INT, "ChildItemBonusListGroupID" },
+            { true, FT_INT, "IblGroupPointsModSetID" },
             { false, FT_INT, "ParentItemBonusTreeID" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, ItemBonusTreeNodeMeta::Instance(), HOTFIX_SEL_ITEM_BONUS_TREE_NODE);
@@ -3621,7 +3621,7 @@ struct JournalEncounterLoadInfo
             { false, FT_SHORT, "FirstSectionID" },
             { false, FT_SHORT, "UiMapID" },
             { false, FT_INT, "MapDisplayConditionID" },
-            { false, FT_BYTE, "Flags" },
+            { true, FT_INT, "Flags" },
             { true, FT_BYTE, "DifficultyMask" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, JournalEncounterMeta::Instance(), HOTFIX_SEL_JOURNAL_ENCOUNTER);
@@ -3648,8 +3648,8 @@ struct JournalEncounterSectionLoadInfo
             { true, FT_INT, "UiModelSceneID" },
             { true, FT_INT, "SpellID" },
             { true, FT_INT, "IconFileDataID" },
-            { false, FT_SHORT, "Flags" },
-            { false, FT_SHORT, "IconFlags" },
+            { true, FT_INT, "Flags" },
+            { true, FT_INT, "IconFlags" },
             { true, FT_BYTE, "DifficultyMask" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, JournalEncounterSectionMeta::Instance(), HOTFIX_SEL_JOURNAL_ENCOUNTER_SECTION);
@@ -3672,7 +3672,7 @@ struct JournalInstanceLoadInfo
             { true, FT_INT, "ButtonSmallFileDataID" },
             { true, FT_INT, "LoreFileDataID" },
             { false, FT_BYTE, "OrderIndex" },
-            { false, FT_BYTE, "Flags" },
+            { true, FT_INT, "Flags" },
             { false, FT_SHORT, "AreaID" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, JournalInstanceMeta::Instance(), HOTFIX_SEL_JOURNAL_INSTANCE);
@@ -3798,7 +3798,7 @@ struct LfgDungeonsLoadInfo
             { false, FT_STRING, "Name" },
             { false, FT_STRING, "Description" },
             { false, FT_BYTE, "TypeID" },
-            { false, FT_BYTE, "Subtype" },
+            { true, FT_BYTE, "Subtype" },
             { true, FT_BYTE, "Faction" },
             { true, FT_INT, "IconTextureFileID" },
             { true, FT_INT, "RewardsBgTextureFileID" },
@@ -4061,6 +4061,7 @@ struct MapLoadInfo
             { true, FT_INT, "WdtFileDataID" },
             { true, FT_INT, "Flags1" },
             { true, FT_INT, "Flags2" },
+            { true, FT_INT, "Flags3" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, MapMeta::Instance(), HOTFIX_SEL_MAP);
         return &loadInfo;
@@ -6290,7 +6291,8 @@ struct SummonPropertiesLoadInfo
             { true, FT_INT, "Faction" },
             { true, FT_INT, "Title" },
             { true, FT_INT, "Slot" },
-            { true, FT_INT, "Flags" },
+            { true, FT_INT, "Flags1" },
+            { true, FT_INT, "Flags2" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, SummonPropertiesMeta::Instance(), HOTFIX_SEL_SUMMON_PROPERTIES);
         return &loadInfo;
