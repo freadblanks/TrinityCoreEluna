@@ -989,7 +989,7 @@ ElunaRegister<Vehicle> VehicleMethods[] =
     { "IsOnBoard", &LuaVehicle::IsOnBoard },
 
     // Other
-    { "AddPassenger", &LuaVehicle::AddPassenger },
+    { "AddVehiclePassenger", &LuaVehicle::AddVehiclePassenger },
     { "RemovePassenger", &LuaVehicle::RemovePassenger },
 
     { NULL, NULL }

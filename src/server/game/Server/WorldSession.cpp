@@ -53,6 +53,9 @@
 #include "WardenWin.h"
 #include "World.h"
 #include "WorldSocket.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 
 namespace {
 
@@ -297,6 +300,11 @@ void WorldSession::SendPacket(WorldPacket const* packet, bool forced /*= false*/
 #endif                                                      // !TRINITY_DEBUG
 
     sScriptMgr->OnPacketSend(this, *packet);
+	
+	#ifdef ELUNA
+        if (!sEluna->OnPacketSend(this, *packet))
+            return;
+	#endif
 
     TC_LOG_TRACE("network.opcode", "S->C: %s %s", GetPlayerInfo().c_str(), GetOpcodeNameForLogging(static_cast<OpcodeServer>(packet->GetOpcode())).c_str());
     m_Socket[conIdx]->SendPacket(*packet);
@@ -375,6 +383,12 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                         if(AntiDOS.EvaluateOpcode(*packet, currentTime))
                         {
                             sScriptMgr->OnPacketReceive(this, *packet);
+							
+							#ifdef ELUNA
+							if (!sEluna->OnPacketReceive(this, *packet))
+								break;
+							#endif  
+							
                             opHandle->Call(this, *packet);
                         }
                         else
@@ -390,6 +404,12 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                     {
                         // not expected _player or must checked in packet hanlder
                         sScriptMgr->OnPacketReceive(this, *packet);
+						
+						#ifdef ELUNA
+                            if (!sEluna->OnPacketReceive(this, *packet))
+                                break;
+						#endif
+						
                         opHandle->Call(this, *packet);
                     }
                     else
@@ -403,6 +423,12 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
                     else if (AntiDOS.EvaluateOpcode(*packet, currentTime))
                     {
                         sScriptMgr->OnPacketReceive(this, *packet);
+						
+						#ifdef ELUNA
+                        if (!sEluna->OnPacketReceive(this, *packet))
+                            break;
+						#endif
+						
                         opHandle->Call(this, *packet);
                     }
                     else
@@ -1386,6 +1412,7 @@ uint32 WorldSession::DosProtection::GetMaxPacketCounterAllowed(uint16 opcode) co
         case CMSG_CHAT_MESSAGE_YELL:                    //   0               3.5
         case CMSG_INSPECT:                              //   0               3.5
         case CMSG_AREA_SPIRIT_HEALER_QUERY:             // not profiled
+		case CMSG_GET_MIRROR_IMAGE_DATA:                // not profiled
         case CMSG_STAND_STATE_CHANGE:                   // not profiled
         case CMSG_RANDOM_ROLL:                          // not profiled
         case CMSG_TIME_SYNC_RESPONSE:                   // not profiled

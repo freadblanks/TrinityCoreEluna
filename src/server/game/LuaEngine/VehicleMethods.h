@@ -67,12 +67,12 @@ namespace LuaVehicle
      * @param [Unit] passenger
      * @param int8 seat
      */
-    int AddPassenger(lua_State* L, Vehicle* vehicle)
+    int AddVehiclePassenger(lua_State* L, Vehicle* vehicle)
     {
         Unit* passenger = Eluna::CHECKOBJ<Unit>(L, 2);
         int8 seatId = Eluna::CHECKVAL<int8>(L, 3);
 
-        vehicle->AddPassenger(passenger, seatId);
+        vehicle->AddVehiclePassenger(passenger, seatId);
         return 0;
     }
 
