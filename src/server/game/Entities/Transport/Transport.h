@@ -21,13 +21,14 @@
 #include "GameObject.h"
 #include "TransportMgr.h"
 #include "VehicleDefines.h"
+#include <boost/dynamic_bitset_fwd.hpp>
 
 struct CreatureData;
 struct SummonPropertiesEntry;
 
 class TC_GAME_API Transport : public GameObject, public TransportBase
 {
-        friend Transport* TransportMgr::CreateTransport(uint32, ObjectGuid::LowType, Map*, uint8, uint32, uint32);
+        friend Transport* TransportMgr::CreateTransport(uint32, Map*, ObjectGuid::LowType, uint8, uint32, uint32);
 
         Transport();
     public:
@@ -35,11 +36,10 @@ class TC_GAME_API Transport : public GameObject, public TransportBase
 
         ~Transport();
 
-        bool Create(ObjectGuid::LowType guidlow, uint32 entry, uint32 mapid, float x, float y, float z, float ang, uint32 animprogress);
+        bool Create(ObjectGuid::LowType guidlow, uint32 entry, float x, float y, float z, float ang);
         void CleanupsBeforeDelete(bool finalCleanup = true) override;
 
         void Update(uint32 diff) override;
-        void DelayedUpdate(uint32 diff);
 
         void BuildUpdate(UpdateDataMapType& data_map) override;
 
@@ -90,8 +90,6 @@ class TC_GAME_API Transport : public GameObject, public TransportBase
         void SetPeriod(uint32 period) { SetLevel(period); }
         uint32 GetTimer() const { return _pathProgress; }
 
-        KeyFrameVec const& GetKeyFrames() const { return _transportInfo->keyFrames; }
-
         void UpdatePosition(float x, float y, float z, float o);
 
         //! Needed when transport moves from inactive to active grid
@@ -104,41 +102,28 @@ class TC_GAME_API Transport : public GameObject, public TransportBase
 
         void SetDelayedAddModelToMap() { _delayedAddModel = true; }
 
-        TransportTemplate const* GetTransportTemplate() const { return _transportInfo; }
-
         std::string GetDebugInfo() const override;
 
-    private:
-        void MoveToNextWaypoint();
-        float CalculateSegmentPos(float perc);
-        bool TeleportTransport(uint32 newMapid, float x, float y, float z, float o);
-        void DelayedTeleportTransport();
-        void UpdatePassengerPositions(PassengerSet const& passengers);
-        void DoEventIfAny(KeyFrame const& node, bool departure);
+        //! Returns id of the map that transport is expected to be on, according to current path progress
+        uint32 GetExpectedMapId() const;
 
-        //! Helpers to know if stop frame was reached
-        bool IsMoving() const { return _isMoving; }
-        void SetMoving(bool val) { _isMoving = val; }
+    private:
+        bool TeleportTransport(uint32 oldMapId, uint32 newMapId, float x, float y, float z, float o);
+        void TeleportPassengersAndHideTransport(uint32 newMapid, float x, float y, float z, float o);
+        void UpdatePassengerPositions(PassengerSet const& passengers);
 
         TransportTemplate const* _transportInfo;
-
-        KeyFrameVec::const_iterator _currentFrame;
-        KeyFrameVec::const_iterator _nextFrame;
+        TransportMovementState _movementState;
+        std::unique_ptr<boost::dynamic_bitset<uint8>> _eventsToTrigger;
+        size_t _currentPathLeg;
+        Optional<uint32> _requestStopTimestamp;
         uint32 _pathProgress;
         TimeTracker _positionChangeTimer;
-        bool _isMoving;
-        bool _pendingStop;
-
-        //! These are needed to properly control events triggering only once for each frame
-        bool _triggeredArrivalEvent;
-        bool _triggeredDepartureEvent;
 
         PassengerSet _passengers;
-        PassengerSet::iterator _passengerTeleportItr;
         PassengerSet _staticPassengers;
 
         bool _delayedAddModel;
-        bool _delayedTeleport;
 };
 
 #endif

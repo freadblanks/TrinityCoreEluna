@@ -3924,6 +3924,8 @@ struct TransmogIllusionEntry
     int32 TransmogCost;
     int32 SpellItemEnchantmentID;
     int32 Flags;
+
+    EnumFlag<TransmogIllusionFlags> GetFlags() const { return static_cast<TransmogIllusionFlags>(Flags); }
 };
 
 struct TransmogSetEntry

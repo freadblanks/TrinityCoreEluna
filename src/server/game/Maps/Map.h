@@ -57,6 +57,7 @@ class MapInstanced;
 class Object;
 class PhaseShift;
 class Player;
+class SpawnedPoolData;
 class TempSummon;
 class Unit;
 class Weather;
@@ -816,6 +817,9 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         // This will not affect any already-present creatures in the group
         void SetSpawnGroupInactive(uint32 groupId) { SetSpawnGroupActive(groupId, false); }
 
+        SpawnedPoolData& GetPoolData() { return *_poolData; }
+        SpawnedPoolData const& GetPoolData() const { return *_poolData; }
+
         typedef std::function<void(Map*)> FarSpellCallback;
         void AddFarSpellCallback(FarSpellCallback&& callback);
 
@@ -881,6 +885,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         }
 
         void SetSpawnGroupActive(uint32 groupId, bool state);
+        void UpdateSpawnGroupConditions();
         std::unordered_set<uint32> _toggledSpawnGroupIds;
 
         uint32 _respawnCheckTimer;
@@ -900,6 +905,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         }
 
         std::map<HighGuid, std::unique_ptr<ObjectGuidGeneratorBase>> _guidGenerators;
+        std::unique_ptr<SpawnedPoolData> _poolData;
         MapStoredObjectTypesContainer _objectsStore;
         CreatureBySpawnIdContainer _creatureBySpawnIdStore;
         GameObjectBySpawnIdContainer _gameobjectBySpawnIdStore;

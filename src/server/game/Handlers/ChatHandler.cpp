@@ -212,6 +212,9 @@ void WorldSession::HandleChatMessage(ChatMsg type, Language lang, std::string ms
         return;
     }
 
+    if (type != CHAT_MSG_AFK && type != CHAT_MSG_DND)
+        sender->UpdateSpeakTime(Player::ChatFloodThrottle::REGULAR);
+
     if (sender->HasAura(GM_SILENCE_AURA) && type != CHAT_MSG_WHISPER)
     {
         SendNotification(GetTrinityString(LANG_GM_SILENCE), sender->GetName().c_str());
@@ -535,6 +538,11 @@ void WorldSession::HandleChatAddonMessage(ChatMsg type, std::string prefix, std:
     // Disabled addon channel?
     if (!sWorld->getBoolConfig(CONFIG_ADDON_CHANNEL))
         return;
+
+    if (!CanSpeak())
+        return;
+
+    sender->UpdateSpeakTime(Player::ChatFloodThrottle::ADDON);
 
     if (prefix == AddonChannelCommandHandler::PREFIX && AddonChannelCommandHandler(this).ParseCommands(text.c_str()))
         return;
