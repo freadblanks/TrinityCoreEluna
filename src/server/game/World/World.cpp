@@ -103,6 +103,7 @@
 #include "WhoListStorage.h"
 #include "WorldSession.h"
 #include "WorldSocket.h"
+#include "WorldStateMgr.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -2257,6 +2258,9 @@ void World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Loading Creature Formations...");
     sFormationMgr->LoadCreatureFormations();
+
+    TC_LOG_INFO("server.loading", "Loading World State templates...");
+    sWorldStateMgr->LoadFromDB();
 
     TC_LOG_INFO("server.loading", "Loading World States...");              // must be loaded before battleground, outdoor PvP and conditions
     LoadWorldStates();
