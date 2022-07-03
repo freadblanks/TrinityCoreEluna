@@ -4846,10 +4846,12 @@ class spell_gen_war_mode_enlisted : public AuraScript
         switch (target->GetTeamId())
         {
             case TEAM_ALLIANCE:
-                amount = sWorldStateMgr->GetValue(WS_WAR_MODE_ALLIANCE_BUFF_VALUE, nullptr);
+                amount = sWorldStateMgr->GetValue(WS_WAR_MODE_ALLIANCE_BUFF_VALUE, target->GetMap());
                 break;
             case TEAM_HORDE:
-                amount = sWorldStateMgr->GetValue(WS_WAR_MODE_HORDE_BUFF_VALUE, nullptr);
+                amount = sWorldStateMgr->GetValue(WS_WAR_MODE_HORDE_BUFF_VALUE, target->GetMap());
+                break;
+            default:
                 break;
         }
     }
