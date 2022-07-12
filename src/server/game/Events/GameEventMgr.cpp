@@ -32,6 +32,9 @@
 #include "PoolMgr.h"
 #include "StringConvert.h"
 #include "World.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include "WorldStateMgr.h"
 
 GameEventMgr* GameEventMgr::instance()
@@ -144,6 +147,14 @@ bool GameEventMgr::StartEvent(uint16 event_id, bool overwrite)
             if (data.end <= data.start)
                 data.end = data.start + data.length;
         }
+		
+		// When event is started, set its worldstate to current time
+        sWorld->setWorldState(event_id, GameTime::GetGameTime());
+#ifdef ELUNA
+        if (IsActiveEvent(event_id))
+            sEluna->OnGameEventStart(event_id);
+#endif
+		
         return false;
     }
     else
@@ -167,6 +178,11 @@ bool GameEventMgr::StartEvent(uint16 event_id, bool overwrite)
         if (overwrite && conditions_met)
             sWorld->ForceGameEventUpdate();
 
+#ifdef ELUNA
+        if (IsActiveEvent(event_id))
+            sEluna->OnGameEventStart(event_id);
+#endif
+
         return conditions_met;
     }
 }
@@ -178,6 +194,9 @@ void GameEventMgr::StopEvent(uint16 event_id, bool overwrite)
 
     RemoveActiveEvent(event_id);
     UnApplyEvent(event_id);
+
+	// When event is stopped, clean up its worldstate
+    sWorld->setWorldState(event_id, 0);
 
     if (overwrite && !serverwide_evt)
     {
@@ -209,6 +228,10 @@ void GameEventMgr::StopEvent(uint16 event_id, bool overwrite)
             CharacterDatabase.CommitTransaction(trans);
         }
     }
+#ifdef ELUNA
+    if (!IsActiveEvent(event_id))
+        sEluna->OnGameEventStop(event_id);
+#endif
 }
 
 void GameEventMgr::LoadFromDB()
@@ -1063,6 +1086,8 @@ uint32 GameEventMgr::Update()                               // return the next e
         }
         else
         {
+			// If event is inactive, periodically clean up its worldstate
+            sWorld->setWorldState(itr, 0);
             //TC_LOG_DEBUG("misc", "GameEvent %u is not active", itr->first);
             if (IsActiveEvent(itr))
                 deactivate.insert(itr);
