@@ -1421,7 +1421,8 @@ void GameObject::Delete()
 
     SendGameObjectDespawn();
 
-    SetGoState(GO_STATE_READY);
+    if (m_goInfo->type != GAMEOBJECT_TYPE_TRANSPORT)
+        SetGoState(GO_STATE_READY);
 
     if (GameObjectOverride const* goOverride = GetGameObjectOverride())
         ReplaceAllFlags(GameObjectFlags(goOverride->Flags));
