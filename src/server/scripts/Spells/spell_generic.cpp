@@ -4809,6 +4809,28 @@ class spell_gen_impatient_mind : public AuraScript
     }
 };
 
+// 83958 - Mobile Bank
+class spell_gen_mobile_bank : public SpellScript
+{
+    PrepareSpellScript(spell_gen_mobile_bank);
+
+    enum
+    {
+        GOB_MOBILE_BANK = 206602
+    };
+
+    void SpawnChest(SpellEffIndex /*effIndex*/)
+    {
+        if (GetCaster()->IsPlayer() && GetCaster()->ToPlayer()->GetGuildId())
+            GetCaster()->SummonGameObject(GOB_MOBILE_BANK, GetCaster()->GetPositionWithDistInFront(2.f), QuaternionData::fromEulerAnglesZYX(GetCaster()->GetOrientation() - float(M_PI), 0.f, 0.f), Minutes(5));
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_gen_mobile_bank::SpawnChest, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+    }
+};
+
 // 269083 - Enlisted
 // 282559 - Enlisted
 class spell_gen_war_mode_enlisted : public AuraScript
@@ -5032,6 +5054,208 @@ class spell_gen_mount_check_aura : public AuraScript
     }
 };
 
+// Arcane Pulse (Nightborne racial) - 260364
+class spell_arcane_pulse : public SpellScript
+{
+    PrepareSpellScript(spell_arcane_pulse);
+
+    void HandleDamage(SpellEffIndex /*effIndex*/)
+    {
+        float damage = GetCaster()->GetTotalAttackPowerValue(BASE_ATTACK) * 2.f;
+
+        if (!damage)
+            damage = float(GetCaster()->GetTotalSpellPowerValue(SPELL_SCHOOL_MASK_ALL, false)) * 0.75f;
+
+        SetHitDamage(damage);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_arcane_pulse::HandleDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+    }
+};
+
+enum SpatialRiftSpells
+{
+    SPELL_SPATIAL_RIFT_AT = 256948,
+    SPELL_SPATIAL_RIFT_TELEPORT = 257034,
+    SPELL_SPATIAL_RIFT_DESPAWN_AT = 257040
+};
+
+// Spatial Rift teleport (Void Elf racial) - 257040
+class spell_spatial_rift_despawn : public SpellScript
+{
+    PrepareSpellScript(spell_spatial_rift_despawn);
+
+    void OnDespawnAreaTrigger(SpellEffIndex /*effIndex*/)
+    {
+        if (AreaTrigger* at = GetCaster()->GetAreaTrigger(SPELL_SPATIAL_RIFT_AT))
+        {
+            GetCaster()->CastSpell(at->GetPosition(), SPELL_SPATIAL_RIFT_TELEPORT, true);
+            at->SetDuration(0);
+        }
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_spatial_rift_despawn::OnDespawnAreaTrigger, EFFECT_0, SPELL_EFFECT_DESPAWN_AREATRIGGER);
+    }
+};
+
+// Light's Judgement - 256893  (Lightforged Draenei Racial)
+class spell_light_judgement : public SpellScript
+{
+    PrepareSpellScript(spell_light_judgement);
+
+    void HandleDamage(SpellEffIndex /*effIndex*/)
+    {
+        if (Unit* caster = GetCaster())
+            SetHitDamage(6.25f * caster->m_unitData->AttackPower);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_light_judgement::HandleDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
+    }
+};
+
+//312372
+// 9.0.5
+class spell_back_camp : public SpellScript
+{
+    PrepareSpellScript(spell_back_camp);
+
+    SpellCastResult CheckRequirement()
+    {
+        if (Unit* caster = GetCaster())
+            if (Player* player = caster->ToPlayer())
+                if (!player->GetStoredAuraTeleportLocation(313055))
+                {
+                    SetCustomCastResultMessage(SPELL_CUSTOM_ERROR_YOU_CANNOT_MAKE_YOUR_CAMP_HERE);
+                    return SPELL_FAILED_CUSTOM_ERROR;
+                }
+
+        return SPELL_CAST_OK;
+    }
+
+    void HandleTeleport()
+    {
+        Unit* caster = GetCaster();
+        if (!caster)
+            return;
+        Player* player = caster->ToPlayer();
+        if (!player)
+            return;
+        player->RemoveMovementImpairingAuras(false);
+
+        // Tente: 292769
+        // Sac: 276247
+        // campfire: 301125
+        //if (WorldLocation const* dest = player->GetStoredAuraTeleportLocation(GetEffectInfo()->MiscValue))
+        {
+            uint32 spawntm = 300;
+            if (GameObject* tempGob = player->SummonGameObject(292769, *player, QuaternionData::fromEulerAnglesZYX(player->GetOrientation(), 0.0f, 0.0f), Seconds(spawntm)))
+                player->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
+
+            if (GameObject* tempGob = player->SummonGameObject(276247, Position(player->GetPositionX() + 2.0f, player->GetPositionY() + 2.0f, player->GetPositionZ(), player->GetOrientation()), QuaternionData::fromEulerAnglesZYX(player->GetOrientation(), 0.0f, 0.0f), Seconds(spawntm)))
+                player->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
+
+            if (GameObject* tempGob = player->SummonGameObject(301125, Position(player->GetPositionX() + -2.0f, player->GetPositionY() + -2.0f, player->GetPositionZ(), player->GetOrientation()), QuaternionData::fromEulerAnglesZYX(player->GetOrientation(), 0.0f, 0.0f), Seconds(spawntm)))
+                player->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
+        }
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_back_camp::CheckRequirement);
+        AfterCast += SpellCastFn(spell_back_camp::HandleTeleport);
+    }
+};
+
+//312370
+class spell_make_camp : public SpellScript
+{
+    PrepareSpellScript(spell_make_camp);
+
+    void Oncast()
+    {
+        Unit* caster = GetCaster();
+        if (!caster)
+            return;
+        float x = caster->GetPositionX();
+        float y = caster->GetPositionY();
+        float z = caster->GetPositionZ();
+        float o = caster->GetOrientation();
+        uint32 m = caster->GetMapId();
+
+        // Tente: 292769
+        // Sac: 276247
+        // campfire: 301125
+        Player* player = caster->ToPlayer();
+        if (!player)
+            return;
+
+        uint32 spawntm = 300;
+        if (GameObject* tempGob = player->SummonGameObject(292769, *player, QuaternionData::fromEulerAnglesZYX(player->GetOrientation(), 0.0f, 0.0f), Seconds(spawntm)))
+            player->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
+
+        if (GameObject* tempGob = player->SummonGameObject(276247, Position(x + 2.0f, y + 2.0f, z, o), QuaternionData::fromEulerAnglesZYX(player->GetOrientation(), 0.0f, 0.0f), Seconds(spawntm)))
+            player->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
+
+        if (GameObject* tempGob = player->SummonGameObject(301125, Position(x + -2.0f, y + -2.0f, z, o), QuaternionData::fromEulerAnglesZYX(player->GetOrientation(), 0.0f, 0.0f), Seconds(spawntm)))
+            player->SetLastTargetedGO(tempGob->GetGUID().GetCounter());
+    }
+
+    void Register()
+    {
+        OnCast += SpellCastFn(spell_make_camp::Oncast);
+    }
+};
+
+//274738
+class spell_maghar_orc_racial_ancestors_call : public SpellScript
+{
+    PrepareSpellScript(spell_maghar_orc_racial_ancestors_call);
+
+    void Oncast()
+    {
+        Unit* caster = GetCaster();
+        if (!caster)
+            return;
+
+        uint32 RandomStats = urand(0, 3);
+
+        switch (RandomStats)
+        {
+        case 0:
+            //mastery
+            caster->CastSpell(nullptr, 274741, true);
+            break;
+
+        case 1:
+
+            //versatility
+            caster->CastSpell(nullptr, 274742, true);
+            break;
+
+        case 2:
+            //haste
+            caster->CastSpell(nullptr, 274740, true);
+            break;
+
+        case 3:
+            //crit
+            caster->CastSpell(nullptr, 274739, true);
+            break;
+        }
+    }
+
+    void Register() override
+    {
+        OnCast += SpellCastFn(spell_maghar_orc_racial_ancestors_call::Oncast);
+    }
+};
+
 void AddSC_generic_spell_scripts()
 {
     RegisterSpellScript(spell_gen_absorb0_hitlimit1);
@@ -5187,4 +5411,12 @@ void AddSC_generic_spell_scripts()
     RegisterSpellScript(spell_summon_battle_pet);
     RegisterSpellScript(spell_gen_anchor_here);
     RegisterSpellScript(spell_gen_mount_check_aura);
+
+    RegisterSpellScript(spell_gen_mobile_bank);
+    RegisterSpellScript(spell_arcane_pulse);
+    RegisterSpellScript(spell_spatial_rift_despawn);
+    RegisterSpellScript(spell_light_judgement);
+    RegisterSpellScript(spell_make_camp);
+    RegisterSpellScript(spell_back_camp);
+    RegisterSpellScript(spell_maghar_orc_racial_ancestors_call);
 }

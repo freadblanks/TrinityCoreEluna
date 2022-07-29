@@ -99,6 +99,9 @@
 #include "WardenCheckMgr.h"
 #include "WaypointManager.h"
 #include "WeatherMgr.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include "WhoListStorage.h"
 #include "WorldSession.h"
 #include "WorldSocket.h"
@@ -1620,6 +1623,12 @@ void World::LoadConfigSettings(bool reload)
         m_timers[WUPDATE_AUTOBROADCAST].Reset();
     }
 
+    // Autorestarter
+    m_int_configs[CONFIG_AUTORESTART_TIMER] = sConfigMgr->GetIntDefault("Autorestart.Timer", 0);
+
+    if (m_int_configs[CONFIG_AUTORESTART_TIMER] < 0)
+        m_int_configs[CONFIG_AUTORESTART_TIMER] = 0;
+
     // MySQL ping time interval
     m_int_configs[CONFIG_DB_PING_INTERVAL] = sConfigMgr->GetIntDefault("MaxPingTime", 30);
 
@@ -1759,6 +1768,11 @@ void World::SetInitialWorldSettings()
         exit(1);
     }
 
+#ifdef ELUNA
+    TC_LOG_INFO("server.loading", "Initializing Eluna Lua Engine...");
+    Eluna::Initialize();
+#endif
+
     ///- Initialize pool manager
     sPoolMgr->Initialize();
 
@@ -1796,7 +1810,7 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("misc", "Loading hotfix optional data...");
     sDB2Manager.LoadHotfixOptionalData(m_availableDbcLocaleMask);
     ///- Close hotfix database - it is only used during DB2 loading
-    HotfixDatabase.Close();
+    //HotfixDatabase.Close();
     ///- Load M2 fly by cameras
     LoadM2Cameras(m_dataPath);
     ///- Load GameTables
@@ -1965,6 +1979,9 @@ void World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Loading Creature Model Based Info Data...");
     sObjectMgr->LoadCreatureModelInfo();
+
+    TC_LOG_INFO("server.loading", "Loading Creature template outfits...");     // must be before LoadCreatureTemplates
+    sObjectMgr->LoadCreatureOutfits();
 
     TC_LOG_INFO("server.loading", "Loading Creature templates...");
     sObjectMgr->LoadCreatureTemplates();
@@ -2389,6 +2406,8 @@ void World::SetInitialWorldSettings()
 
     m_timers[WUPDATE_BLACKMARKET].SetInterval(10 * IN_MILLISECONDS);
 
+    blackmarket_timer = 0;
+
     m_timers[WUPDATE_CHECK_FILECHANGES].SetInterval(500);
 
     m_timers[WUPDATE_WHO_LIST].SetInterval(5 * IN_MILLISECONDS); // update who list cache every 5 seconds
@@ -2494,11 +2513,35 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading phase names...");
     sObjectMgr->LoadPhaseNames();
 
+#ifdef ELUNA
+    ///- Run eluna scripts.
+    // in multithread foreach: run scripts
+    sEluna->RunScripts();
+    sEluna->OnConfigLoad(false); // Must be done after Eluna is initialized and scripts have run.
+#endif
+
+    // Preload all cells, if required for the base maps
+    if (sWorld->getBoolConfig(CONFIG_BASEMAP_LOAD_GRIDS))
+    {
+        sMapMgr->DoForAllMaps([](Map* map)
+        {
+            if (!map->Instanceable())
+            {
+                TC_LOG_INFO("server.loading", "Pre-loading base map data for map %u", map->GetId());
+                map->LoadAllCells();
+            }
+        });
+    }
+
     uint32 startupDuration = GetMSTimeDiffToNow(startupBegin);
 
     TC_LOG_INFO("server.worldserver", "World initialized in %u minutes %u seconds", (startupDuration / 60000), ((startupDuration % 60000) / 1000));
 
     TC_METRIC_EVENT("events", "World initialized", "World initialized in " + std::to_string(startupDuration / 60000) + " minutes " + std::to_string((startupDuration % 60000) / 1000) + " seconds");
+
+    // Auto restarter
+    if (sWorld->getIntConfig(CONFIG_AUTORESTART_TIMER) != 0)
+        sWorld->ShutdownServ(sWorld->getIntConfig(CONFIG_AUTORESTART_TIMER), SHUTDOWN_MASK_RESTART, RESTART_EXIT_CODE);
 }
 
 void World::SetForcedWarModeFactionBalanceState(TeamId team, int32 reward)
@@ -2862,6 +2905,23 @@ void World::ForceGameEventUpdate()
     m_timers[WUPDATE_EVENTS].Reset();
 }
 
+void World::SendMapMessage(uint32 mapid, WorldPacket const* packet, WorldSession* self, uint32 team)
+{
+    SessionMap::const_iterator itr;
+    for (itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
+    {
+        if (itr->second &&
+            itr->second->GetPlayer() &&
+            itr->second->GetPlayer()->IsInWorld() &&
+            itr->second->GetPlayer()->GetMapId() == mapid &&
+            itr->second != self &&
+            (team == 0 || itr->second->GetPlayer()->GetTeam() == team))
+        {
+            itr->second->SendPacket(packet);
+        }
+    }
+}
+
 /// Send a packet to all players (except self if mentioned)
 void World::SendGlobalMessage(WorldPacket const* packet, WorldSession* self, uint32 team)
 {
@@ -3047,12 +3107,68 @@ bool World::SendZoneMessage(uint32 zone, WorldPacket const* packet, WorldSession
     return foundPlayerToSend;
 }
 
+bool World::SendAreaIDMessage(uint32 areaID, WorldPacket const* packet, WorldSession* self, uint32 team)
+{
+    bool foundPlayerToSend = false;
+    SessionMap::const_iterator itr;
+
+    for (itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
+    {
+        if (itr->second &&
+            itr->second->GetPlayer() &&
+            itr->second->GetPlayer()->IsInWorld() &&
+            itr->second->GetPlayer()->GetAreaId() == areaID &&
+            itr->second != self &&
+            (team == 0 || itr->second->GetPlayer()->GetTeam() == team))
+        {
+            itr->second->SendPacket(packet);
+            foundPlayerToSend = true;
+        }
+    }
+
+    return foundPlayerToSend;
+}
+
 /// Send a System Message to all players in the zone (except self if mentioned)
 void World::SendZoneText(uint32 zone, char const* text, WorldSession* self, uint32 team)
 {
     WorldPackets::Chat::Chat packet;
     packet.Initialize(CHAT_MSG_SYSTEM, LANG_UNIVERSAL, nullptr, nullptr, text);
     SendZoneMessage(zone, packet.Write(), self, team);
+}
+
+/// Send a System Message to all GMs (except self if mentioned)
+void World::SendMapText(uint32 mapid, uint32 string_id, ...)
+{
+
+    SessionMap::const_iterator itr;
+
+    va_list ap;
+    va_start(ap, string_id);
+
+    Trinity::WorldWorldTextBuilder wt_builder(string_id, &ap);
+    Trinity::LocalizedDo<Trinity::WorldWorldTextBuilder> wt_do(wt_builder);
+    for (SessionMap::const_iterator itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
+    {
+        // Session should have permissions to receive global gm messages
+        WorldSession* session = itr->second;
+        WorldSession* self;
+
+
+        if (itr->second &&
+            itr->second->GetPlayer() &&
+            itr->second->GetPlayer()->IsInWorld() &&
+            itr->second->GetPlayer()->GetMapId() == mapid &&
+            itr->second != self)
+        {
+
+            wt_do(itr->second->GetPlayer());
+            va_end(ap);
+
+        }
+
+    }
+
 }
 
 /// Kick (and save) all players
