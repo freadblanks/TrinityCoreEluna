@@ -37,6 +37,7 @@ EndScriptData */
 #include "DB2Stores.h"
 #include "GameTime.h"
 #include "GridNotifiersImpl.h"
+#include "InstanceSaveMgr.h"
 #include "InstanceScript.h"
 #include "Language.h"
 #include "Log.h"
@@ -1233,17 +1234,26 @@ public:
 
     static bool HandleDebugLoadCellsCommand(ChatHandler* handler, Optional<uint32> mapId, Optional<uint32> tileX, Optional<uint32> tileY)
     {
-        Map* map = nullptr;
         if (mapId)
         {
-            map = sMapMgr->FindBaseNonInstanceMap(*mapId);
-        }
-        else if (Player* player = handler->GetPlayer())
-        {
-            // Fallback to player's map if no map has been specified
-            map = player->GetMap();
+            sMapMgr->DoForAllMapsWithMapId(*mapId, [&](Map* map)
+            {
+                HandleDebugLoadCellsCommandHelper(handler, map, tileX, tileY);
+            });
+            return true;
         }
 
+        if (Player* player = handler->GetPlayer())
+        {
+            // Fallback to player's map if no map has been specified
+            return HandleDebugLoadCellsCommandHelper(handler, player->GetMap(), tileX, tileY);
+        }
+
+        return false;
+    }
+
+    static bool HandleDebugLoadCellsCommandHelper(ChatHandler* handler, Map* map, Optional<uint32> tileX, Optional<uint32> tileY)
+    {
         if (!map)
             return false;
 
@@ -1381,17 +1391,17 @@ public:
         if (daily)
         {
             sWorld->DailyReset();
-            handler->PSendSysMessage("Daily quests have been reset. Next scheduled reset: %s", TimeToHumanReadable(sWorld->getWorldState(WS_DAILY_QUEST_RESET_TIME)).c_str());
+            handler->PSendSysMessage("Daily quests have been reset. Next scheduled reset: %s", TimeToHumanReadable(sWorld->GetPersistentWorldVariable(World::NextDailyQuestResetTimeVarId)).c_str());
         }
         if (weekly)
         {
             sWorld->ResetWeeklyQuests();
-            handler->PSendSysMessage("Weekly quests have been reset. Next scheduled reset: %s", TimeToHumanReadable(sWorld->getWorldState(WS_WEEKLY_QUEST_RESET_TIME)).c_str());
+            handler->PSendSysMessage("Weekly quests have been reset. Next scheduled reset: %s", TimeToHumanReadable(sWorld->GetPersistentWorldVariable(World::NextWeeklyQuestResetTimeVarId)).c_str());
         }
         if (monthly)
         {
             sWorld->ResetMonthlyQuests();
-            handler->PSendSysMessage("Monthly quests have been reset. Next scheduled reset: %s", TimeToHumanReadable(sWorld->getWorldState(WS_MONTHLY_QUEST_RESET_TIME)).c_str());
+            handler->PSendSysMessage("Monthly quests have been reset. Next scheduled reset: %s", TimeToHumanReadable(sWorld->GetPersistentWorldVariable(World::NextMonthlyQuestResetTimeVarId)).c_str());
         }
 
         return true;
@@ -1408,7 +1418,7 @@ public:
                 nearestLoc = bg->GetClosestGraveyard(player);
             else
             {
-                if (Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(player->GetZoneId()))
+                if (Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(player->GetMap(), player->GetZoneId()))
                     nearestLoc = bf->GetClosestGraveyard(player);
                 else
                     nearestLoc = sObjectMgr->GetClosestGraveyard(*player, player->GetTeam(), player);

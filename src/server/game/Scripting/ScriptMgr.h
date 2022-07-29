@@ -41,7 +41,6 @@ class DynamicObject;
 class GameObject;
 class GameObjectAI;
 class Guild;
-class GridMap;
 class Group;
 class InstanceMap;
 class InstanceScript;
@@ -348,12 +347,6 @@ class MapScript : public UpdatableScript<TMap>
         // Called just before the map is destroyed.
         virtual void OnDestroy(TMap* /*map*/) { }
 
-        // Called when a grid map is loaded.
-        virtual void OnLoadGridMap(TMap* /*map*/, GridMap* /*gmap*/, uint32 /*gx*/, uint32 /*gy*/) { }
-
-        // Called when a grid map is unloaded.
-        virtual void OnUnloadGridMap(TMap* /*map*/, GridMap* /*gmap*/, uint32 /*gx*/, uint32 /*gy*/)  { }
-
         // Called when a player enters the map.
         virtual void OnPlayerEnter(TMap* /*map*/, Player* /*player*/) { }
 
@@ -528,7 +521,7 @@ class TC_GAME_API BattlefieldScript : public ScriptObject
 
         ~BattlefieldScript();
 
-        virtual Battlefield* GetBattlefield() const = 0;
+        virtual Battlefield* GetBattlefield(Map* map) const = 0;
 };
 
 class TC_GAME_API BattlegroundScript : public ScriptObject
@@ -556,7 +549,7 @@ class TC_GAME_API OutdoorPvPScript : public ScriptObject
         ~OutdoorPvPScript();
 
         // Should return a fully valid OutdoorPvP object for the type ID.
-        virtual OutdoorPvP* GetOutdoorPvP() const = 0;
+        virtual OutdoorPvP* GetOutdoorPvP(Map* map) const = 0;
 };
 
 class TC_GAME_API CommandScript : public ScriptObject
@@ -1127,8 +1120,6 @@ class TC_GAME_API ScriptMgr
 
         void OnCreateMap(Map* map);
         void OnDestroyMap(Map* map);
-        void OnLoadGridMap(Map* map, GridMap* gmap, uint32 gx, uint32 gy);
-        void OnUnloadGridMap(Map* map, GridMap* gmap, uint32 gx, uint32 gy);
         void OnPlayerEnterMap(Map* map, Player* player);
         void OnPlayerLeaveMap(Map* map, Player* player);
         void OnMapUpdate(Map* map, uint32 diff);
@@ -1163,7 +1154,7 @@ class TC_GAME_API ScriptMgr
 
     public: /* BattlefieldScript */
 
-        Battlefield* CreateBattlefield(uint32 scriptId);
+        Battlefield* CreateBattlefield(uint32 scriptId, Map* map);
 
     public: /* BattlegroundScript */
 
@@ -1171,7 +1162,7 @@ class TC_GAME_API ScriptMgr
 
     public: /* OutdoorPvPScript */
 
-        OutdoorPvP* CreateOutdoorPvP(uint32 scriptId);
+        OutdoorPvP* CreateOutdoorPvP(uint32 scriptId, Map* map);
 
     public: /* CommandScript */
 
