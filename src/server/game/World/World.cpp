@@ -2265,6 +2265,9 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading Gossip menu options...");
     sObjectMgr->LoadGossipMenuItems();
 
+    TC_LOG_INFO("server.loading", "Loading Gossip menu friendship factions...");
+    sObjectMgr->LoadGossipMenuFriendshipFactions();
+
     TC_LOG_INFO("server.loading", "Loading Creature trainers...");
     sObjectMgr->LoadCreatureTrainers();                         // must be after LoadGossipMenuItems
 
@@ -2447,6 +2450,7 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Initializing Opcodes...");
     opcodeTable.Initialize();
     WorldPackets::Auth::ConnectTo::InitializeEncryption();
+    WorldPackets::Auth::EnterEncryptedMode::InitializeEncryption();
 
     TC_LOG_INFO("server.loading", "Starting Arena Season...");
     sGameEventMgr->StartArenaSeason();

@@ -124,13 +124,13 @@ typedef std::deque<Mail*> PlayerMails;
 
 enum PlayerSkillsConstants
 {
-    PLAYER_MAX_SKILLS   = decltype(UF::SkillInfo::SkillLineID)::Size
+    PLAYER_MAX_SKILLS   = UF::size<decltype(UF::SkillInfo::SkillLineID)>()
 };
 
 enum PlayerExplorationConstants
 {
-    PLAYER_EXPLORED_ZONES_SIZE  = decltype(UF::ActivePlayerData::ExploredZones)::Size,
-    PLAYER_EXPLORED_ZONES_BITS  = sizeof(decltype(UF::ActivePlayerData::ExploredZones)::value_type) * 8
+    PLAYER_EXPLORED_ZONES_SIZE  = UF::size<decltype(UF::ActivePlayerData::ExploredZones)>(),
+    PLAYER_EXPLORED_ZONES_BITS  = UF::size_of_value_type<decltype(UF::ActivePlayerData::ExploredZones)>() * 8
 };
 
 enum SpellModType : uint8
@@ -586,13 +586,13 @@ typedef std::map<uint32, QuestSaveType> QuestStatusSaveMap;
 // Size of client completed quests bit map
 enum PlayerQuestCompletedConstants
 {
-    QUESTS_COMPLETED_BITS_SIZE      = decltype(UF::ActivePlayerData::QuestCompleted)::Size,
-    QUESTS_COMPLETED_BITS_PER_BLOCK = sizeof(decltype(UF::ActivePlayerData::QuestCompleted)::value_type) * 8
+    QUESTS_COMPLETED_BITS_SIZE      = UF::size<decltype(UF::ActivePlayerData::QuestCompleted)>(),
+    QUESTS_COMPLETED_BITS_PER_BLOCK = UF::size_of_value_type<decltype(UF::ActivePlayerData::QuestCompleted)>() * 8
 };
 
 enum PlayerQuestLogConstants
 {
-    MAX_QUEST_COUNTS    = decltype(UF::QuestLog::ObjectiveProgress)::Size
+    MAX_QUEST_COUNTS    = UF::size<decltype(UF::QuestLog::ObjectiveProgress)>()
 };
 
 enum QuestSlotStateMask
@@ -635,7 +635,7 @@ enum PlayerSlots
     PLAYER_SLOTS_COUNT          = (PLAYER_SLOT_END - PLAYER_SLOT_START)
 };
 
-static_assert(decltype(UF::ActivePlayerData::InvSlots)::Size == PLAYER_SLOT_END);
+static_assert(UF::size<decltype(UF::ActivePlayerData::InvSlots)>() == PLAYER_SLOT_END);
 
 #define INVENTORY_SLOT_BAG_0    255
 #define INVENTORY_DEFAULT_SIZE  16
@@ -1413,7 +1413,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool StoreNewItemInBestSlots(uint32 item_id, uint32 item_count);
         void AutoStoreLoot(uint8 bag, uint8 slot, uint32 loot_id, LootStore const& store, ItemContext context = ItemContext::NONE, bool broadcast = false, bool createdByPlayer = false);
         void AutoStoreLoot(uint32 loot_id, LootStore const& store, ItemContext context = ItemContext::NONE, bool broadcast = false, bool createdByPlayer = false) { AutoStoreLoot(NULL_BAG, NULL_SLOT, loot_id, store, context, broadcast, createdByPlayer); }
-        void StoreLootItem(uint8 lootSlot, Loot* loot, AELootResult* aeResult = nullptr);
+        void StoreLootItem(ObjectGuid lootWorldObjectGuid, uint8 lootSlot, Loot* loot, AELootResult* aeResult = nullptr);
 
         InventoryResult CanTakeMoreSimilarItems(uint32 entry, uint32 count, Item* pItem, uint32* no_space_count = nullptr, uint32* offendingItemId = nullptr) const;
         InventoryResult CanStoreItem(uint8 bag, uint8 slot, ItemPosCountVec& dest, uint32 entry, uint32 count, Item* pItem = nullptr, bool swap = false, uint32* no_space_count = nullptr) const;
@@ -2205,6 +2205,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         static uint32 TeamForRace(uint8 race);
         static TeamId TeamIdForRace(uint8 race);
+        static uint8 GetFactionGroupForRace(uint8 race);
         uint32 GetTeam() const { return m_team; }
         TeamId GetTeamId() const { return m_team == ALLIANCE ? TEAM_ALLIANCE : TEAM_HORDE; }
         void SetFactionForRace(uint8 race);
