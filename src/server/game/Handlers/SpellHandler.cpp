@@ -18,7 +18,6 @@
 #include "WorldSession.h"
 #include "CollectionMgr.h"
 #include "Common.h"
-#include "CreatureOutfit.h"
 #include "DatabaseEnv.h"
 #include "DB2Stores.h"
 #include "GameObjectAI.h"
@@ -27,6 +26,9 @@
 #include "GuildMgr.h"
 #include "Item.h"
 #include "Log.h"
+#include "Loot.h"
+#include "LootItemStorage.h"
+#include "LootMgr.h"
 #include "Map.h"
 #include "Player.h"
 #include "ObjectAccessor.h"
@@ -34,9 +36,6 @@
 #include "ScriptMgr.h"
 #include "Spell.h"
 #include "SpellAuraEffects.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 #include "SpellMgr.h"
 #include "SpellPackets.h"
 #include "Totem.h"
@@ -202,10 +201,32 @@ void WorldSession::HandleOpenItemOpcode(WorldPackets::Spells::OpenItem& packet)
         CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_GIFT_BY_ITEM);
         stmt->setUInt64(0, item->GetGUID().GetCounter());
         _queryProcessor.AddCallback(CharacterDatabase.AsyncQuery(stmt)
-            .WithPreparedCallback(std::bind(&WorldSession::HandleOpenWrappedItemCallback, this, item->GetPos(), item->GetGUID(), std::placeholders::_1)));
+            .WithPreparedCallback([this, pos = item->GetPos(), itemGuid = item->GetGUID()](PreparedQueryResult result)
+            {
+                HandleOpenWrappedItemCallback(pos, itemGuid, std::move(result));
+            }));
     }
     else
-        player->SendLoot(item->GetGUID(), LOOT_CORPSE);
+    {
+        // If item doesn't already have loot, attempt to load it. If that
+        // fails then this is first time opening, generate loot
+        if (!item->m_lootGenerated && !sLootItemStorage->LoadStoredLoot(item, player))
+        {
+            Loot* loot = new Loot(player->GetMap(), item->GetGUID(), LOOT_ITEM, nullptr);
+            item->m_loot.reset(loot);
+            loot->generateMoneyLoot(item->GetTemplate()->MinMoneyLoot, item->GetTemplate()->MaxMoneyLoot);
+            loot->FillLoot(item->GetEntry(), LootTemplates_Item, player, true, loot->gold != 0);
+
+            // Force save the loot and money items that were just rolled
+            //  Also saves the container item ID in Loot struct (not to DB)
+            if (loot->gold > 0 || loot->unlootedCount > 0)
+                sLootItemStorage->AddNewStoredLoot(item->GetGUID().GetCounter(), loot, player);
+        }
+        if (item->m_loot)
+            player->SendLoot(*item->m_loot);
+        else
+            player->SendLootError(ObjectGuid::Empty, item->GetGUID(), LOOT_ERROR_NO_LOOT);
+    }
 }
 
 void WorldSession::HandleOpenWrappedItemCallback(uint16 pos, ObjectGuid itemGuid, PreparedQueryResult result)
@@ -269,11 +290,6 @@ void WorldSession::HandleGameobjectReportUse(WorldPackets::GameObject::GameObjRe
 
     if (GameObject* go = GetPlayer()->GetGameObjectIfCanInteractWith(packet.Guid))
     {
-//#ifdef ELUNA
-//        if (sEluna->OnGameObjectUse(_player, go))
-//            return;
-//#endif
-
         if (go->AI()->OnReportUse(_player))
             return;
 
@@ -560,37 +576,6 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPackets::Spells::GetMirrorI
     Unit* unit = ObjectAccessor::GetUnit(*_player, guid);
     if (!unit)
         return;
-
-    if (Creature* creature = unit->ToCreature())
-    {
-        if (std::shared_ptr<CreatureOutfit> const& outfit_ptr = creature->GetOutfit())
-        {
-            CreatureOutfit const& outfit = *outfit_ptr;
-            WorldPackets::Spells::MirrorImageComponentedData mirrorImageComponentedData;
-            mirrorImageComponentedData.UnitGUID = guid;
-            mirrorImageComponentedData.DisplayID = outfit.GetDisplayId();
-            mirrorImageComponentedData.RaceID = outfit.GetRace();
-            mirrorImageComponentedData.Gender = outfit.GetGender();
-            mirrorImageComponentedData.ClassID = outfit.Class;
-
-            mirrorImageComponentedData.Customizations.resize(outfit.Customizations.size());
-            std::copy(outfit.Customizations.begin(), outfit.Customizations.end(), mirrorImageComponentedData.Customizations.begin());
-
-            mirrorImageComponentedData.GuildGUID = ObjectGuid::Empty;
-            if (outfit.guild)
-            {
-                if (Guild* guild = sGuildMgr->GetGuildById(outfit.guild))
-                    mirrorImageComponentedData.GuildGUID = guild->GetGUID();
-            }
-
-            mirrorImageComponentedData.ItemDisplayID.reserve(11);
-            for (auto const& slot : CreatureOutfit::item_slots)
-                mirrorImageComponentedData.ItemDisplayID.push_back(outfit.outfitdisplays[slot]);
-
-            SendPacket(mirrorImageComponentedData.Write());
-            return;
-        }
-    }
 
     if (!unit->HasAuraType(SPELL_AURA_CLONE_CASTER))
         return;

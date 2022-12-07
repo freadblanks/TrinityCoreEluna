@@ -587,8 +587,7 @@ class TC_GAME_API SpellInfo
         uint32 GetSpellVisual(WorldObject const* caster = nullptr, WorldObject const* viewer = nullptr) const;
 
         std::vector<SpellEffectInfo> const& GetEffects() const { return _effects; }
-        SpellEffectInfo const& GetEffect(SpellEffIndex index) const { ASSERT(index < _effects.size()); return _effects[index]; } // ASSERT causes crash when using eluna
-        //SpellEffectInfo const& GetEffect(SpellEffIndex index) const { return index < _effects.size() ? _effects[index] : ; }
+        SpellEffectInfo const& GetEffect(SpellEffIndex index) const { ASSERT(index < _effects.size()); return _effects[index]; }
 
         // spell diminishing returns
         DiminishingGroup GetDiminishingReturnsGroupForSpell() const;

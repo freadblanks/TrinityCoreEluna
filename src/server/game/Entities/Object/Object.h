@@ -60,10 +60,8 @@ class UpdateData;
 class WorldObject;
 class WorldPacket;
 class ZoneScript;
-#ifdef ELUNA
-class ElunaEventProcessor;
-#endif
 struct FactionTemplateEntry;
+struct Loot;
 struct PositionFullTerrainStatus;
 struct QuaternionData;
 enum ZLiquidStatus : uint32;
@@ -180,7 +178,7 @@ class TC_GAME_API Object
         void BuildValuesUpdateBlockForPlayerWithFlag(UpdateData* data, UF::UpdateFieldFlag flags, Player const* target) const;
         void BuildDestroyUpdateBlock(UpdateData* data) const;
         void BuildOutOfRangeUpdateBlock(UpdateData* data) const;
-        ByteBuffer PrepareValuesUpdateBuffer() const;
+        ByteBuffer& PrepareValuesUpdateBuffer(UpdateData* data) const;
 
         virtual void DestroyForPlayer(Player* target) const;
         void SendOutOfRangeForPlayer(Player* target) const;
@@ -261,6 +259,8 @@ class TC_GAME_API Object
         }
 
         virtual std::string GetDebugInfo() const;
+
+        virtual Loot* GetLootForPlayer([[maybe_unused]] Player const* player) const { return nullptr; }
 
     protected:
         Object();
@@ -409,17 +409,19 @@ template <class T_VALUES, class T_FLAGS, class FLAG_TYPE, size_t ARRAY_SIZE>
 class FlaggedValuesArray32
 {
     public:
+        static_assert(sizeof(T_FLAGS) * 8 > ARRAY_SIZE, "Fix T_FLAGS");
+
         FlaggedValuesArray32()
         {
             for (uint32 i = 0; i < ARRAY_SIZE; ++i)
                 m_values[i] = T_VALUES(0);
-            m_flags = 0;
+            m_flags = T_FLAGS(0);
         }
 
         T_FLAGS GetFlags() const { return m_flags; }
-        bool HasFlag(FLAG_TYPE flag) const { return m_flags & (1 << flag); }
-        void AddFlag(FLAG_TYPE flag) { m_flags |= (1 << flag); }
-        void DelFlag(FLAG_TYPE flag) { m_flags &= ~(1 << flag); }
+        bool HasFlag(FLAG_TYPE flag) const { return m_flags & (T_FLAGS(1) << flag); }
+        void AddFlag(FLAG_TYPE flag) { m_flags |= (T_FLAGS(1) << flag); }
+        void DelFlag(FLAG_TYPE flag) { m_flags &= ~(T_FLAGS(1) << flag); }
 
         T_VALUES GetValue(FLAG_TYPE flag) const { return m_values[flag]; }
         void SetValue(FLAG_TYPE flag, T_VALUES value) { m_values[flag] = value; }
@@ -437,7 +439,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
     public:
         virtual ~WorldObject();
 
-        virtual void Update(uint32 time_diff);
+        virtual void Update(uint32 /*time_diff*/) { }
 
         void AddToWorld() override;
         void RemoveFromWorld() override;
@@ -547,8 +549,8 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         FlaggedValuesArray32<int32, uint32, StealthType, TOTAL_STEALTH_TYPES> m_stealth;
         FlaggedValuesArray32<int32, uint32, StealthType, TOTAL_STEALTH_TYPES> m_stealthDetect;
 
-        FlaggedValuesArray32<int32, uint32, InvisibilityType, TOTAL_INVISIBILITY_TYPES> m_invisibility;
-        FlaggedValuesArray32<int32, uint32, InvisibilityType, TOTAL_INVISIBILITY_TYPES> m_invisibilityDetect;
+        FlaggedValuesArray32<int32, uint64, InvisibilityType, TOTAL_INVISIBILITY_TYPES> m_invisibility;
+        FlaggedValuesArray32<int32, uint64, InvisibilityType, TOTAL_INVISIBILITY_TYPES> m_invisibilityDetect;
 
         FlaggedValuesArray32<int32, uint32, ServerSideVisibilityType, TOTAL_SERVERSIDE_VISIBILITY_TYPES> m_serverSideVisibility;
         FlaggedValuesArray32<int32, uint32, ServerSideVisibilityType, TOTAL_SERVERSIDE_VISIBILITY_TYPES> m_serverSideVisibilityDetect;
@@ -574,6 +576,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         void SummonCreatureGroup(uint8 group, std::list<TempSummon*>* list = nullptr);
 
         Creature*   FindNearestCreature(uint32 entry, float range, bool alive = true) const;
+        Creature*   FindNearestCreatureWithAura(uint32 entry, uint32 spellId, float range, bool alive = true) const;
         GameObject* FindNearestGameObject(uint32 entry, float range, bool spawnedOnly = true) const;
         GameObject* FindNearestUnspawnedGameObject(uint32 entry, float range) const;
         GameObject* FindNearestGameObjectOfType(GameobjectTypes type, float range) const;
@@ -672,16 +675,11 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         void SetFarVisible(bool on);
         bool IsVisibilityOverridden() const { return m_visibilityDistanceOverride.has_value(); }
         void SetVisibilityDistanceOverride(VisibilityDistanceType type);
-        void SetVisibilityDistanceOverride(float distance);
         void SetWorldObject(bool apply);
         bool IsPermanentWorldObject() const { return m_isWorldObject; }
         bool IsWorldObject() const;
 
         uint32  LastUsedScriptID;
-
-#ifdef ELUNA
-        ElunaEventProcessor* ElunaEvents;
-#endif
 
         // Transports
         TransportBase* GetTransport() const { return m_transport; }
@@ -753,11 +751,12 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         void SetLocationInstanceId(uint32 _instanceId) { m_InstanceId = _instanceId; }
 
         virtual bool CanNeverSee(WorldObject const* obj) const;
-        virtual bool IsNeverVisibleFor(WorldObject const* /*seer*/) const { return !IsInWorld() || IsDestroyedObject(); }
-        virtual bool IsAlwaysVisibleFor(WorldObject const* /*seer*/) const { return false; }
-        virtual bool IsInvisibleDueToDespawn() const { return false; }
+        virtual bool CanAlwaysSee([[maybe_unused]] WorldObject const* /*obj*/) const { return false; }
+        virtual bool IsNeverVisibleFor([[maybe_unused]] WorldObject const* seer) const { return !IsInWorld() || IsDestroyedObject(); }
+        virtual bool IsAlwaysVisibleFor([[maybe_unused]] WorldObject const* seer) const { return false; }
+        virtual bool IsInvisibleDueToDespawn([[maybe_unused]] WorldObject const* seer) const { return false; }
         //difference from IsAlwaysVisibleFor: 1. after distance check; 2. use owner or charmer as seer
-        virtual bool IsAlwaysDetectableFor(WorldObject const* /*seer*/) const { return false; }
+        virtual bool IsAlwaysDetectableFor([[maybe_unused]] WorldObject const* seer) const { return false; }
     private:
         Map* m_currMap;                                   // current object's Map location
 
@@ -774,7 +773,6 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
 
         virtual bool _IsWithinDist(WorldObject const* obj, float dist2compare, bool is3D, bool incOwnRadius = true, bool incTargetRadius = true) const;
 
-        virtual bool CanAlwaysSee(WorldObject const* /*obj*/) const { return false; }
         bool CanDetect(WorldObject const* obj, bool ignoreStealth, bool checkAlert = false) const;
         bool CanDetectInvisibilityOf(WorldObject const* obj) const;
         bool CanDetectStealthOf(WorldObject const* obj, bool checkAlert = false) const;

@@ -25,9 +25,6 @@
 #include "Map.h"
 #include "Player.h"
 #include "ScriptMgr.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 #include "WorldSession.h"
 
 using ChatSubCommandMap = std::map<std::string_view, Trinity::Impl::ChatCommands::ChatCommandNode, StringCompareLessI_T>;
@@ -159,7 +156,7 @@ static void LogCommandUsage(WorldSession const& session, uint32 permission, std:
             zoneName = zone->AreaName[locale];
     }
 
-    sLog->outCommand(session.GetAccountId(), "Command: " STRING_VIEW_FMT " [Player: %s (%s) (Account: %u) X: %f Y: %f Z: %f Map: %u (%s) Area: %u (%s) Zone: %s Selected: %s (%s)]",
+    sLog->OutCommand(session.GetAccountId(), "Command: " STRING_VIEW_FMT " [Player: %s (%s) (Account: %u) X: %f Y: %f Z: %f Map: %u (%s) Area: %u (%s) Zone: %s Selected: %s (%s)]",
         STRING_VIEW_FMT_ARG(cmdStr), player->GetName().c_str(), player->GetGUID().ToString().c_str(),
         session.GetAccountId(), player->GetPositionX(), player->GetPositionY(),
         player->GetPositionZ(), player->GetMapId(),
@@ -301,20 +298,11 @@ namespace Trinity::Impl::ChatCommands
         }
         else if (!handler.HasSentErrorMessage())
         { /* invocation failed, we should show usage */
-#ifdef ELUNA
-            if (!sEluna->OnCommand(handler.IsConsole() ? NULL : handler.GetSession()->GetPlayer(), std::string(cmdStr).c_str()))
-                return true;
-#endif
             cmd->SendCommandHelp(handler);
             handler.SetSentErrorMessage(true);
         }
         return true;
     }
-
-#ifdef ELUNA
-    if (!sEluna->OnCommand(handler.IsConsole() ? NULL : handler.GetSession()->GetPlayer(), std::string(cmdStr).c_str()))
-        return true;
-#endif
 
     return false;
 }

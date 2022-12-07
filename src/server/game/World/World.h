@@ -173,8 +173,6 @@ enum WorldBoolConfigs
     CONFIG_IP_BASED_ACTION_LOGGING,
     CONFIG_CALCULATE_CREATURE_ZONE_AREA_DATA,
     CONFIG_CALCULATE_GAMEOBJECT_ZONE_AREA_DATA,
-    CONFIG_FEATURE_SYSTEM_BATTLE_PAY_ENABLED,
-    CONFIG_FEATURE_SYSTEM_BATTLE_PAY_AVAILABLE,
     CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED,
     CONFIG_FEATURE_SYSTEM_CHARACTER_UNDELETE_ENABLED,
     CONFIG_RESET_DUEL_COOLDOWNS,
@@ -194,7 +192,6 @@ enum WorldBoolConfigs
     CONFIG_GAME_OBJECT_CHECK_INVALID_POSITION,
     CONFIG_CHECK_GOBJECT_LOS,
     CONFIG_RESPAWN_DYNAMIC_ESCORTNPC,
-    CONFIG_BATTLE_PAY_ENABLED,
     CONFIG_REGEN_HP_CANNOT_REACH_TARGET_IN_RAID,
     CONFIG_ALLOW_LOGGING_IP_ADDRESSES_IN_DATABASE,
     CONFIG_CHARACTER_CREATING_DISABLE_ALLIED_RACE_ACHIEVEMENT_REQUIREMENT,
@@ -270,7 +267,8 @@ enum WorldIntConfigs
     CONFIG_CURRENCY_RESET_INTERVAL,
     CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL,
     CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL_DIFFERENCE,
-    CONFIG_INSTANCE_RESET_TIME_HOUR,
+    CONFIG_RESET_SCHEDULE_WEEK_DAY,
+    CONFIG_RESET_SCHEDULE_HOUR,
     CONFIG_INSTANCE_UNLOAD_DELAY,
     CONFIG_DAILY_QUEST_RESET_TIME_HOUR,
     CONFIG_WEEKLY_QUEST_RESET_TIME_WDAY,
@@ -367,7 +365,6 @@ enum WorldIntConfigs
     CONFIG_CHARDELETE_DEMON_HUNTER_MIN_LEVEL,
     CONFIG_AUTOBROADCAST_CENTER,
     CONFIG_AUTOBROADCAST_INTERVAL,
-    CONFIG_AUTORESTART_TIMER,
     CONFIG_MAX_RESULTS_LOOKUP_COMMANDS,
     CONFIG_DB_PING_INTERVAL,
     CONFIG_PRESERVE_CUSTOM_CHANNEL_DURATION,
@@ -432,7 +429,6 @@ enum WorldIntConfigs
     CONFIG_SOCKET_TIMEOUTTIME_ACTIVE,
     CONFIG_BLACKMARKET_MAXAUCTIONS,
     CONFIG_BLACKMARKET_UPDATE_PERIOD,
-    CONFIG_BATTLE_PAY_CURRENCY,
     CONFIG_FACTION_BALANCE_LEVEL_CHECK_DIFF,
     INT_CONFIG_VALUE_COUNT
 };
@@ -685,13 +681,10 @@ class TC_GAME_API World
         void SendWorldText(uint32 string_id, ...);
         void SendGlobalText(char const* text, WorldSession* self);
         void SendGMText(uint32 string_id, ...);
-        void SendMapText(uint32 mapid, uint32 string_id, ...);
         void SendServerMessage(ServerMessageType messageID, std::string stringParam = "", Player* player = nullptr);
         void SendGlobalMessage(WorldPacket const* packet, WorldSession* self = nullptr, uint32 team = 0);
         void SendGlobalGMMessage(WorldPacket const* packet, WorldSession* self = nullptr, uint32 team = 0);
-        void SendMapMessage(uint32 mapid, WorldPacket const* packet, WorldSession* self = nullptr, uint32 team = 0);
         bool SendZoneMessage(uint32 zone, WorldPacket const* packet, WorldSession* self = nullptr, uint32 team = 0);
-        bool SendAreaIDMessage(uint32 areaID, WorldPacket const* packet, WorldSession* self = nullptr, uint32 team = 0);
         void SendZoneText(uint32 zone, const char *text, WorldSession* self = nullptr, uint32 team = 0);
 
         /// Are we in the middle of a shutdown?

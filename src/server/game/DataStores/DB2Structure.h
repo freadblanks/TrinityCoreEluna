@@ -680,13 +680,6 @@ struct ChrCustomizationElementEntry
     int32 ChrCustItemGeoModifyID;
 };
 
-struct ChrCustomizationMaterialEntry
-{
-    uint32 ID;
-    int32 ChrModelTextureTargetID;
-    int32 MaterialResourcesID;
-};
-
 struct ChrCustomizationOptionEntry
 {
     LocalizedString Name;
@@ -960,14 +953,6 @@ struct CreatureDisplayInfoExtraEntry
     int8 Flags;
     int32 BakeMaterialResourcesID;
     int32 HDBakeMaterialResourcesID;
-};
-
-struct CreatureDisplayInfoOptionEntry
-{
-    uint32 ID;
-    int32 ChrCustomizationOptionID;
-    int32 ChrCustomizationChoiceID;
-    int32 CreatureDisplayInfoExtraID;
 };
 
 struct CreatureFamilyEntry
@@ -1580,16 +1565,6 @@ struct GameObjectsEntry
     std::array<int32, 8> PropValue;
 };
 
-struct GameTipsEntry
-{
-    uint32 ID;
-    LocalizedString Text;
-    uint8 SortIndex;
-    int32 MinLevel;
-    int32 MaxLevel;
-    int32 ContentTuningID;
-};
-
 struct GarrAbilityEntry
 {
     uint32 ID;
@@ -1782,6 +1757,23 @@ struct GarrSiteLevelPlotInstEntry
     uint16 GarrSiteLevelID;
     uint8 GarrPlotInstanceID;
     uint8 UiMarkerSize;
+};
+
+struct GarrTalentTreeEntry
+{
+    uint32 ID;
+    LocalizedString Name;
+    uint8 GarrTypeID;
+    int32 ClassID;
+    int8 MaxTiers;
+    int8 UiOrder;
+    int32 Flags;
+    uint16 UiTextureKitID;
+    int32 GarrTalentTreeType;
+    int32 PlayerConditionID;
+    int8 FeatureTypeIndex;
+    int8 FeatureSubtypeIndex;
+    int32 CurrencyID;
 };
 
 struct GemPropertiesEntry
@@ -2579,9 +2571,13 @@ struct MapEntry
         }
     }
 
-    bool IsDynamicDifficultyMap() const { return (Flags[0] & MAP_FLAG_CAN_TOGGLE_DIFFICULTY) != 0; }
-    bool IsGarrison() const { return (Flags[0] & MAP_FLAG_GARRISON) != 0; }
+    bool IsDynamicDifficultyMap() const { return GetFlags().HasFlag(MapFlags::DynamicDifficulty); }
+    bool IsFlexLocking() const { return GetFlags().HasFlag(MapFlags::FlexibleRaidLocking); }
+    bool IsGarrison() const { return GetFlags().HasFlag(MapFlags::Garrison); }
     bool IsSplitByFaction() const { return ID == 609 || ID == 2175; }
+
+    EnumFlag<MapFlags> GetFlags() const { return static_cast<MapFlags>(Flags[0]); }
+    EnumFlag<MapFlags2> GetFlags2() const { return static_cast<MapFlags2>(Flags[1]); }
 };
 
 struct MapChallengeModeEntry
@@ -2609,22 +2605,21 @@ struct MapDifficultyEntry
     int32 ContentTuningID;
     uint32 MapID;
 
+    bool HasResetSchedule() const { return ResetInterval != MAP_DIFFICULTY_RESET_ANYTIME; }
+    bool IsUsingEncounterLocks() const { return GetFlags().HasFlag(MapDifficultyFlags::UseLootBasedLockInsteadOfInstanceLock); }
+    bool IsRestoringDungeonState() const { return GetFlags().HasFlag(MapDifficultyFlags::ResumeDungeonProgressBasedOnLockout); }
+    bool IsExtendable() const { return !GetFlags().HasFlag(MapDifficultyFlags::DisableLockExtension); }
+
     uint32 GetRaidDuration() const
     {
-        if (ResetInterval == 1)
+        if (ResetInterval == MAP_DIFFICULTY_RESET_DAILY)
             return 86400;
-        if (ResetInterval == 2)
+        if (ResetInterval == MAP_DIFFICULTY_RESET_WEEKLY)
             return 604800;
         return 0;
     }
-};
 
-struct ModelFileDataEntry
-{
-    uint32 ID;
-    uint8 Flags;
-    uint8 LogCount;
-    uint32 ModelID;
+    EnumFlag<MapDifficultyFlags> GetFlags() const { return static_cast<MapDifficultyFlags>(Flags); }
 };
 
 struct MapDifficultyXConditionEntry
@@ -2738,20 +2733,6 @@ struct NamesReservedLocaleEntry
     uint32 ID;
     char const* Name;
     uint8 LocaleMask;
-};
-
-struct NPCModelItemSlotDisplayInfoEntry
-{
-    uint32 ID;
-    int32 DisplayID;
-    int8 Slot;
-    uint32 ExtendedDisplayID;
-};
-
-struct CreatureDisplayInfoStore
-{
-    bool HasRecord(uint32 id) const;
-    const CreatureDisplayInfoEntry* LookupEntry(uint32 id) const;
 };
 
 struct NumTalentsAtLevelEntry
@@ -3140,23 +3121,6 @@ struct SceneScriptTextEntry
     char const* Script;
 };
 
-struct ScreenEffectEntry
-{
-    int32 ID;
-    char const* DisplayName;
-    int32 Param[4];
-    int8 Effect;
-    uint32 FullScreenEffectID;
-    uint16 LightParamsID;
-    uint16 LightParamsFadeIn;
-    uint16 LightParamsFadeOut;
-    uint32 SoundAmbienceID;
-    uint32 ZoneMusicID;
-    int16 TimeOfDayOverride;
-    int8 EffectMask;
-    uint8 LightFlags;
-};
-
 struct SkillLineEntry
 {
     LocalizedString DisplayName;
@@ -3238,77 +3202,6 @@ struct SoundKitEntry
     uint8 MaxInstances;
 };
 
-// FileOptions: Index, None
-struct SoundKitEntryEntry
-{
-    int32       ID;
-    uint32      SoundKitID;
-    int32       FileDataID;
-    uint8       Frequency;
-    float       Volume;
-};
-
-struct SoundKitAdvancedEntry
-{
-    int32       ID;
-    uint32      SoundKitID;
-    float       InnerRadius2D;
-    float       OuterRadius2D;
-    uint32      TimeA;
-    uint32      TimeB;
-    uint32      TimeC;
-    uint32      TimeD;
-    int32       RandomOffsetRange;
-    int8        Usage;
-    uint32      TimeIntervalMin;
-    uint32      TimeIntervalMax;
-    uint32      DelayMin;
-    uint32      DelayMax;
-    uint8       VolumeSliderCategory;
-    float       DuckToSFX;
-    float       DuckToMusic;
-    float       DuckToAmbience;
-    float       DuckToDialog;
-    float       DuckToSuppressors;
-    float       DuckToCinematicSFX;
-    float       DuckToCinematicMusic;
-    float       InnerRadiusOfInfluence;
-    float       OuterRadiusOfInfluence;
-    uint32      TimeToDuck;
-    uint32      TimeToUnduck;
-    float       InsideAngle;
-    float       OutsideAngle;
-    float       OutsideVolume;
-    uint8       MinRandomPosOffset;
-    uint16      MaxRandomPosOffset;
-    int32       MsOffset;
-    uint32      TimeCooldownMin;
-    uint32      TimeCooldownMax;
-    uint8       MaxInstancesBehavior;
-    uint8       VolumeControlType;
-    int32       VolumeFadeInTimeMin;
-    int32       VolumeFadeInTimeMax;
-    uint32      VolumeFadeInCurveID;
-    int32       VolumeFadeOutTimeMin;
-    int32       VolumeFadeOutTimeMax;
-    uint32      VolumeFadeOutCurveID;
-    float       ChanceToPlay;
-    int32       RolloffType;
-    float       RolloffParam0;
-    float       Field_8_2_0_30080_045;
-    float       Field_8_2_0_30080_046;
-    int32       Field_8_2_0_30080_047;
-    int32       Field_8_2_0_30080_048;
-    float       Field_8_2_0_30080_049;
-    float       Field_8_2_0_30080_050;
-    float       Field_8_2_0_30080_051;
-    float       Field_8_2_0_30080_052;
-    float       Field_8_2_0_30080_053;
-    float       Field_8_2_0_30080_054;
-    float       Field_9_1_0_38312_055;
-    float       Field_9_1_0_38312_056;
-};
-
 struct SpecializationSpellsEntry
 {
     LocalizedString Description;
@@ -3317,13 +3210,6 @@ struct SpecializationSpellsEntry
     int32 SpellID;
     int32 OverridesSpellID;
     uint8 DisplayOrder;
-};
-
-struct SpecializationSpellsDisplayEntry
-{
-    uint32 ID;
-    uint16 SpecializationID;
-    uint32 SpecllID[6];
 };
 
 struct SpecSetMemberEntry
@@ -3475,18 +3361,6 @@ struct SpellEquippedItemsEntry
     int32 EquippedItemInvTypes;
     int32 EquippedItemSubclass;
 };
-
-// FileOptions: Index, None
-struct SpellEntry
-{
-    uint32 ID;
-    LocalizedString NameSubtext;
-    LocalizedString Description;
-    LocalizedString AuraDescription;
-
-    SpellEffectEntry const* GetSpellEffect(uint32 eff, uint8 diff = 0) const;
-};
-
 
 struct SpellFocusObjectEntry
 {
@@ -3901,13 +3775,6 @@ struct TaxiPathNodeEntry
     int32 DepartureEventID;
 };
 
-struct TextureFileDataEntry
-{
-    uint32 ID;
-    uint8 UsageType;
-    int32 TextureID;
-};
-
 struct TotemCategoryEntry
 {
     uint32 ID;
@@ -4201,16 +4068,6 @@ struct VehicleSeatEntry
     inline bool IsEjectable() const { return HasFlag(VEHICLE_SEAT_FLAG_B_EJECTABLE); }
 };
 
-struct VehiclePOITypeEntry
-{
-    int32 ID;
-    int32 Flags;
-    int32 TextureWidth;
-    int32 TextureHeight;
-    int32 OccupiedTexture;
-    int32 UnoccupiedTexture;
-};
-
 struct WMOAreaTableEntry
 {
     LocalizedString AreaName;
@@ -4264,42 +4121,6 @@ struct WorldStateExpressionEntry
 {
     uint32 ID;
     char const* Expression;
-};
-
-struct ZoneLightEntry
-{
-    uint32 ID;
-    char const* Name;
-    uint16 MapID;
-    uint16 LightID;
-    uint8 Flags;
-    float Zmin;
-    float Zmax;
-};
-
-struct LightSkyboxEntry
-{
-    uint32 ID;
-    char const* Name;
-    uint8 Flags;
-    int32 SkyboxFileDataID;
-    int32 CelestialSkyboxFileDataID;
-};
-
-struct LightParamsEntry
-{
-    float OverrideCelestialSphere[3];
-    uint32 ID;
-    uint8 HighlightSky;
-    uint16 LightSkyboxID;
-    uint8 CloudTypeID;
-    float Glow;
-    float WaterShallowAlpha;
-    float WaterDeepAlpha;
-    float OceanShallowAlpha;
-    float OceanDeepAlpha;
-    int32 Flags;
-    int32 SsaoSettingsID;
 };
 
 #pragma pack(pop)

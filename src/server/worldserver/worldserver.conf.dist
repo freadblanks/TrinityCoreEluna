@@ -41,8 +41,6 @@
 #    PACKET SPOOF PROTECTION SETTINGS
 #    METRIC SETTINGS
 #    PVP SETTINGS
-#	 ELUNA SETTINGS
-#	 TIMEISTIME MODULE
 #
 ###################################################################################################
 
@@ -950,13 +948,6 @@ RecruitAFriend.MaxDifference = 4
 
 DisableWaterBreath = 4
 
-#    Enable or Disable "Fatigue" timer
-#           default = 1 (enabled)
-#                   = 0 (disabled)
-
-fatigue.enabled = 1
-
-#
 #
 #    AllFlightPaths
 #        Description: Character knows all flight paths (of both factions) after creation.
@@ -1008,14 +999,6 @@ Instance.IgnoreLevel = 0
 Instance.IgnoreRaid = 0
 
 #
-#    Instance.ResetTimeHour
-#        Description: Hour of the day when the global instance reset occurs.
-#        Range:       0-23
-#        Default:     4 - (04:00 AM)
-
-Instance.ResetTimeHour = 4
-
-#
 #    Instance.UnloadDelay
 #        Description: Time (in milliseconds) before instance maps are unloaded from memory if no
 #                     characters are inside.
@@ -1032,6 +1015,22 @@ Instance.UnloadDelay = 1800000
 #                     true  - (Enabled, show)
 
 InstancesResetAnnounce = false
+
+#
+#    ResetSchedule.WeekDay
+#        Description: Day of the week when the global weekly reset occurs.
+#        Range:       0-6
+#        Default:     2 - (Tuesday)
+
+ResetSchedule.WeekDay = 2
+
+#
+#    ResetSchedule.Hour
+#        Description: Hour of the day when the global daily reset occurs.
+#        Range:       0-23
+#        Default:     8 - (08:00 AM)
+
+ResetSchedule.Hour = 8
 
 #
 #    Quests.EnableQuestTracker
@@ -1147,6 +1146,13 @@ Guild.BankEventLogRecordsCount = 25
 #        Default:     250
 
 Guild.NewsLogRecordsCount = 250
+
+#
+#    Guild.SaveInterval
+#        Description: Time (in minutes) for guild save interval.
+#        Default:     15
+
+Guild.SaveInterval = 15
 
 #
 #    MaxPrimaryTradeSkill
@@ -4143,6 +4149,7 @@ Logger.mmaps=3,Server
 #Logger.entities.vehicle=3,Console Server
 #Logger.gameevent=3,Console Server
 #Logger.guild=3,Console Server
+#Logger.instance.locks=3,Console Server
 #Logger.lfg=3,Console Server
 #Logger.loot=3,Console Server
 #Logger.maps.script=3,Console Server
@@ -4382,76 +4389,3 @@ Pvp.FactionBalance.Pct20 = 0.8
 
 #
 ###################################################################################################
-
-###################################################################################################
-# ELUNA SETTINGS
-#
-# These settings control if Eluna is enabled
-#
-#    Eluna.Enabled
-#        Description: If Eluna is enabled on the server
-#        Default:     True
-
-Eluna.Enabled = 1
-
-#
-# These settings control the Eluna scripts path
-#
-#    Eluna.ScriptPath
-#        Description: Eluna script Path
-#        Default:     lua_scripts
-
-Eluna.ScriptPath = "lua_scripts"
-
-#
-# These settings control the Eluna traceback
-#
-#    Eluna.ScriptPath
-#        Description: Eluna Trace back
-#        Default:     0
-
-Eluna.TraceBack = 0
-
-#
-###################################################################################################
-
-#####################################################################################################
-# TimeIsTime Module (If you use this module, you will not be able to keep track of real time. All events and times on the calendar will run differently)
-
-# Enable TimeIsTime
-# Settings: 0 = off, 1 = on
-# Default:  1
-
-TimeIsTime.Enable = 1
-
-# SpeedRate
-# Adjust the number of game days per real day by altering the Realm Timer
-# Settings: 60 is 1 second (Real Time) = 1 minute (Realm Timer)
-#           
-#           60.0  = 1 Game Day every 24   minutes
-#           30.0  = 1 Game Day every 48   minutes         
-#           15.0  = 1 Game Day every 96   minutes or 1.6  Hours
-#           7.5   = 1 Game Day every 192  minutes or 3.2  Hours
-#           3.75  = 1 Game Day every 384  minutes or 6.4  Hours        
-#           1.875 = 1 Game Day every 768  minutes or 12.8 Hours
-#           1.0   = 1 Game Day every 1440 minutes or 24.0 Hours (Realtime)
-# Default:  1.0 (Blizzlike)
-
-TimeIsTime.SpeedRate = 1.0
-
-# Start (client side) game clock at chosen Epoch (Unix) time at the same time each login
-# Default:  0  (Local Time)
-# Example:  https://i-leon.ru/tools/time 
-#           TimeIsTime.TimeStart = unix time
-#           TimeIsTime.HourOffset = your UTC
-#           Date on example   	  	 :: 06-01-2021
-#			Sunrise  	= 06:00:00   :: 1622516400
-#           Midday  	= 12:00:00   :: 1622538000
-#           Sunset	 	= 18:00:00   :: 1622559600
-#           Midnight	= 00:00:00   :: 1622581200
-
-TimeIsTime.TimeStart = 0
-TimeIsTime.HourOffset = 0.0
-
-#
-#####################################################################################################

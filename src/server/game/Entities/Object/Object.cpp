@@ -58,10 +58,6 @@
 #include "World.h"
 #include <G3D/Vector3.h>
 #include <sstream>
-#ifdef ELUNA
-#include "LuaEngine.h"
-#include "ElunaEventMgr.h"
-#endif
 
 constexpr float VisibilityDistances[AsUnderlyingType(VisibilityDistanceType::Max)] =
 {
@@ -87,11 +83,6 @@ Object::Object() : m_values(this)
 
 WorldObject::~WorldObject()
 {
-#ifdef ELUNA
-    delete ElunaEvents;
-    ElunaEvents = NULL;
-#endif
-
     // this may happen because there are many !create/delete
     if (IsWorldObject() && m_currMap)
     {
@@ -187,14 +178,14 @@ void Object::BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) c
             flags.CombatVictim = true;
     }
 
-    ByteBuffer buf(0x400, ByteBuffer::Reserve{});
+    ByteBuffer& buf = data->GetBuffer();
     buf << uint8(updateType);
     buf << GetGUID();
     buf << uint8(objectType);
 
     BuildMovementUpdate(&buf, flags, target);
     BuildValuesCreate(&buf, target);
-    data->AddUpdateBlock(buf);
+    data->AddUpdateBlock();
 }
 
 void Object::SendUpdateToPlayer(Player* player)
@@ -213,20 +204,20 @@ void Object::SendUpdateToPlayer(Player* player)
 
 void Object::BuildValuesUpdateBlockForPlayer(UpdateData* data, Player const* target) const
 {
-    ByteBuffer buf = PrepareValuesUpdateBuffer();
+    ByteBuffer& buf = PrepareValuesUpdateBuffer(data);
 
     BuildValuesUpdate(&buf, target);
 
-    data->AddUpdateBlock(buf);
+    data->AddUpdateBlock();
 }
 
 void Object::BuildValuesUpdateBlockForPlayerWithFlag(UpdateData* data, UF::UpdateFieldFlag flags, Player const* target) const
 {
-    ByteBuffer buf = PrepareValuesUpdateBuffer();
+    ByteBuffer& buf = PrepareValuesUpdateBuffer(data);
 
     BuildValuesUpdateWithFlag(&buf, flags, target);
 
-    data->AddUpdateBlock(buf);
+    data->AddUpdateBlock();
 }
 
 void Object::BuildDestroyUpdateBlock(UpdateData* data) const
@@ -239,9 +230,9 @@ void Object::BuildOutOfRangeUpdateBlock(UpdateData* data) const
     data->AddOutOfRangeGUID(GetGUID());
 }
 
-ByteBuffer Object::PrepareValuesUpdateBuffer() const
+ByteBuffer& Object::PrepareValuesUpdateBuffer(UpdateData* data) const
 {
-    ByteBuffer buffer(500, ByteBuffer::Reserve{});
+    ByteBuffer& buffer = data->GetBuffer();
     buffer << uint8(UPDATETYPE_VALUES);
     buffer << GetGUID();
     return buffer;
@@ -316,7 +307,7 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags, Playe
         *data << float(unit->GetOrientation());
 
         *data << float(unit->m_movementInfo.pitch);                     // Pitch
-        *data << float(unit->m_movementInfo.splineElevation);           // StepUpStartElevation
+        *data << float(unit->m_movementInfo.stepUpStartElevation);      // StepUpStartElevation
 
         *data << uint32(0);                                             // RemoveForcesIDs.size()
         *data << uint32(0);                                             // MoveIndex
@@ -827,23 +818,16 @@ void MovementInfo::OutDebug()
     }
 
     if (flags & MOVEMENTFLAG_SPLINE_ELEVATION)
-        TC_LOG_DEBUG("misc", "splineElevation: %f", splineElevation);
+        TC_LOG_DEBUG("misc", "stepUpStartElevation: %f", stepUpStartElevation);
 }
 
 WorldObject::WorldObject(bool isWorldObject) : Object(), WorldLocation(), LastUsedScriptID(0),
-m_movementInfo(), ElunaEvents(NULL), m_name(), m_isActive(false), m_isFarVisible(false), m_isWorldObject(isWorldObject), m_zoneScript(nullptr),
+m_movementInfo(), m_name(), m_isActive(false), m_isFarVisible(false), m_isWorldObject(isWorldObject), m_zoneScript(nullptr),
 m_transport(nullptr), m_zoneId(0), m_areaId(0), m_staticFloorZ(VMAP_INVALID_HEIGHT), m_outdoors(false), m_liquidStatus(LIQUID_MAP_NO_WATER),
 m_currMap(nullptr), m_InstanceId(0), _dbPhase(0), m_notifyflags(0)
 {
     m_serverSideVisibility.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_ALIVE | GHOST_VISIBILITY_GHOST);
     m_serverSideVisibilityDetect.SetValue(SERVERSIDE_VISIBILITY_GHOST, GHOST_VISIBILITY_ALIVE);
-}
-
-void WorldObject::Update(uint32 time_diff)
-{
-#ifdef ELUNA
-    ElunaEvents->Update(time_diff);
-#endif
 }
 
 void WorldObject::SetWorldObject(bool on)
@@ -891,15 +875,29 @@ void WorldObject::setActive(bool on)
 void WorldObject::SetVisibilityDistanceOverride(VisibilityDistanceType type)
 {
     ASSERT(type < VisibilityDistanceType::Max);
-    return SetVisibilityDistanceOverride(VisibilityDistances[AsUnderlyingType(type)]);
-}
-
-void WorldObject::SetVisibilityDistanceOverride(float distance)
-{
     if (GetTypeId() == TYPEID_PLAYER)
         return;
 
-    m_visibilityDistanceOverride = distance;
+    if (Creature* creature = ToCreature())
+    {
+        creature->RemoveUnitFlag2(UNIT_FLAG2_LARGE_AOI | UNIT_FLAG2_GIGANTIC_AOI | UNIT_FLAG2_INFINITE_AOI);
+        switch (type)
+        {
+            case VisibilityDistanceType::Large:
+                creature->SetUnitFlag2(UNIT_FLAG2_LARGE_AOI);
+                break;
+            case VisibilityDistanceType::Gigantic:
+                creature->SetUnitFlag2(UNIT_FLAG2_GIGANTIC_AOI);
+                break;
+            case VisibilityDistanceType::Infinite:
+                creature->SetUnitFlag2(UNIT_FLAG2_INFINITE_AOI);
+                break;
+            default:
+                break;
+        }
+    }
+
+    m_visibilityDistanceOverride = VisibilityDistances[AsUnderlyingType(type)];
 }
 
 void WorldObject::SetFarVisible(bool on)
@@ -1450,20 +1448,11 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool ignoreStealth, boo
     if (!obj->CheckPrivateObjectOwnerVisibility(this))
         return false;
 
-    if (const GameObject* object = obj->ToGameObject()) {
-        const std::set<ObjectGuid> infinites = object->GetMap()->GetInfiniteGameObjects();
-        if (std::find(infinites.begin(), infinites.end(), object->GetGUID()) != infinites.end()) {
-            float distance = GetDistance(obj);
-            //TC_LOG_ERROR("misc", "[+) WorldObject::CanSeeOrDetect(Infinite) : %f ", distance);
-            return true && (distance <= object->GetVisibilityRange());
-        }
-    }
-
     if (SmoothPhasing const* smoothPhasing = obj->GetSmoothPhasing())
         if (smoothPhasing->IsBeingReplacedForSeer(GetGUID()))
             return false;
 
-    if (!sConditionMgr->IsObjectMeetingVisibilityByObjectIdConditions(obj->GetTypeId(), obj->GetEntry(), const_cast<WorldObject*>(this)))
+    if (!sConditionMgr->IsObjectMeetingVisibilityByObjectIdConditions(obj->GetTypeId(), obj->GetEntry(), this))
         return false;
 
     bool corpseVisibility = false;
@@ -1532,7 +1521,7 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool ignoreStealth, boo
             return false;
     }
 
-    if (obj->IsInvisibleDueToDespawn())
+    if (obj->IsInvisibleDueToDespawn(this))
         return false;
 
     if (!CanDetect(obj, ignoreStealth, checkAlert))
@@ -1577,7 +1566,7 @@ bool WorldObject::CanDetect(WorldObject const* obj, bool ignoreStealth, bool che
 
 bool WorldObject::CanDetectInvisibilityOf(WorldObject const* obj) const
 {
-    uint32 mask = obj->m_invisibility.GetFlags() & m_invisibilityDetect.GetFlags();
+    uint64 mask = obj->m_invisibility.GetFlags() & m_invisibilityDetect.GetFlags();
 
     // Check for not detected types
     if (mask != obj->m_invisibility.GetFlags())
@@ -1585,7 +1574,7 @@ bool WorldObject::CanDetectInvisibilityOf(WorldObject const* obj) const
 
     for (uint32 i = 0; i < TOTAL_INVISIBILITY_TYPES; ++i)
     {
-        if (!(mask & (1 << i)))
+        if (!(mask & (uint64(1) << i)))
             continue;
 
         int32 objInvisibilityValue = obj->m_invisibility.GetValue(InvisibilityType(i));
@@ -1739,13 +1728,6 @@ void WorldObject::SetMap(Map* map)
     m_currMap = map;
     m_mapId = map->GetId();
     m_InstanceId = map->GetInstanceId();
-
-#ifdef ELUNA
-    delete ElunaEvents;
-    // On multithread replace this with a pointer to map's Eluna pointer stored in a map
-    ElunaEvents = new ElunaEventProcessor(&Eluna::GEluna, this);
-#endif
-
     if (IsWorldObject())
         m_currMap->AddWorldObject(this);
 }
@@ -1756,12 +1738,6 @@ void WorldObject::ResetMap()
     ASSERT(!IsInWorld());
     if (IsWorldObject())
         m_currMap->RemoveWorldObject(this);
-
-#ifdef ELUNA
-    delete ElunaEvents;
-    ElunaEvents = NULL;
-#endif  
-
     m_currMap = nullptr;
     //maybe not for corpse
     //m_mapId = 0;
@@ -2095,6 +2071,15 @@ Creature* WorldObject::FindNearestCreature(uint32 entry, float range, bool alive
     Creature* creature = nullptr;
     Trinity::NearestCreatureEntryWithLiveStateInObjectRangeCheck checker(*this, entry, alive, range);
     Trinity::CreatureLastSearcher<Trinity::NearestCreatureEntryWithLiveStateInObjectRangeCheck> searcher(this, creature, checker);
+    Cell::VisitAllObjects(this, searcher, range);
+    return creature;
+}
+
+Creature* WorldObject::FindNearestCreatureWithAura(uint32 entry, uint32 spellId, float range, bool alive) const
+{
+    Creature* creature = nullptr;
+    Trinity::NearestCreatureEntryWithLiveStateAndAuraInObjectRangeCheck checker(*this, entry, spellId, alive, range);
+    Trinity::CreatureLastSearcher<Trinity::NearestCreatureEntryWithLiveStateAndAuraInObjectRangeCheck> searcher(this, creature, checker);
     Cell::VisitAllObjects(this, searcher, range);
     return creature;
 }

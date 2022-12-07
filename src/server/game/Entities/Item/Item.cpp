@@ -31,6 +31,7 @@
 #include "ItemEnchantmentMgr.h"
 #include "ItemPackets.h"
 #include "Log.h"
+#include "Loot.h"
 #include "LootItemStorage.h"
 #include "LootMgr.h"
 #include "Map.h"
@@ -805,7 +806,7 @@ void Item::SaveToDB(CharacterDatabaseTransaction trans)
                 CharacterDatabase.CommitTransaction(trans);
 
             // Delete the items if this is a container
-            if (!loot.isLooted())
+            if (m_loot && !m_loot->isLooted())
                 sLootItemStorage->RemoveStoredLootForContainer(GetGUID().GetCounter());
 
             delete this;
@@ -1117,7 +1118,7 @@ void Item::DeleteFromDB(CharacterDatabaseTransaction trans)
     DeleteFromDB(trans, GetGUID().GetCounter());
 
     // Delete the items if this is a container
-    if (!loot.isLooted())
+    if (m_loot && !m_loot->isLooted())
         sLootItemStorage->RemoveStoredLootForContainer(GetGUID().GetCounter());
 }
 
@@ -1747,7 +1748,7 @@ void Item::BuildValuesUpdateForPlayerWithMask(UpdateData* data, UF::ObjectData::
     if (itemMask.IsAnySet())
         valuesMask.Set(TYPEID_ITEM);
 
-    ByteBuffer buffer = PrepareValuesUpdateBuffer();
+    ByteBuffer& buffer = PrepareValuesUpdateBuffer(data);
     std::size_t sizePos = buffer.wpos();
     buffer << uint32(0);
     buffer << uint32(valuesMask.GetBlock(0));
@@ -1760,7 +1761,7 @@ void Item::BuildValuesUpdateForPlayerWithMask(UpdateData* data, UF::ObjectData::
 
     buffer.put<uint32>(sizePos, buffer.wpos() - sizePos - 4);
 
-    data->AddUpdateBlock(buffer);
+    data->AddUpdateBlock();
 }
 
 void Item::ValuesUpdateForPlayerWithMaskSender::operator()(Player const* player) const

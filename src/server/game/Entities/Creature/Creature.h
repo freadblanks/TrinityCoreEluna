@@ -23,21 +23,17 @@
 #include "CreatureData.h"
 #include "DatabaseEnvFwd.h"
 #include "Duration.h"
-#include "Loot.h"
 #include "GridObject.h"
 #include "MapObject.h"
 #include <list>
 
-class CreatureOutfit;
-#include <memory>
-
 class CreatureAI;
 class CreatureGroup;
-class Group;
 class Quest;
 class Player;
 class SpellInfo;
 class WorldSession;
+struct Loot;
 
 enum MovementGeneratorType : uint8;
 
@@ -64,6 +60,7 @@ enum class VendorInventoryReason : uint8
 };
 
 static constexpr uint8 WILD_BATTLE_PET_DEFAULT_LEVEL = 1;
+static constexpr size_t CREATURE_TAPPERS_SOFT_CAP = 5;
 
 //used for handling non-repeatable random texts
 typedef std::vector<uint8> CreatureTextRepeatIds;
@@ -73,6 +70,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
 {
     public:
         explicit Creature(bool isWorldObject = false);
+        ~Creature();
 
         void AddToWorld() override;
         void RemoveFromWorld() override;
@@ -81,12 +79,6 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         void SetObjectScale(float scale) override;
         void SetDisplayId(uint32 displayId, float displayScale = 1.f) override;
         void SetDisplayFromModel(uint32 modelIdx);
-        uint32 GetDisplayId() const final;
-        void SetDisplayIdRaw(uint32 modelId, float displayScale = 1.f);
-
-        std::shared_ptr<CreatureOutfit>& GetOutfit() { return m_outfit; };
-        void SetOutfit(std::shared_ptr<CreatureOutfit> const& outfit);
-        void SetMirrorImageFlag(bool on) { if (on) SetUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE); else RemoveUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE); };
 
         void DisappearAndDie() { ForcedDespawn(0); }
 
@@ -159,7 +151,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         bool CanResetTalents(Player* player) const;
         bool CanCreatureAttack(Unit const* victim, bool force = true) const;
         void LoadTemplateImmunities();
-        bool IsImmunedToSpellEffect(SpellInfo const* spellInfo, SpellEffectInfo const& spellEffectInfo, WorldObject const* caster) const override;
+        bool IsImmunedToSpellEffect(SpellInfo const* spellInfo, SpellEffectInfo const& spellEffectInfo, WorldObject const* caster, bool requireImmunityPurgesEffectAttribute = false) const override;
         bool isElite() const;
         bool isWorldBoss() const;
 
@@ -232,17 +224,20 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         virtual void SaveToDB(uint32 mapid, std::vector<Difficulty> const& spawnDifficulties);
         static bool DeleteFromDB(ObjectGuid::LowType spawnId);
 
-        Loot loot;
+        std::unique_ptr<Loot> m_loot;
+        std::unordered_map<ObjectGuid, std::unique_ptr<Loot>> m_personalLoot;
         void StartPickPocketRefillTimer();
         void ResetPickPocketRefillTimer() { _pickpocketLootRestore = 0; }
         bool CanGeneratePickPocketLoot() const;
-        ObjectGuid GetLootRecipientGUID() const { return m_lootRecipient; }
-        Player* GetLootRecipient() const;
-        Group* GetLootRecipientGroup() const;
-        bool hasLootRecipient() const { return !m_lootRecipient.IsEmpty() || !m_lootRecipientGroup.IsEmpty(); }
+        GuidUnorderedSet const& GetTapList() const { return m_tapList; }
+        void SetTapList(GuidUnorderedSet tapList) { m_tapList = std::move(tapList); }
+        bool hasLootRecipient() const { return !m_tapList.empty(); }
         bool isTappedBy(Player const* player) const;                          // return true if the creature is tapped by the player or a member of his party.
+        Loot* GetLootForPlayer(Player const* player) const override;
+        bool IsFullyLooted() const;
+        bool IsSkinnedBy(Player const* player) const;
 
-        void SetLootRecipient (Unit* unit, bool withGroup = true);
+        void SetTappedBy(Unit const* unit, bool withGroup = true);
         void AllLootRemovedFromCorpse();
 
         uint16 GetLootMode() const { return m_LootMode; }
@@ -299,9 +294,6 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
                 m_combatPulseTime = delay;
         }
 
-        uint32 m_groupLootTimer;                            // (msecs)timer used for group loot
-        ObjectGuid lootingGroupLowGUID;                     // used to find group which is looting corpse
-
         void SendZoneUnderAttackMessage(Player* attacker);
 
         bool hasQuest(uint32 quest_id) const override;
@@ -344,7 +336,6 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
 
         void SetDisableReputationGain(bool disable) { DisableReputationGain = disable; }
         bool IsReputationGainDisabled() const { return DisableReputationGain; }
-        bool IsDamageEnoughForLootingAndReward() const { return (m_creatureInfo->flags_extra & CREATURE_FLAG_EXTRA_NO_PLAYER_DAMAGE_REQ) || (m_PlayerDamageReq == 0); }
         void LowerPlayerDamageReq(uint64 unDamage);
         void ResetPlayerDamageReq() { m_PlayerDamageReq = GetHealth() / 2; }
         uint64 m_PlayerDamageReq;
@@ -405,8 +396,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
 
         static float _GetHealthMod(int32 Rank);
 
-        ObjectGuid m_lootRecipient;
-        ObjectGuid m_lootRecipientGroup;
+        GuidUnorderedSet m_tapList;
 
         /// Timers
         time_t _pickpocketLootRestore;
@@ -446,7 +436,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
 
         uint16 m_LootMode;                                  // Bitmask (default: LOOT_MODE_DEFAULT) that determines what loot will be lootable
 
-        bool IsInvisibleDueToDespawn() const override;
+        bool IsInvisibleDueToDespawn(WorldObject const* seer) const override;
         bool CanAlwaysSee(WorldObject const* obj) const override;
 
     private:
@@ -471,8 +461,6 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
             ObjectGuid Target;        // the creature's "real" target while casting
             float Orientation = 0.0f; // the creature's "real" orientation while casting
         } _spellFocusInfo;
-
-        std::shared_ptr<CreatureOutfit> m_outfit;
 
         time_t _lastDamagedTime; // Part of Evade mechanics
         CreatureTextRepeatGroup m_textRepeat;

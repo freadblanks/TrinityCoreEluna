@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.30, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.31, for Linux (x86_64)
 --
 -- Host: localhost    Database: auth
 -- ------------------------------------------------------
--- Server version	8.0.30-0ubuntu0.20.04.2
+-- Server version	8.0.31-0ubuntu0.20.04.1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -671,7 +671,9 @@ INSERT INTO `build_info` VALUES
 (44730,9,2,5,NULL,NULL,'FC0B18C47BB4C79F4300CA0FF3E5CAC7',NULL,NULL,NULL),
 (44908,9,2,5,NULL,NULL,'BFFAEC40C9BCD591C7C959A9D5A8BA8C',NULL,NULL,NULL),
 (45114,9,2,7,NULL,NULL,'D7AFE240BD00F06C30D0C2D16E54A8BE',NULL,NULL,NULL),
-(45161,9,2,7,NULL,NULL,'74BD2E787A98B145B063BDA9A98F6CBD',NULL,NULL,NULL);
+(45161,9,2,7,NULL,NULL,'74BD2E787A98B145B063BDA9A98F6CBD',NULL,NULL,NULL),
+(45338,9,2,7,NULL,NULL,'5CE2094A41B61EDA9DF56378BC3B1DE0',NULL,NULL,NULL),
+(45745,9,2,7,NULL,NULL,'0F6DC90161694D765A595A3AF603166B',NULL,NULL,NULL);
 /*!40000 ALTER TABLE `build_info` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1306,6 +1308,7 @@ INSERT INTO `rbac_linked_permissions` VALUES
 (196,879),
 (196,881),
 (196,882),
+(196,883),
 (197,232),
 (197,236),
 (197,237),
@@ -1423,7 +1426,6 @@ INSERT INTO `rbac_linked_permissions` VALUES
 (198,413),
 (198,414),
 (198,415),
-(198,416),
 (198,430),
 (198,431),
 (198,432),
@@ -1798,7 +1800,6 @@ INSERT INTO `rbac_permissions` VALUES
 (413,'Command: instance listbinds'),
 (414,'Command: instance unbind'),
 (415,'Command: instance stats'),
-(416,'Command: instance savedata'),
 (417,'Command: learn'),
 (418,'Command: learn all'),
 (419,'Command: learn all my'),
@@ -2229,7 +2230,8 @@ INSERT INTO `rbac_permissions` VALUES
 (879,'Command: debug poolstatus'),
 (880,'Command: pdump copy'),
 (881,'Command: reload vehicle_template'),
-(882,'Command: reload spell_script_names');
+(882,'Command: reload spell_script_names'),
+(883,'Command: quest objective complete');
 /*!40000 ALTER TABLE `rbac_permissions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2277,7 +2279,7 @@ CREATE TABLE `realmlist` (
   `timezone` tinyint unsigned NOT NULL DEFAULT '0',
   `allowedSecurityLevel` tinyint unsigned NOT NULL DEFAULT '0',
   `population` float unsigned NOT NULL DEFAULT '0',
-  `gamebuild` int unsigned NOT NULL DEFAULT '45161',
+  `gamebuild` int unsigned NOT NULL DEFAULT '45745',
   `Region` tinyint unsigned NOT NULL DEFAULT '1',
   `Battlegroup` tinyint unsigned NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
@@ -2292,7 +2294,7 @@ CREATE TABLE `realmlist` (
 LOCK TABLES `realmlist` WRITE;
 /*!40000 ALTER TABLE `realmlist` DISABLE KEYS */;
 INSERT INTO `realmlist` VALUES
-(1,'Trinity','127.0.0.1','127.0.0.1','255.255.255.0',8085,0,0,1,0,0,45161,1,1);
+(1,'Trinity','127.0.0.1','127.0.0.1','255.255.255.0',8085,0,0,1,0,0,45745,1,1);
 /*!40000 ALTER TABLE `realmlist` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2615,7 +2617,12 @@ INSERT INTO `updates` VALUES
 ('2022_08_17_00_auth.sql','1A45DAE660690A7F4D0822C514116BF44A3185BB','ARCHIVED','2022-08-17 10:16:00',0),
 ('2022_08_19_00_auth.sql','332E7CC2E69D69BF274E5C61768FB80D1C217BDB','ARCHIVED','2022-08-19 09:52:06',0),
 ('2022_08_19_01_auth.sql','8B32826AE09C27B98C9480EF4D61205666F68318','ARCHIVED','2022-08-19 23:43:01',0),
-('2022_08_21_00_auth.sql','5DEC0CB848F99D575B90356D82276749F2473B72','ARCHIVED','2022-08-21 00:02:03',0);
+('2022_08_21_00_auth.sql','5DEC0CB848F99D575B90356D82276749F2473B72','ARCHIVED','2022-08-21 00:02:03',0),
+('2022_09_02_00_auth.sql','E2ED8B4B90829CFD283C9679AE265A9C9B2CF762','ARCHIVED','2022-09-02 15:52:22',0),
+('2022_09_08_00_auth.sql','20B4503E316E042432AC25F7CEE9DCD9EDC631C6','ARCHIVED','2022-09-08 15:38:35',0),
+('2022_09_23_00_auth.sql','F7DB1B903982D99295BC0D7D2BC205C5A2145F03','ARCHIVED','2022-09-23 03:44:55',0),
+('2022_10_03_00_auth.sql','B956A37F71B42EB0289C2066A15D1F6C02F21E5A','ARCHIVED','2022-10-03 21:32:38',0),
+('2022_11_20_00_auth.sql','37123D83589CFD96472D9187799C1F3FD67645DD','ARCHIVED','2022-11-20 11:05:20',0);
 /*!40000 ALTER TABLE `updates` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2757,4 +2764,4 @@ SET character_set_client = @saved_cs_client;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-08-21  0:02:05
+-- Dump completed on 2022-11-20 11:05:22
