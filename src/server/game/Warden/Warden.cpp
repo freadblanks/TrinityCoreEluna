@@ -15,21 +15,20 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Common.h"
-#include "WorldPacket.h"
-#include "WorldSession.h"
-#include "Log.h"
-#include "Opcodes.h"
-#include "ByteBuffer.h"
-#include "GameTime.h"
-#include "World.h"
-#include "Util.h"
 #include "Warden.h"
 #include "AccountMgr.h"
+#include "ByteBuffer.h"
+#include "Common.h"
+#include "CryptoHash.h"
+#include "GameTime.h"
+#include "Log.h"
+#include "SmartEnum.h"
+#include "Util.h"
 #include "WardenPackets.h"
-
-#include <openssl/sha.h>
-#include <openssl/md5.h>
+#include "World.h"
+#include "WorldPacket.h"
+#include "WorldSession.h"
+#include <charconv>
 
 Warden::Warden() : _session(nullptr), _checkTimer(10 * IN_MILLISECONDS), _clientResponseTimer(0),
                    _dataSent(false), _initialized(false)
@@ -46,10 +45,7 @@ void Warden::MakeModuleForClient()
     TC_LOG_DEBUG("warden", "Make module for client");
     InitializeModuleForClient(_module.emplace());
 
-    MD5_CTX ctx;
-    MD5_Init(&ctx);
-    MD5_Update(&ctx, _module->CompressedData, _module->CompressedSize);
-    MD5_Final(_module->Id.data(), &ctx);
+    _module->Id = Trinity::Crypto::MD5::GetDigestOf(_module->CompressedData, _module->CompressedSize);
 }
 
 void Warden::SendModuleToClient()
@@ -159,28 +155,19 @@ bool Warden::IsValidCheckSum(uint32 checksum, uint8 const* data, const uint16 le
     }
 }
 
-struct keyData {
-    union
-    {
-        struct
-        {
-            uint8 bytes[20];
-        } bytes;
-
-        struct
-        {
-            uint32 ints[5];
-        } ints;
-    };
+union keyData
+{
+    std::array<uint8, 20> bytes;
+    std::array<uint32, 5> ints;
 };
 
 uint32 Warden::BuildChecksum(uint8 const* data, uint32 length)
 {
     keyData hash;
-    SHA1(data, length, hash.bytes.bytes);
+    hash.bytes = Trinity::Crypto::SHA1::GetDigestOf(data, size_t(length));
     uint32 checkSum = 0;
     for (uint8 i = 0; i < 5; ++i)
-        checkSum = checkSum ^ hash.ints.ints[i];
+        checkSum = checkSum ^ hash.ints[i];
 
     return checkSum;
 }
@@ -206,7 +193,7 @@ char const* Warden::ApplyPenalty(WardenCheck const* check)
             std::string banReason = "Warden Anticheat Violation";
             // Check can be NULL, for example if the client sent a wrong signature in the warden packet (CHECKSUM FAIL)
             if (check)
-                banReason += Trinity::StringFormat(": %s (CheckId: %u", check->Comment, uint32(check->CheckId));
+                banReason += Trinity::StringFormat(": %s (CheckId: %u", check->Comment.c_str(), uint32(check->CheckId));
 
             sWorld->BanAccount(BAN_ACCOUNT, accountName, sWorld->getIntConfig(CONFIG_WARDEN_CLIENT_BAN_DURATION), banReason, "Server");
 
@@ -252,6 +239,30 @@ void Warden::HandleData(ByteBuffer& buff)
         TC_LOG_WARN("warden", "Got unknown warden opcode %02X of size %u.", opcode, uint32(buff.size() - 1));
         break;
     }
+}
+
+bool Warden::ProcessLuaCheckResponse(std::string const& msg)
+{
+    static constexpr char WARDEN_TOKEN[] = "_TW\t";
+    if (!StringStartsWith(msg, WARDEN_TOKEN))
+        return false;
+
+    uint16 id = 0;
+    std::from_chars(msg.data() + sizeof(WARDEN_TOKEN) - 1, msg.data() + msg.size(), id, 10);
+    if (id < sWardenCheckMgr->GetMaxValidCheckId())
+    {
+        WardenCheck const& check = sWardenCheckMgr->GetCheckData(id);
+        if (check.Type == LUA_EVAL_CHECK)
+        {
+            char const* penalty = ApplyPenalty(&check);
+            TC_LOG_WARN("warden", "%s failed Warden check %u (%s). Action: %s", _session->GetPlayerInfo().c_str(), id, EnumUtils::ToConstant(check.Type), penalty);
+            return true;
+        }
+    }
+
+    char const* penalty = ApplyPenalty(nullptr);
+    TC_LOG_WARN("warden", "%s sent bogus Lua check response for Warden. Action: %s", _session->GetPlayerInfo().c_str(), penalty);
+    return true;
 }
 
 void WorldSession::HandleWardenData(WorldPackets::Warden::WardenData& packet)

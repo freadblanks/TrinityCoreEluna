@@ -19,9 +19,7 @@
 #define GOPackets_h__
 
 #include "Packet.h"
-#include "DB2Stores.h"
 #include "GameObject.h"
-#include "WorldSession.h"
 
 namespace WorldPackets
 {
@@ -130,6 +128,7 @@ namespace WorldPackets
 
             ObjectGuid ObjectGUID;
             int32 UILink = 0;
+            int32 UIItemInteractionID = 0;
         };
 
         class GameObjectPlaySpellVisual final : public ServerPacket
@@ -142,6 +141,17 @@ namespace WorldPackets
             ObjectGuid ObjectGUID;
             ObjectGuid ActivatorGUID;
             int32 SpellVisualID = 0;
+        };
+
+        class GameObjectSetStateLocal final : public ServerPacket
+        {
+        public:
+            GameObjectSetStateLocal() : ServerPacket(SMSG_GAME_OBJECT_SET_STATE_LOCAL, 16 + 1) { }
+
+            WorldPacket const* Write() override;
+
+            ObjectGuid ObjectGUID;
+            uint8 State = 0;
         };
     }
 }

@@ -17,20 +17,18 @@
 
 #include "WorldSession.h"
 #include "Battleground.h"
-#include "Common.h"
 #include "Corpse.h"
 #include "DB2Stores.h"
 #include "FlightPathMovementGenerator.h"
 #include "GameTime.h"
 #include "Garrison.h"
+#include "InstanceLockMgr.h"
 #include "InstancePackets.h"
-#include "InstanceSaveMgr.h"
 #include "Log.h"
+#include "Map.h"
 #include "MapManager.h"
 #include "MiscPackets.h"
 #include "MovementPackets.h"
-#include "ObjectMgr.h"
-#include "Opcodes.h"
 #include "Player.h"
 #include "SpellInfo.h"
 #include "MotionMaster.h"
@@ -70,14 +68,19 @@ void WorldSession::HandleMoveWorldportAck()
 
     // get the destination map entry, not the current one, this will fix homebind and reset greeting
     MapEntry const* mEntry = sMapStore.LookupEntry(loc.GetMapId());
-    InstanceTemplate const* mInstance = sObjectMgr->GetInstanceTemplate(loc.GetMapId());
 
     // reset instance validity, except if going to an instance inside an instance
-    if (player->m_InstanceValid == false && !mInstance)
+    if (player->m_InstanceValid == false && !mEntry->IsDungeon())
         player->m_InstanceValid = true;
 
     Map* oldMap = player->GetMap();
-    Map* newMap = sMapMgr->CreateMap(loc.GetMapId(), player);
+    Map* newMap = GetPlayer()->GetTeleportDestInstanceId() ?
+        sMapMgr->FindMap(loc.GetMapId(), *GetPlayer()->GetTeleportDestInstanceId()) :
+        sMapMgr->CreateMap(loc.GetMapId(), GetPlayer());
+
+    MovementInfo::TransportInfo transportInfo = player->m_movementInfo.transport;
+    if (TransportBase* transport = player->GetTransport())
+        transport->RemovePassenger(player);
 
     if (player->IsInWorld())
     {
@@ -109,6 +112,13 @@ void WorldSession::HandleMoveWorldportAck()
 
     if (!seamlessTeleport)
         player->SendInitialPacketsBeforeAddToMap();
+
+    // move player between transport copies on each map
+    if (Transport* newTransport = newMap->GetTransport(transportInfo.guid))
+    {
+        player->m_movementInfo.transport = transportInfo;
+        newTransport->AddPassenger(player);
+    }
 
     if (!player->GetMap()->AddPlayerToMap(player, !seamlessTeleport))
     {
@@ -180,20 +190,27 @@ void WorldSession::HandleMoveWorldportAck()
         }
     }
 
-    if (mInstance)
+    if (mEntry->IsDungeon())
     {
         // check if this instance has a reset time and send it to player if so
-        Difficulty diff = newMap->GetDifficultyID();
-        if (MapDifficultyEntry const* mapDiff = sDB2Manager.GetMapDifficultyData(mEntry->ID, diff))
+        MapDb2Entries entries{ mEntry->ID, newMap->GetDifficultyID() };
+        if (entries.MapDifficulty->HasResetSchedule())
         {
-            if (mapDiff->GetRaidDuration())
+            WorldPackets::Instance::RaidInstanceMessage raidInstanceMessage;
+            raidInstanceMessage.Type = RAID_INSTANCE_WELCOME;
+            raidInstanceMessage.MapID = mEntry->ID;
+            raidInstanceMessage.DifficultyID = newMap->GetDifficultyID();
+            if (InstanceLock const* playerLock = sInstanceLockMgr.FindActiveInstanceLock(GetPlayer()->GetGUID(), entries))
             {
-                if (time_t timeReset = sInstanceSaveMgr->GetResetTimeFor(mEntry->ID, diff))
-                {
-                    uint32 timeleft = uint32(timeReset - GameTime::GetGameTime());
-                    player->SendInstanceResetWarning(mEntry->ID, diff, timeleft, true);
-                }
+                raidInstanceMessage.Locked = !playerLock->IsExpired();
+                raidInstanceMessage.Extended = playerLock->IsExtended();
             }
+            else
+            {
+                raidInstanceMessage.Locked = false;
+                raidInstanceMessage.Extended = false;
+            }
+            SendPacket(raidInstanceMessage.Write());
         }
 
         // check if instance is valid
@@ -320,10 +337,7 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo& movem
     }
 
     if (!movementInfo.pos.IsPositionValid())
-    {
-        TC_LOG_ERROR("network", "HandleMovementOpcodes: Invalid Position");
         return;
-    }
 
     if (!mover->movespline->Finalized())
         return;
@@ -342,43 +356,41 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo& movem
         // transports size limited
         // (also received at zeppelin leave by some reason with t_* as absolute in continent coordinates, can be safely skipped)
         if (fabs(movementInfo.transport.pos.GetPositionX()) > 75.0f || fabs(movementInfo.transport.pos.GetPositionY()) > 75.0f || fabs(movementInfo.transport.pos.GetPositionZ()) > 75.0f)
-        {
             return;
-        }
 
         if (!Trinity::IsValidMapCoord(movementInfo.pos.GetPositionX() + movementInfo.transport.pos.GetPositionX(), movementInfo.pos.GetPositionY() + movementInfo.transport.pos.GetPositionY(),
             movementInfo.pos.GetPositionZ() + movementInfo.transport.pos.GetPositionZ(), movementInfo.pos.GetOrientation() + movementInfo.transport.pos.GetOrientation()))
-        {
             return;
-        }
 
         // if we boarded a transport, add us to it
         if (plrMover)
         {
             if (!plrMover->GetTransport())
             {
-                if (Transport* transport = plrMover->GetMap()->GetTransport(movementInfo.transport.guid))
-                    transport->AddPassenger(plrMover);
+                if (GameObject* go = plrMover->GetMap()->GetGameObject(movementInfo.transport.guid))
+                    if (TransportBase* transport = go->ToTransportBase())
+                        transport->AddPassenger(plrMover);
             }
-            else if (plrMover->GetTransport()->GetGUID() != movementInfo.transport.guid)
+            else if (plrMover->GetTransport()->GetTransportGUID() != movementInfo.transport.guid)
             {
                 plrMover->GetTransport()->RemovePassenger(plrMover);
-                if (Transport* transport = plrMover->GetMap()->GetTransport(movementInfo.transport.guid))
-                    transport->AddPassenger(plrMover);
+                if (GameObject* go = plrMover->GetMap()->GetGameObject(movementInfo.transport.guid))
+                {
+                    if (TransportBase* transport = go->ToTransportBase())
+                        transport->AddPassenger(plrMover);
+                    else
+                        movementInfo.ResetTransport();
+                }
                 else
                     movementInfo.ResetTransport();
             }
         }
 
         if (!mover->GetTransport() && !mover->GetVehicle())
-        {
-            GameObject* go = mover->GetMap()->GetGameObject(movementInfo.transport.guid);
-            if (!go || go->GetGoType() != GAMEOBJECT_TYPE_TRANSPORT)
-                movementInfo.transport.Reset();
-        }
+            movementInfo.transport.Reset();
     }
     else if (plrMover && plrMover->GetTransport())                // if we were on a transport, leave
-        plrMover->m_transport->RemovePassenger(plrMover);
+        plrMover->GetTransport()->RemovePassenger(plrMover);
 
     // fall damage generation (ignore in flight case that can be triggered also at lags in moment teleportation to another map).
     if (opcode == CMSG_MOVE_FALL_LAND && plrMover && !plrMover->IsInFlight())
@@ -432,7 +444,8 @@ void WorldSession::HandleMovementOpcode(OpcodeClient opcode, MovementInfo& movem
                 /// @todo discard movement packets after the player is rooted
                 if (plrMover->IsAlive())
                 {
-                    plrMover->AddPlayerFlag(PLAYER_FLAGS_IS_OUT_OF_BOUNDS);
+                    TC_LOG_DEBUG("entities.player.falldamage", "FALLDAMAGE Below map. Map min height: %f , Player debug info:\n%s", plrMover->GetMap()->GetMinHeight(plrMover->GetPhaseShift(), movementInfo.pos.GetPositionX(), movementInfo.pos.GetPositionY()), plrMover->GetDebugInfo().c_str());
+                    plrMover->SetPlayerFlag(PLAYER_FLAGS_IS_OUT_OF_BOUNDS);
                     plrMover->EnvironmentalDamage(DAMAGE_FALL_TO_VOID, GetPlayer()->GetMaxHealth());
                     // player can be alive if GM/etc
                     // change the death state to CORPSE to prevent the death timer from
@@ -540,6 +553,7 @@ void WorldSession::HandleMoveKnockBackAck(WorldPackets::Movement::MoveKnockBackA
     if (_player->m_unitMovedByMe->GetGUID() != movementAck.Ack.Status.guid)
         return;
 
+    movementAck.Ack.Status.time = AdjustClientMovementTime(movementAck.Ack.Status.time);
     _player->m_movementInfo = movementAck.Ack.Status;
 
     WorldPackets::Movement::MoveUpdateKnockBack updateKnockBack;
@@ -742,7 +756,7 @@ void WorldSession::HandleTimeSyncResponse(WorldPackets::Misc::TimeSyncResponse& 
     using the following relation:
     serverTime = clockDelta + clientTime
     */
-    int64 clockDelta = (int64)(serverTimeAtSent + lagDelay) - (int64)timeSyncResponse.ClientTime;
+    int64 clockDelta = (int64)serverTimeAtSent + (int64)lagDelay - (int64)timeSyncResponse.ClientTime;
     _timeSyncClockDeltaQueue.push_back(std::pair<int64, uint32>(clockDelta, roundTripDuration));
     ComputeNewClockDelta();
 }
@@ -783,4 +797,12 @@ void WorldSession::ComputeNewClockDelta()
         std::pair<int64, uint32> back = _timeSyncClockDeltaQueue.back();
         _timeSyncClockDelta = back.first;
     }
+}
+
+void WorldSession::HandleMoveInitActiveMoverComplete(WorldPackets::Movement::MoveInitActiveMoverComplete& moveInitActiveMoverComplete)
+{
+    _player->SetPlayerLocalFlag(PLAYER_LOCAL_FLAG_OVERRIDE_TRANSPORT_SERVER_TIME);
+    _player->SetTransportServerTime(GameTime::GetGameTimeMS() - moveInitActiveMoverComplete.Ticks);
+
+    _player->UpdateObjectVisibility(false);
 }

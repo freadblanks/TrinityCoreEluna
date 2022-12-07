@@ -17,7 +17,6 @@
 
 #include "ScriptReloadMgr.h"
 #include "Errors.h"
-#include "Optional.h"
 
 #ifndef TRINITY_API_USE_DYNAMIC_LINKING
 
@@ -44,6 +43,7 @@ ScriptReloadMgr* ScriptReloadMgr::instance()
 #include "Duration.h"
 #include "Log.h"
 #include "MPSCQueue.h"
+#include "Optional.h"
 #include "Regex.h"
 #include "ScriptMgr.h"
 #include "StartProcess.h"
@@ -51,6 +51,7 @@ ScriptReloadMgr* ScriptReloadMgr::instance()
 #include "Util.h"
 #include "World.h"
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/system/system_error.hpp>
 #include <efsw/efsw.hpp>
@@ -108,14 +109,7 @@ typedef void* HandleType;
 
 static fs::path GetDirectoryOfExecutable()
 {
-    ASSERT((!sConfigMgr->GetArguments().empty()),
-           "Expected the arguments to contain at least 1 element!");
-
-    fs::path path(sConfigMgr->GetArguments()[0]);
-    if (path.is_absolute())
-        return path.parent_path();
-    else
-        return fs::canonical(fs::absolute(path)).parent_path();
+    return boost::dll::program_location().parent_path();
 }
 
 class SharedLibraryUnloader
@@ -358,7 +352,7 @@ namespace std
     {
         hash<string> hasher;
 
-        std::size_t operator()(fs::path const& key) const
+        std::size_t operator()(fs::path const& key) const noexcept
         {
             return hasher(key.generic_string());
         }
@@ -612,7 +606,7 @@ public:
         boost::system::error_code code;
         if ((!fs::exists(temporary_cache_path_, code)
              || (fs::remove_all(temporary_cache_path_, code) > 0)) &&
-             !fs::create_directory(temporary_cache_path_, code))
+             !fs::create_directories(temporary_cache_path_, code))
         {
             TC_LOG_ERROR("scripts.hotswap", "Couldn't create the cache directory at \"%s\".",
                 temporary_cache_path_.generic_string().c_str());

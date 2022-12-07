@@ -42,7 +42,7 @@ enum BattlegroundBEGameObjects
     BG_BE_OBJECT_TYPE_BUFF_2    = 184664
 };
 
-constexpr Seconds BG_BE_REMOVE_DOORS_TIMER = 5s;
+inline constexpr Seconds BG_BE_REMOVE_DOORS_TIMER = 5s;
 
 enum BattlegroundBEEvents
 {
@@ -60,7 +60,6 @@ class BattlegroundBE : public Arena
 
         void HandleAreaTrigger(Player* source, uint32 trigger, bool entered) override;
         bool SetupBattleground() override;
-        void FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet) override;
 
     private:
         void PostUpdateImpl(uint32 diff) override;

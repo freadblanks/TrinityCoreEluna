@@ -19,7 +19,6 @@
 #define GameObjectData_h__
 
 #include "Common.h"
-#include "DBCEnums.h"
 #include "QuaternionData.h"
 #include "SharedDefines.h"
 #include "SpawnData.h"
@@ -343,6 +342,7 @@ struct GameObjectTemplate
             uint32 ritualNoTargetCheck;                     // 7 ritualNoTargetCheck, enum { false, true, }; Default: true
             uint32 conditionID1;                            // 8 conditionID1, References: PlayerCondition, NoValue = 0
             uint32 InteractRadiusOverride;                  // 9 Interact Radius Override (in hundredths), int, Min value: 0, Max value: 2147483647, Default value: 0
+            uint32 Allowunfriendlycrossfactionpartymemberstocollaborateonaritual;// 10 Allow unfriendly cross faction party members to collaborate on a ritual, enum { false, true, }; Default: false
         } ritual;
         // 19 GAMEOBJECT_TYPE_MAILBOX
         struct
@@ -382,6 +382,7 @@ struct GameObjectTemplate
             uint32 Unused2;                                 // 1 Unused, int, Min value: 1, Max value: 65535, Default value: 60
             uint32 areaID;                                  // 2 areaID, References: AreaTable, NoValue = 0
             uint32 InteractRadiusOverride;                  // 3 Interact Radius Override (in hundredths), int, Min value: 0, Max value: 2147483647, Default value: 0
+            uint32 Preventmeetingstonefromtargetinganunfriendlypartymemberoutsideofinstances;// 4 Prevent meeting stone from targeting an unfriendly party member outside of instances, enum { false, true, }; Default: false
         } meetingStone;
         // 24 GAMEOBJECT_TYPE_FLAGSTAND
         struct
@@ -678,12 +679,13 @@ struct GameObjectTemplate
         // 48 GAMEOBJECT_TYPE_UI_LINK
         struct
         {
-            uint32 UILinkType;                              // 0 UI Link Type, enum { Adventure Journal, Obliterum Forge, Scrapping Machine, }; Default: Adventure Journal
+            uint32 UILinkType;                              // 0 UI Link Type, enum { Adventure Journal, Obliterum Forge, Scrapping Machine, Item Interaction, }; Default: Adventure Journal
             uint32 allowMounted;                            // 1 allowMounted, enum { false, true, }; Default: false
             uint32 GiganticAOI;                             // 2 Gigantic AOI, enum { false, true, }; Default: false
             uint32 spellFocusType;                          // 3 spellFocusType, References: SpellFocusObject, NoValue = 0
             uint32 radius;                                  // 4 radius, int, Min value: 0, Max value: 50, Default value: 10
             uint32 InteractRadiusOverride;                  // 5 Interact Radius Override (in hundredths), int, Min value: 0, Max value: 2147483647, Default value: 0
+            uint32 ItemInteractionID;                       // 6 Item Interaction ID, References: UiItemInteraction, NoValue = 0
         } UILink;
         // 49 GAMEOBJECT_TYPE_KEYSTONE_RECEPTACLE
         struct
@@ -837,6 +839,94 @@ struct GameObjectTemplate
         }
     }
 
+    uint32 GetConditionID1() const
+    {
+        switch (type)
+        {
+            case GAMEOBJECT_TYPE_DOOR:           return door.conditionID1;
+            case GAMEOBJECT_TYPE_BUTTON:         return button.conditionID1;
+            case GAMEOBJECT_TYPE_QUESTGIVER:     return questgiver.conditionID1;
+            case GAMEOBJECT_TYPE_CHEST:          return chest.conditionID1;
+            case GAMEOBJECT_TYPE_GENERIC:        return generic.conditionID1;
+            case GAMEOBJECT_TYPE_TRAP:           return trap.conditionID1;
+            case GAMEOBJECT_TYPE_CHAIR:          return chair.conditionID1;
+            case GAMEOBJECT_TYPE_SPELL_FOCUS:    return spellFocus.conditionID1;
+            case GAMEOBJECT_TYPE_TEXT:           return text.conditionID1;
+            case GAMEOBJECT_TYPE_GOOBER:         return goober.conditionID1;
+            case GAMEOBJECT_TYPE_CAMERA:         return camera.conditionID1;
+            case GAMEOBJECT_TYPE_RITUAL:         return ritual.conditionID1;
+            case GAMEOBJECT_TYPE_MAILBOX:        return mailbox.conditionID1;
+            case GAMEOBJECT_TYPE_SPELLCASTER:    return spellCaster.conditionID1;
+            case GAMEOBJECT_TYPE_FLAGSTAND:      return flagStand.conditionID1;
+            case GAMEOBJECT_TYPE_AURA_GENERATOR: return auraGenerator.conditionID1;
+            case GAMEOBJECT_TYPE_GUILD_BANK:     return guildbank.conditionID1;
+            case GAMEOBJECT_TYPE_NEW_FLAG:       return newflag.conditionID1;
+            case GAMEOBJECT_TYPE_ITEM_FORGE:     return itemForge.conditionID1;
+            case GAMEOBJECT_TYPE_GATHERING_NODE: return gatheringNode.conditionID1;
+            default: return 0;
+        }
+    }
+
+    uint32 GetInteractRadiusOverride() const
+    {
+        switch (type)
+        {
+            case GAMEOBJECT_TYPE_DOOR:                     return door.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_BUTTON:                   return button.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_QUESTGIVER:               return questgiver.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_CHEST:                    return chest.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_BINDER:                   return binder.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_GENERIC:                  return generic.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_TRAP:                     return trap.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_CHAIR:                    return chair.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_SPELL_FOCUS:              return spellFocus.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_TEXT:                     return text.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_GOOBER:                   return goober.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_TRANSPORT:                return transport.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_AREADAMAGE:               return areaDamage.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_CAMERA:                   return camera.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_MAP_OBJ_TRANSPORT:        return moTransport.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_DUEL_ARBITER:             return duelFlag.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_FISHINGNODE:              return fishingNode.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_RITUAL:                   return ritual.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_MAILBOX:                  return mailbox.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_GUARDPOST:                return guardPost.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_SPELLCASTER:              return spellCaster.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_MEETINGSTONE:             return meetingStone.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_FLAGSTAND:                return flagStand.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_FISHINGHOLE:              return fishingHole.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_FLAGDROP:                 return flagDrop.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_CONTROL_ZONE:             return controlZone.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_AURA_GENERATOR:           return auraGenerator.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_DUNGEON_DIFFICULTY:       return dungeonDifficulty.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_BARBER_CHAIR:             return barberChair.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING:    return destructibleBuilding.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_GUILD_BANK:               return guildbank.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_TRAPDOOR:                 return trapdoor.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_NEW_FLAG:                 return newflag.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_NEW_FLAG_DROP:            return newflagdrop.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_GARRISON_BUILDING:        return garrisonBuilding.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_GARRISON_PLOT:            return garrisonPlot.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_CAPTURE_POINT:            return capturePoint.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_PHASEABLE_MO:             return phaseableMO.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_GARRISON_MONUMENT:        return garrisonMonument.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_GARRISON_SHIPMENT:        return garrisonShipment.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_GARRISON_MONUMENT_PLAQUE: return garrisonMonumentPlaque.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_ITEM_FORGE:               return itemForge.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_UI_LINK:                  return UILink.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_KEYSTONE_RECEPTACLE:      return KeystoneReceptacle.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_GATHERING_NODE:           return gatheringNode.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_CHALLENGE_MODE_REWARD:    return challengeModeReward.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_SIEGEABLE_MO:             return siegeableMO.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_PVP_REWARD:               return pvpReward.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_PLAYER_CHOICE_CHEST:      return playerChoiceChest.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_LEGENDARY_FORGE:          return legendaryForge.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_GARR_TALENT_TREE:         return garrTalentTree.InteractRadiusOverride;
+            case GAMEOBJECT_TYPE_WEEKLY_REWARD_CHEST:      return weeklyRewardChest.InteractRadiusOverride;
+            default: return 0;
+        }
+    }
+
     uint32 GetRequireLOS() const
     {
         switch (type)
@@ -909,6 +999,16 @@ struct GameObjectTemplate
         }
     }
 
+    uint32 GetNotInCombat() const
+    {
+        switch (type)
+        {
+            case GAMEOBJECT_TYPE_CHEST:          return chest.notInCombat;
+            case GAMEOBJECT_TYPE_GATHERING_NODE: return gatheringNode.notInCombat;
+            default: return 0;
+        }
+    }
+
     uint32 GetCharges() const                               // despawn at uses amount
     {
         switch (type)
@@ -975,8 +1075,29 @@ struct GameObjectTemplate
         {
             case GAMEOBJECT_TYPE_GOOBER:            return goober.eventID;
             case GAMEOBJECT_TYPE_CHEST:             return chest.triggeredEvent;
+            case GAMEOBJECT_TYPE_CHAIR:             return chair.triggeredEvent;
             case GAMEOBJECT_TYPE_CAMERA:            return camera.eventID;
             case GAMEOBJECT_TYPE_GATHERING_NODE:    return gatheringNode.triggeredEvent;
+            default: return 0;
+        }
+    }
+
+    uint32 GetTrivialSkillHigh() const
+    {
+        switch (type)
+        {
+            case GAMEOBJECT_TYPE_CHEST:          return chest.trivialSkillHigh;
+            case GAMEOBJECT_TYPE_GATHERING_NODE: return gatheringNode.trivialSkillHigh;
+            default: return 0;
+        }
+    }
+
+    uint32 GetTrivialSkillLow() const
+    {
+        switch (type)
+        {
+            case GAMEOBJECT_TYPE_CHEST:          return chest.trivialSkillLow;
+            case GAMEOBJECT_TYPE_GATHERING_NODE: return gatheringNode.trivialSkillLow;
             default: return 0;
         }
     }
@@ -995,12 +1116,16 @@ struct GameObjectTemplate
     {
         switch (type)
         {
-            case GAMEOBJECT_TYPE_DOOR:          return door.InfiniteAOI != 0;
-            case GAMEOBJECT_TYPE_FLAGSTAND:     return flagStand.InfiniteAOI != 0;
-            case GAMEOBJECT_TYPE_FLAGDROP:      return flagDrop.InfiniteAOI != 0;
-            case GAMEOBJECT_TYPE_TRAPDOOR:      return trapdoor.InfiniteAOI != 0;
-            case GAMEOBJECT_TYPE_NEW_FLAG:      return newflag.InfiniteAOI != 0;
-            case GAMEOBJECT_TYPE_CLIENT_MODEL:  return newflag.InfiniteAOI != 0;
+            case GAMEOBJECT_TYPE_DOOR:                  return door.InfiniteAOI != 0;
+            case GAMEOBJECT_TYPE_FLAGSTAND:             return flagStand.InfiniteAOI != 0;
+            case GAMEOBJECT_TYPE_FLAGDROP:              return flagDrop.InfiniteAOI != 0;
+            case GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING: return true;
+            case GAMEOBJECT_TYPE_TRAPDOOR:              return trapdoor.InfiniteAOI != 0;
+            case GAMEOBJECT_TYPE_NEW_FLAG:              return newflag.InfiniteAOI != 0;
+            case GAMEOBJECT_TYPE_GARRISON_BUILDING:     return true;
+            case GAMEOBJECT_TYPE_PHASEABLE_MO:          return true;
+            case GAMEOBJECT_TYPE_SIEGEABLE_MO:          return true;
+            case GAMEOBJECT_TYPE_CLIENT_MODEL:          return newflag.InfiniteAOI != 0;
             default: return false;
         }
     }
@@ -1017,6 +1142,7 @@ struct GameObjectTemplate
             case GAMEOBJECT_TYPE_TRAP:                  return trap.GiganticAOI != 0;
             case GAMEOBJECT_TYPE_SPELL_FOCUS:           return spellFocus.GiganticAOI != 0;
             case GAMEOBJECT_TYPE_GOOBER:                return goober.GiganticAOI != 0;
+            case GAMEOBJECT_TYPE_TRANSPORT:             return true;
             case GAMEOBJECT_TYPE_SPELLCASTER:           return spellCaster.GiganticAOI != 0;
             case GAMEOBJECT_TYPE_FLAGSTAND:             return flagStand.GiganticAOI != 0;
             case GAMEOBJECT_TYPE_FLAGDROP:              return flagDrop.GiganticAOI != 0;
@@ -1024,6 +1150,7 @@ struct GameObjectTemplate
             case GAMEOBJECT_TYPE_DUNGEON_DIFFICULTY:    return dungeonDifficulty.GiganticAOI != 0;
             case GAMEOBJECT_TYPE_TRAPDOOR:              return trapdoor.GiganticAOI != 0;
             case GAMEOBJECT_TYPE_NEW_FLAG:              return newflag.GiganticAOI != 0;
+            case GAMEOBJECT_TYPE_GARRISON_PLOT:         return true;
             case GAMEOBJECT_TYPE_CAPTURE_POINT:         return capturePoint.GiganticAOI != 0;
             case GAMEOBJECT_TYPE_GARRISON_SHIPMENT:     return garrisonShipment.GiganticAOI != 0;
             case GAMEOBJECT_TYPE_UI_LINK:               return UILink.GiganticAOI != 0;
@@ -1077,18 +1204,18 @@ struct GameObjectTemplate
 // From `gameobject_template_addon`, `gameobject_overrides`
 struct GameObjectOverride
 {
-    uint32 Faction;
-    uint32 Flags;
+    uint32 Faction = 0;
+    uint32 Flags = 0;
 };
 
 // From `gameobject_template_addon`
 struct GameObjectTemplateAddon : public GameObjectOverride
 {
-    uint32 Mingold;
-    uint32 Maxgold;
+    uint32 Mingold = 0;
+    uint32 Maxgold = 0;
     std::array<uint32, 5> ArtKits = { };
-    uint32 WorldEffectID;
-    uint32 AIAnimKitID;
+    uint32 WorldEffectID = 0;
+    uint32 AIAnimKitID = 0;
 };
 
 struct GameObjectLocale
@@ -1115,9 +1242,7 @@ struct GameObjectData : public SpawnData
     QuaternionData rotation;
     uint32 animprogress = 0;
     GOState goState = GO_STATE_ACTIVE;
-    uint8 artKit = 0;
-    float size = 0.0f;
-    float visibility = 533.3333f;
+    uint32 artKit = 0;
 };
 
 enum class GameObjectActions : uint32
@@ -1168,6 +1293,7 @@ enum class GameObjectActions : uint32
     PlaySpellVisual             = 42,   // Play Spell Visual "{SpellVisual}"
     StopSpellVisual             = 43,   // Stop Spell Visual
     SetTappedToChallengePlayers = 44,   // Set Tapped to Challenge Players
+    Max
 };
 
 #endif // GameObjectData_h__

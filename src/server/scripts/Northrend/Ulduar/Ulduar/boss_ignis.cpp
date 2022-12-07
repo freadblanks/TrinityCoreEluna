@@ -121,7 +121,7 @@ class boss_ignis : public CreatureScript
 
         struct boss_ignis_AI : public BossAI
         {
-            boss_ignis_AI(Creature* creature) : BossAI(creature, BOSS_IGNIS)
+            boss_ignis_AI(Creature* creature) : BossAI(creature, DATA_IGNIS)
             {
                 Initialize();
             }
@@ -138,8 +138,6 @@ class boss_ignis : public CreatureScript
                 _Reset();
                 if (Vehicle* _vehicle = me->GetVehicleKit())
                     _vehicle->RemoveAllPassengers();
-
-                instance->DoStopCriteriaTimer(CriteriaStartEvent::SendEvent, ACHIEVEMENT_IGNIS_START_EVENT);
             }
 
             void JustEngagedWith(Unit* who) override
@@ -153,7 +151,7 @@ class boss_ignis : public CreatureScript
                 events.ScheduleEvent(EVENT_END_POT, 40s);
                 events.ScheduleEvent(EVENT_BERSERK, 480s);
                 Initialize();
-                instance->DoStartCriteriaTimer(CriteriaStartEvent::SendEvent, ACHIEVEMENT_IGNIS_START_EVENT);
+                instance->TriggerGameEvent(ACHIEVEMENT_IGNIS_START_EVENT);
             }
 
             void JustDied(Unit* /*killer*/) override
@@ -182,7 +180,7 @@ class boss_ignis : public CreatureScript
                 {
                     summon->SetFaction(FACTION_MONSTER_2);
                     summon->SetReactState(REACT_AGGRESSIVE);
-                    summon->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_PACIFIED | UNIT_FLAG_STUNNED));
+                    summon->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_UNINTERACTIBLE | UNIT_FLAG_PACIFIED | UNIT_FLAG_STUNNED);
                     summon->SetImmuneToPC(false);
                     summon->SetControlled(false, UNIT_STATE_ROOT);
                 }
@@ -324,12 +322,12 @@ class npc_iron_construct : public CreatureScript
                 Initialize();
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& damage) override
+            void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
             {
                 if (me->HasAura(RAID_MODE(SPELL_BRITTLE, SPELL_BRITTLE_25)) && damage >= 5000)
                 {
                     DoCast(SPELL_SHATTER);
-                    if (Creature* ignis = _instance->GetCreature(BOSS_IGNIS))
+                    if (Creature* ignis = _instance->GetCreature(DATA_IGNIS))
                         if (ignis->AI())
                             ignis->AI()->DoAction(ACTION_REMOVE_BUFF);
 
@@ -384,7 +382,7 @@ class npc_scorch_ground : public CreatureScript
             npc_scorch_groundAI(Creature* creature) : ScriptedAI(creature)
             {
                 Initialize();
-                me->AddUnitFlag(UnitFlags(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_PACIFIED));
+                me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE | UNIT_FLAG_PACIFIED);
                 me->SetControlled(true, UNIT_STATE_ROOT);
                 creature->SetDisplayId(16925); //model 2 in db cannot overwrite wdb fields
             }
@@ -447,6 +445,7 @@ class npc_scorch_ground : public CreatureScript
         }
 };
 
+// 62717, 63477 - Slag Pot
 class spell_ignis_slag_pot : public SpellScriptLoader
 {
     public:

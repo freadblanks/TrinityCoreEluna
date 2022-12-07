@@ -176,7 +176,7 @@ void WorldSession::HandleAzeriteEmpoweredItemViewed(WorldPackets::Azerite::Azeri
     if (!item || !item->IsAzeriteEmpoweredItem())
         return;
 
-    item->AddItemFlag(ITEM_FIELD_FLAG_AZERITE_EMPOWERED_ITEM_VIEWED);
+    item->SetItemFlag(ITEM_FIELD_FLAG_AZERITE_EMPOWERED_ITEM_VIEWED);
     item->SetState(ITEM_CHANGED, _player);
 }
 
@@ -232,4 +232,9 @@ void WorldSession::HandleAzeriteEmpoweredItemSelectPower(WorldPackets::Azerite::
     }
 
     azeriteEmpoweredItem->SetState(ITEM_CHANGED, _player);
+}
+
+void WorldSession::SendAzeriteRespecNPC(ObjectGuid npc)
+{
+    SendPacket(WorldPackets::Azerite::AzeriteRespecNPC(npc).Write());
 }

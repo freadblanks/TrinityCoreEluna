@@ -16,17 +16,14 @@
  */
 
 #include "ScriptMgr.h"
-#include "GameObject.h"
 #include "Map.h"
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
-#include "ObjectMgr.h"
 #include "Player.h"
 #include "ScriptedEscortAI.h"
 #include "ScriptedGossip.h"
-#include "SpellInfo.h"
-#include "SpellScript.h"
 #include "TemporarySummon.h"
+#include "WorldStateMgr.h"
 
 #define LESS_MOB // if you do not have a good server and do not want it to be laggy as hell
 //Light of Dawn
@@ -54,9 +51,12 @@ enum mograine
     ENCOUNTER_TOTAL_DAWN              = 300,  // Total number
     ENCOUNTER_TOTAL_SCOURGE           = 10000,
 
-    WORLD_STATE_REMAINS               = 3592,
-    WORLD_STATE_COUNTDOWN             = 3603,
-    WORLD_STATE_EVENT_BEGIN           = 3605,
+    WORLD_STATE_FORCES_OF_THE_LIGHT_REMAINING   = 3590,
+    WORLD_STATE_FORCES_OF_THE_SCOURGE_REMAINING = 3591,
+    WORLD_STATE_SHOW_FORCES_REMAINING           = 3592,
+    WORLD_STATE_SHOW_MINUTES_UNTIL_BATTLE       = 3603,
+    WORLD_STATE_MINUTES_UNTIL_BATTLE            = 3604,
+    WORLD_STATE_BATTLE_IN_PROGRESS              = 3605,
 
     SAY_LIGHT_OF_DAWN01               = 0, // pre text
     SAY_LIGHT_OF_DAWN02               = 1,
@@ -224,20 +224,6 @@ enum mograine
     SPELL_THUNDER                     = 53630
 };
 
-void UpdateWorldState(Map* map, uint32 id, uint32 state)
-{
-    Map::PlayerList const& players = map->GetPlayers();
-
-    if (!players.isEmpty())
-    {
-        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-        {
-            if (Player* player = itr->GetSource())
-                player->SendUpdateWorldState(id, state);
-        }
-    }
-}
-
 Position const LightofDawnLoc[] =
 {
     {2281.335f, -5300.409f, 85.170f, 0},     // 0 Tirion Fordring loc
@@ -354,9 +340,9 @@ public:
                 me->Mount(25279);
                 me->SetVisible(true);
 
-                UpdateWorldState(me->GetMap(), WORLD_STATE_REMAINS, 0);
-                //UpdateWorldState(me->GetMap(), WORLD_STATE_COUNTDOWN, 0);
-                UpdateWorldState(me->GetMap(), WORLD_STATE_EVENT_BEGIN, 0);
+                sWorldStateMgr->SetValue(WORLD_STATE_SHOW_FORCES_REMAINING, 0, false, me->GetMap());
+                //sWorldStateMgr->SetValue(WORLD_STATE_SHOW_MINUTES_UNTIL_BATTLE, 0, false, me->GetMap());
+                sWorldStateMgr->SetValue(WORLD_STATE_BATTLE_IN_PROGRESS, 0, false, me->GetMap());
 
                 if (Creature* temp = ObjectAccessor::GetCreature(*me, uiTirionGUID))
                     temp->setDeathState(JUST_DIED);
@@ -594,13 +580,13 @@ public:
                     switch (uiStep)
                     {
                         case 0:  // countdown
-                            //UpdateWorldState(me->GetMap(), WORLD_STATE_COUNTDOWN, 1);
+                            //sWorldStateMgr->SetValue(WORLD_STATE_SHOW_MINUTES_UNTIL_BATTLE, 1, false, me->GetMap());
                             break;
 
                         case 1:  // just delay
-                            //UpdateWorldState(me->GetMap(), WORLD_STATE_REMAINS, 1);
-                            UpdateWorldState(me->GetMap(), WORLD_STATE_COUNTDOWN, 0);
-                            UpdateWorldState(me->GetMap(), WORLD_STATE_EVENT_BEGIN, 1);
+                            //sWorldStateMgr->SetValue(WORLD_STATE_SHOW_FORCES_REMAINING, 1, false, me->GetMap());
+                            sWorldStateMgr->SetValue(WORLD_STATE_SHOW_MINUTES_UNTIL_BATTLE, 0, false, me->GetMap());
+                            sWorldStateMgr->SetValue(WORLD_STATE_BATTLE_IN_PROGRESS, 1, false, me->GetMap());
                             me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
                             JumpToNextStep(3000);
                             break;
@@ -759,7 +745,7 @@ public:
                         case 15: // summon gate
                             if (Creature* temp = me->SummonCreature(NPC_HIGHLORD_ALEXANDROS_MOGRAINE, LightofDawnLoc[22], TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN, 5min))
                             {
-                                temp->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                                temp->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
                                 temp->CastSpell(temp, SPELL_ALEXANDROS_MOGRAINE_SPAWN, true);
                                 temp->AI()->Talk(EMOTE_LIGHT_OF_DAWN06);
                                 uiAlexandrosGUID = temp->GetGUID();
@@ -770,7 +756,7 @@ public:
                         case 16: // Alexandros out
                             if (Creature* temp = ObjectAccessor::GetCreature(*me, uiAlexandrosGUID))
                             {
-                                temp->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                                temp->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
                                 temp->GetMotionMaster()->MovePoint(0, LightofDawnLoc[23]);
                                 temp->AI()->Talk(SAY_LIGHT_OF_DAWN32);
                             }
@@ -1613,7 +1599,7 @@ public:
                 }
         }
 
-        bool GossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
+        bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
         {
             uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
             ClearGossipMenuFor(player);
@@ -1628,13 +1614,13 @@ public:
             return true;
         }
 
-        bool GossipHello(Player* player) override
+        bool OnGossipHello(Player* player) override
         {
             if (me->IsQuestGiver())
                 player->PrepareQuestMenu(me->GetGUID());
 
             if (player->GetQuestStatus(12801) == QUEST_STATUS_INCOMPLETE)
-                AddGossipItemFor(player, GossipOptionIcon::None, "I am ready.", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
+                AddGossipItemFor(player, GossipOptionNpc::None, "I am ready.", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
 
             SendGossipMenuFor(player, player->GetGossipTextId(me), me->GetGUID());
 
@@ -1672,41 +1658,8 @@ public:
 
 };
 
-// 58418 - Portal to Orgrimmar
-// 58420 - Portal to Stormwind
-class spell_teleport_leaders_blessing : public SpellScript
-{
-    PrepareSpellScript(spell_teleport_leaders_blessing);
-
-    bool Validate(SpellInfo const* spellInfo) override
-    {
-        return spellInfo->GetEffects().size() > EFFECT_1
-            && ValidateSpellInfo({ uint32(spellInfo->GetEffect(EFFECT_0).CalcValue()) })
-            && sObjectMgr->GetQuestTemplate(spellInfo->GetEffect(EFFECT_1).CalcValue()) != nullptr;
-    }
-
-    void HandleScriptEffect(SpellEffIndex /* effIndex */)
-    {
-        Player* target = GetHitPlayer();
-        if (!target)
-            return;
-
-        uint32 spellID = GetSpellInfo()->GetEffect(EFFECT_0).CalcValue();
-        uint32 questID = GetSpellInfo()->GetEffect(EFFECT_1).CalcValue();
-
-        if (target->GetQuestStatus(questID) == QUEST_STATUS_COMPLETE)
-            target->CastSpell(target, spellID, true);
-    }
-
-    void Register() override
-    {
-        OnEffectHitTarget += SpellEffectFn(spell_teleport_leaders_blessing::HandleScriptEffect, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
-    }
-};
-
 void AddSC_the_scarlet_enclave_c5()
 {
     new npc_highlord_darion_mograine();
     new npc_the_lich_king_tirion_dawn();
-    RegisterSpellScript(spell_teleport_leaders_blessing);
 }

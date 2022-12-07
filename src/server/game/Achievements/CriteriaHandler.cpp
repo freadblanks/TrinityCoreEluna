@@ -16,10 +16,8 @@
  */
 
 #include "CriteriaHandler.h"
-#include "AchievementMgr.h"
 #include "ArenaTeamMgr.h"
 #include "AzeriteItem.h"
-#include "BattlefieldMgr.h"
 #include "Battleground.h"
 #include "BattlePetMgr.h"
 #include "CollectionMgr.h"
@@ -36,6 +34,7 @@
 #include "Item.h"
 #include "LanguageMgr.h"
 #include "Log.h"
+#include "Map.h"
 #include "MapManager.h"
 #include "ObjectMgr.h"
 #include "PhasingHandler.h"
@@ -50,6 +49,7 @@
 #include "SpellMgr.h"
 #include "World.h"
 #include "WorldSession.h"
+#include "WorldStateMgr.h"
 
 bool CriteriaData::IsValid(Criteria const* criteria)
 {
@@ -266,7 +266,7 @@ bool CriteriaData::IsValid(Criteria const* criteria)
                     criteria->ID, criteria->Entry->Type, DataType, ClassRace.Class);
                 return false;
             }
-            if (ClassRace.Race && ((UI64LIT(1) << (ClassRace.Race-1)) & RACEMASK_ALL_PLAYABLE) == 0)
+            if (ClassRace.Race && !RACEMASK_ALL_PLAYABLE.HasRace(ClassRace.Race))
             {
                 TC_LOG_ERROR("sql.sql", "Table `criteria_data` (Entry: %u Type: %u) for data type CRITERIA_DATA_TYPE_S_PLAYER_CLASS_RACE (%u) contains a non-existing race entry in value2 (%u), ignored.",
                     criteria->ID, criteria->Entry->Type, DataType, ClassRace.Race);
@@ -376,7 +376,7 @@ bool CriteriaData::Meets(uint32 criteriaId, Player const* source, WorldObject co
             if (!bg)
                 return false;
 
-            uint32 score = bg->GetTeamScore(source->GetTeamId() == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE);
+            uint32 score = bg->GetTeamScore(bg->GetPlayerTeam(source->GetGUID()) == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE);
             return score >= BattlegroundScore.Min && score <= BattlegroundScore.Max;
         }
         case CRITERIA_DATA_TYPE_INSTANCE_SCRIPT:
@@ -540,7 +540,9 @@ void CriteriaHandler::UpdateCriteria(CriteriaType type, uint64 miscValue1 /*= 0*
             case CriteriaType::DeliveredKillingBlow:
             case CriteriaType::PVPKillInArea:
             case CriteriaType::WinArena: // This also behaves like CriteriaType::WinAnyRankedArena
+            case CriteriaType::PlayerTriggerGameEvent:
             case CriteriaType::Login:
+            case CriteriaType::AnyoneTriggerGameEventScenario:
             case CriteriaType::BattlePetReachLevel:
             case CriteriaType::ActivelyEarnPetLevel:
             case CriteriaType::PlaceGarrisonBuilding:
@@ -688,9 +690,9 @@ void CriteriaHandler::UpdateCriteria(CriteriaType type, uint64 miscValue1 /*= 0*
             case CriteriaType::LearnTradeskillSkillLine:
             {
                 uint32 spellCount = 0;
-                for (std::pair<uint32 const, PlayerSpell*>& spellIter : referencePlayer->GetSpellMap())
+                for (auto& [spellId, _] : referencePlayer->GetSpellMap())
                 {
-                    SkillLineAbilityMapBounds bounds = sSpellMgr->GetSkillLineAbilityMapBounds(spellIter.first);
+                    SkillLineAbilityMapBounds bounds = sSpellMgr->GetSkillLineAbilityMapBounds(spellId);
                     for (SkillLineAbilityMap::const_iterator skillIter = bounds.first; skillIter != bounds.second; ++skillIter)
                     {
                         if (skillIter->second->SkillLine == int32(criteria->Entry->Asset.SkillID))
@@ -814,10 +816,8 @@ void CriteriaHandler::UpdateCriteria(CriteriaType type, uint64 miscValue1 /*= 0*
             case CriteriaType::CompleteAnyChallengeMode:
             case CriteriaType::KilledAllUnitsInSpawnRegion:
             case CriteriaType::CompleteChallengeMode:
-            case CriteriaType::PlayerTriggerGameEvent:
             case CriteriaType::CreatedItemsByCastingSpellWithLimit:
             case CriteriaType::BattlePetAchievementPointsEarned:
-            case CriteriaType::AnyoneTriggerGameEventScenario:
             case CriteriaType::ReleasedSpirit:
             case CriteriaType::AccountKnownPet:
             case CriteriaType::DefeatDungeonEncounterWhileElegibleForLoot:
@@ -894,7 +894,7 @@ void CriteriaHandler::StartCriteriaTimer(CriteriaStartEvent startEvent, uint32 e
         bool canStart = false;
         for (CriteriaTree const* tree : *trees)
         {
-            if (_timeCriteriaTrees.find(tree->ID) == _timeCriteriaTrees.end() && !IsCompletedCriteriaTree(tree))
+            if ((_timeCriteriaTrees.find(tree->ID) == _timeCriteriaTrees.end() || criteria->Entry->GetFlags().HasFlag(CriteriaFlags::ResetOnStart)) && !IsCompletedCriteriaTree(tree))
             {
                 // Start the timer
                 if (criteria->Entry->StartTimer * uint32(IN_MILLISECONDS) > timeLost)
@@ -1314,6 +1314,10 @@ bool CriteriaHandler::CanUpdateCriteria(Criteria const* criteria, CriteriaTreeLi
         return false;
     }
 
+    if (criteria->Entry->EligibilityWorldStateID != 0)
+        if (sWorldStateMgr->GetValue(criteria->Entry->EligibilityWorldStateID, referencePlayer->GetMap()) != criteria->Entry->EligibilityWorldStateValue)
+            return false;
+
     return true;
 }
 
@@ -1523,11 +1527,11 @@ bool CriteriaHandler::RequirementsSatisfied(Criteria const* criteria, uint64 mis
                 if (area->AreaBit < 0)
                     continue;
 
-                uint16 playerIndexOffset = uint16(uint32(area->AreaBit) / 64);
+                size_t playerIndexOffset = size_t(area->AreaBit) / PLAYER_EXPLORED_ZONES_BITS;
                 if (playerIndexOffset >= PLAYER_EXPLORED_ZONES_SIZE)
                     continue;
 
-                uint64 mask = uint64(1) << (area->AreaBit % 64);
+                uint64 mask = uint64(1) << (area->AreaBit % PLAYER_EXPLORED_ZONES_BITS);
                 if (referencePlayer->m_activePlayerData->ExploredZones[playerIndexOffset] & mask)
                 {
                     matchFound = true;
@@ -2223,7 +2227,7 @@ bool CriteriaHandler::ModifierSatisfied(ModifierTreeEntry const* modifier, uint6
                 return false;
             break;
         case ModifierTreeType::PlayersRealmWorldState: // 108
-            if (sWorld->getWorldState(reqValue) != secondaryAsset)
+            if (sWorldStateMgr->GetValue(reqValue, referencePlayer->GetMap()) != int32(secondaryAsset))
                 return false;
             break;
         case ModifierTreeType::TimeBetween: // 109
@@ -2268,10 +2272,10 @@ bool CriteriaHandler::ModifierSatisfied(ModifierTreeEntry const* modifier, uint6
                 return false;
             if (areaTable->AreaBit <= 0)
                 break; // success
-            uint32 playerIndexOffset = uint32(areaTable->AreaBit) / 64;
+            size_t playerIndexOffset = size_t(areaTable->AreaBit) / PLAYER_EXPLORED_ZONES_BITS;
             if (playerIndexOffset >= PLAYER_EXPLORED_ZONES_SIZE)
                 break;
-            if (!(referencePlayer->m_activePlayerData->ExploredZones[playerIndexOffset] & (UI64LIT(1) << (areaTable->AreaBit % 64))))
+            if (!(referencePlayer->m_activePlayerData->ExploredZones[playerIndexOffset] & (UI64LIT(1) << (areaTable->AreaBit % PLAYER_EXPLORED_ZONES_BITS))))
                 return false;
             break;
         }
@@ -3764,6 +3768,8 @@ bool CriteriaHandler::ModifierSatisfied(ModifierTreeEntry const* modifier, uint6
     return true;
 }
 
+CriteriaList const CriteriaMgr::EmptyCriteriaList;
+
 char const* CriteriaMgr::GetCriteriaTypeString(uint32 type)
 {
     return GetCriteriaTypeString(CriteriaType(type));
@@ -4292,10 +4298,22 @@ CriteriaList const& CriteriaMgr::GetPlayerCriteriaByType(CriteriaType type, uint
         auto itr = _criteriasByAsset[size_t(type)].find(asset);
         if (itr != _criteriasByAsset[size_t(type)].end())
             return itr->second;
+
+        return EmptyCriteriaList;
     }
 
     return _criteriasByType[size_t(type)];
 }
+
+CriteriaList const& CriteriaMgr::GetScenarioCriteriaByTypeAndScenario(CriteriaType type, uint32 scenarioId) const
+{
+    if (CriteriaList const* criteriaList = Trinity::Containers::MapGetValuePtr(_scenarioCriteriasByTypeAndScenarioId[size_t(type)], scenarioId))
+        return *criteriaList;
+
+    return EmptyCriteriaList;
+}
+
+CriteriaMgr::CriteriaMgr() = default;
 
 //==========================================================
 CriteriaMgr::~CriteriaMgr()
@@ -4445,6 +4463,8 @@ void CriteriaMgr::LoadCriteriaList()
 
         _criteria[criteria->ID] = criteria;
 
+        std::vector<uint32> scenarioIds;
+
         for (CriteriaTree const* tree : treeItr->second)
         {
             const_cast<CriteriaTree*>(tree)->Criteria = criteria;
@@ -4459,7 +4479,10 @@ void CriteriaMgr::LoadCriteriaList()
                     criteria->FlagsCu |= CRITERIA_FLAG_CU_PLAYER;
             }
             else if (tree->ScenarioStep)
+            {
                 criteria->FlagsCu |= CRITERIA_FLAG_CU_SCENARIO;
+                scenarioIds.push_back(tree->ScenarioStep->ScenarioID);
+            }
             else if (tree->QuestObjective)
                 criteria->FlagsCu |= CRITERIA_FLAG_CU_QUEST_OBJECTIVE;
         }
@@ -4503,7 +4526,8 @@ void CriteriaMgr::LoadCriteriaList()
         if (criteria->FlagsCu & CRITERIA_FLAG_CU_SCENARIO)
         {
             ++scenarioCriterias;
-            _scenarioCriteriasByType[criteriaEntry->Type].push_back(criteria);
+            for (uint32 scenarioId : scenarioIds)
+                _scenarioCriteriasByTypeAndScenarioId[criteriaEntry->Type][scenarioId].push_back(criteria);
         }
 
         if (criteria->FlagsCu & CRITERIA_FLAG_CU_QUEST_OBJECTIVE)

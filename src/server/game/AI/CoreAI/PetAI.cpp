@@ -30,7 +30,6 @@
 #include "SpellHistory.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
-#include "Util.h"
 
 int32 PetAI::Permissible(Creature const* creature)
 {
@@ -413,7 +412,7 @@ void PetAI::DoAttack(Unit* target, bool chase)
 
     if (me->Attack(target, true))
     {
-        me->AddUnitFlag(UNIT_FLAG_PET_IN_COMBAT); // on player pets, this flag indicates we're actively going after a target - that's what we're doing, so set it
+        me->SetUnitFlag(UNIT_FLAG_PET_IN_COMBAT); // on player pets, this flag indicates we're actively going after a target - that's what we're doing, so set it
         // Play sound to let the player know the pet is attacking something it picked on its own
         if (me->HasReactState(REACT_AGGRESSIVE) && !me->GetCharmInfo()->IsCommandAttack())
             me->SendPetAIReaction(me->GetGUID());
@@ -641,7 +640,7 @@ void PetAI::UpdateAllies()
 
 void PetAI::OnCharmed(bool isNew)
 {
-    if (me->IsCharmed())
+    if (!me->isPossessedByPlayer() && me->IsCharmed())
         me->GetMotionMaster()->MoveFollow(me->GetCharmer(), PET_FOLLOW_DIST, me->GetFollowAngle());
 
     CreatureAI::OnCharmed(isNew);

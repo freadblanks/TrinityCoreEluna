@@ -17,6 +17,7 @@
 
 #include "culling_of_stratholme.h"
 #include "AreaBoundary.h"
+#include "EventMap.h"
 #include "DB2Structure.h"
 #include "GameObject.h"
 #include "GameTime.h"
@@ -27,11 +28,9 @@
 #include "PassiveAI.h"
 #include "Player.h"
 #include "QuestDef.h"
-#include "ScriptedEscortAI.h"
 #include "ScriptedGossip.h"
-#include "SmartAI.h"
-#include "SpellInfo.h"
 #include "ScriptMgr.h"
+#include "SpellInfo.h"
 #include "SplineChainMovementGenerator.h"
 #include "StringFormat.h"
 #include "TemporarySummon.h"
@@ -202,7 +201,6 @@ class npc_hearthsinger_forresten_cot : public CreatureScript
                 }
             }
 
-
         private:
             InstanceScript const* const _instance;
             EventMap _events;
@@ -271,11 +269,12 @@ enum Chromie1Gossip
 
 enum Chromie1Misc
 {
-    ITEM_ARCANE_DISRUPTOR = 37888,
-    QUEST_DISPELLING_ILLUSIONS = 13149,
-    SPELL_TELEPORT_PLAYER = 53435,
-    ACHIEVEMENT_NORMAL = 479,
-    ACHIEVEMENT_HEROIC = 500
+    ITEM_ARCANE_DISRUPTOR           = 37888,
+    QUEST_DISPELLING_ILLUSIONS      = 13149,
+    SPELL_TELEPORT_PLAYER           = 53435,
+    SPELL_SUMMON_ARCANE_DISRUPTOR   = 49591,
+    ACHIEVEMENT_NORMAL              = 479,
+    ACHIEVEMENT_HEROIC              = 500
 };
 
 class npc_chromie_start : public CreatureScript
@@ -299,15 +298,16 @@ class npc_chromie_start : public CreatureScript
                     _instance->SetData(DATA_SKIP_TO_PURGE, 1);
             }
 
-            bool GossipHello(Player* player) override
+            bool OnGossipHello(Player* player) override
             {
                 if (me->IsQuestGiver())
                     player->PrepareQuestMenu(me->GetGUID());
 
                 if (InstanceScript* instance = me->GetInstanceScript())
                 {
+                    InitGossipMenuFor(player, GOSSIP_MENU_INITIAL);
                     if (player->CanBeGameMaster()) // GM instance state override menu
-                        AddGossipItemFor(player, GossipOptionIcon::SpiritHealer, "[GM] Access instance control panel", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + GOSSIP_OFFSET_OPEN_GM_MENU);
+                        AddGossipItemFor(player, GossipOptionNpc::None, "[GM] Access instance control panel", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + GOSSIP_OFFSET_OPEN_GM_MENU);
 
                     uint32 state = instance->GetData(DATA_INSTANCE_PROGRESS);
                     if (state < PURGE_STARTING)
@@ -345,17 +345,19 @@ class npc_chromie_start : public CreatureScript
                 return true;
             }
 
-            bool GossipSelect(Player* player, uint32 /*sender*/, uint32 listId) override
+            bool OnGossipSelect(Player* player, uint32 /*sender*/, uint32 listId) override
             {
                 uint32 const action = GetGossipActionFor(player, listId);
                 ClearGossipMenuFor(player);
                 switch (action - GOSSIP_ACTION_INFO_DEF)
                 {
                     case GOSSIP_OFFSET_EXPLAIN:
+                        InitGossipMenuFor(player, GOSSIP_MENU_EXPLAIN_1);
                         AddGossipItemFor(player, GOSSIP_MENU_EXPLAIN_1, GOSSIP_OPTION_EXPLAIN_1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + GOSSIP_OFFSET_EXPLAIN_1);
                         SendGossipMenuFor(player, GOSSIP_TEXT_EXPLAIN_1, me->GetGUID());
                         break;
                     case GOSSIP_OFFSET_SKIP:
+                        InitGossipMenuFor(player, GOSSIP_MENU_SKIP_1);
                         AddGossipItemFor(player, GOSSIP_MENU_SKIP_1, GOSSIP_OPTION_SKIP_1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + GOSSIP_OFFSET_SKIP_1);
                         SendGossipMenuFor(player, GOSSIP_TEXT_SKIP_1, me->GetGUID());
                         break;
@@ -367,6 +369,7 @@ class npc_chromie_start : public CreatureScript
                         me->CastSpell(player, SPELL_TELEPORT_PLAYER);
                         break;
                     case GOSSIP_OFFSET_EXPLAIN_1:
+                        InitGossipMenuFor(player, GOSSIP_MENU_EXPLAIN_2);
                         AddGossipItemFor(player, GOSSIP_MENU_EXPLAIN_2, GOSSIP_OPTION_EXPLAIN_2, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + GOSSIP_OFFSET_EXPLAIN_2);
                         SendGossipMenuFor(player, GOSSIP_TEXT_EXPLAIN_2, me->GetGUID());
                         break;
@@ -374,19 +377,19 @@ class npc_chromie_start : public CreatureScript
                         SendGossipMenuFor(player, GOSSIP_TEXT_EXPLAIN_3, me->GetGUID());
                         AdvanceDungeon();
                         if (!player->HasItemCount(ITEM_ARCANE_DISRUPTOR))
-                            player->AddItem(ITEM_ARCANE_DISRUPTOR, 1); // @todo figure out spell
+                            me->CastSpell(player, SPELL_SUMMON_ARCANE_DISRUPTOR);
                         break;
                     case GOSSIP_OFFSET_OPEN_GM_MENU:
-                        AddGossipItemFor(player, GossipOptionIcon::SpiritHealer, "Teleport all players to Arthas", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + GOSSIP_OFFSET_GM_INITIAL);
+                        AddGossipItemFor(player, GossipOptionNpc::None, "Teleport all players to Arthas", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + GOSSIP_OFFSET_GM_INITIAL);
                         for (uint32 state = 1; state <= COMPLETE; state = state << 1)
                         {
                             if (GetStableStateFor(COSProgressStates(state)) == state)
-                                AddGossipItemFor(player, GossipOptionIcon::SpiritHealer, Trinity::StringFormat("Set instance progress to 0x%05X", state), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + GOSSIP_OFFSET_GM_INITIAL + state);
+                                AddGossipItemFor(player, GossipOptionNpc::None, Trinity::StringFormat("Set instance progress to 0x%05X", state), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + GOSSIP_OFFSET_GM_INITIAL + state);
                         }
                         for (uint32 state = 1; state <= COMPLETE; state = state << 1)
                         {
                             if (GetStableStateFor(COSProgressStates(state)) != state)
-                                AddGossipItemFor(player, GossipOptionIcon::SpiritHealer, Trinity::StringFormat("Force state to 0x%05X (UNSTABLE)", state), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + GOSSIP_OFFSET_GM_INITIAL + state);
+                                AddGossipItemFor(player, GossipOptionNpc::None, Trinity::StringFormat("Force state to 0x%05X (UNSTABLE)", state), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + GOSSIP_OFFSET_GM_INITIAL + state);
                         }
                         SendGossipMenuFor(player, GOSSIP_TEXT_SKIP_1, me->GetGUID());
                         break;
@@ -408,7 +411,7 @@ class npc_chromie_start : public CreatureScript
                 return false;
             }
 
-            void QuestAccept(Player* /*player*/, Quest const* quest) override
+            void OnQuestAccept(Player* /*player*/, Quest const* quest) override
             {
                 if (quest->GetQuestId() == QUEST_DISPELLING_ILLUSIONS)
                     AdvanceDungeon();
@@ -505,8 +508,9 @@ class npc_chromie_middle : public CreatureScript
                     Instance->SetGuidData(DATA_UTHER_START, player->GetGUID());
             }
 
-            bool GossipHello(Player* player) override
+            bool OnGossipHello(Player* player) override
             {
+                InitGossipMenuFor(player, GOSSIP_MENU_STEP1);
                 if (me->IsQuestGiver())
                     player->PrepareQuestMenu(me->GetGUID());
 
@@ -516,21 +520,24 @@ class npc_chromie_middle : public CreatureScript
                 return true;
             }
 
-            bool GossipSelect(Player* player, uint32 /*sender*/, uint32 listId) override
+            bool OnGossipSelect(Player* player, uint32 /*sender*/, uint32 listId) override
             {
                 uint32 const action = GetGossipActionFor(player, listId);
                 ClearGossipMenuFor(player);
                 switch (action - GOSSIP_ACTION_INFO_DEF)
                 {
                     case GOSSIP_OFFSET_STEP1:
+                        InitGossipMenuFor(player, GOSSIP_MENU_STEP2);
                         AddGossipItemFor(player, GOSSIP_MENU_STEP2, GOSSIP_OPTION_STEP2, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + GOSSIP_OFFSET_STEP2);
                         SendGossipMenuFor(player, GOSSIP_TEXT_STEP2, me->GetGUID());
                         break;
                     case GOSSIP_OFFSET_STEP2:
+                        InitGossipMenuFor(player, GOSSIP_MENU_STEP3);
                         AddGossipItemFor(player, GOSSIP_MENU_STEP3, GOSSIP_OPTION_STEP3, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + GOSSIP_OFFSET_STEP3);
                         SendGossipMenuFor(player, GOSSIP_TEXT_STEP3, me->GetGUID());
                         break;
                     case GOSSIP_OFFSET_STEP3:
+                        InitGossipMenuFor(player, GOSSIP_MENU_STEP4);
                         SendGossipMenuFor(player, GOSSIP_TEXT_STEP4, me->GetGUID());
                         AdvanceDungeon(player);
                         break;
@@ -1458,7 +1465,6 @@ public:
         return GetCullingOfStratholmeAI<npc_crate_helperAI>(creature);
     }
 };
-
 
 void AddSC_culling_of_stratholme()
 {

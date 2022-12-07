@@ -16,6 +16,7 @@
  */
 
 #include "MovementPackets.h"
+#include "CharacterPackets.h"
 #include "SpellPackets.h"
 
 void WorldPackets::Spells::CancelAura::Read()
@@ -24,16 +25,21 @@ void WorldPackets::Spells::CancelAura::Read()
     _worldPacket >> CasterGUID;
 }
 
-void WorldPackets::Spells::PetCancelAura::Read()
-{
-    _worldPacket >> PetGUID;
-    _worldPacket >> SpellID;
-}
-
 void WorldPackets::Spells::CancelChannelling::Read()
 {
     _worldPacket >> ChannelSpell;
     _worldPacket >> Reason;
+}
+
+void WorldPackets::Spells::CancelModSpeedNoControlAuras::Read()
+{
+    _worldPacket >> TargetGUID;
+}
+
+void WorldPackets::Spells::PetCancelAura::Read()
+{
+    _worldPacket >> PetGUID;
+    _worldPacket >> SpellID;
 }
 
 WorldPacket const* WorldPackets::Spells::CategoryCooldown::Write()
@@ -884,6 +890,13 @@ void WorldPackets::Spells::GetMirrorImageData::Read()
     _worldPacket >> UnitGUID;
     _worldPacket >> DisplayID;
 }
+
+WorldPackets::Spells::MirrorImageComponentedData::MirrorImageComponentedData()
+    : ServerPacket(SMSG_MIRROR_IMAGE_COMPONENTED_DATA, 8 + 4 + 8 * 1 + 8 + 11 * 4)
+{
+}
+
+WorldPackets::Spells::MirrorImageComponentedData::~MirrorImageComponentedData() = default;
 
 WorldPacket const* WorldPackets::Spells::MirrorImageComponentedData::Write()
 {

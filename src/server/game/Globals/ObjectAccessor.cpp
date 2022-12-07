@@ -23,19 +23,16 @@
 #include "GridNotifiers.h"
 #include "Item.h"
 #include "Map.h"
-#include "ObjectDefines.h"
 #include "ObjectMgr.h"
 #include "Pet.h"
 #include "Player.h"
 #include "Transport.h"
-#include "World.h"
 
 template<class T>
 void HashMapHolder<T>::Insert(T* o)
 {
-    static_assert(std::is_same<Player, T>::value
-        || std::is_same<Transport, T>::value,
-        "Only Player and Transport can be registered in global HashMapHolder");
+    static_assert(std::is_same<Player, T>::value,
+        "Only Player can be registered in global HashMapHolder");
 
     std::unique_lock<std::shared_mutex> lock(*GetLock());
 
@@ -74,32 +71,31 @@ std::shared_mutex* HashMapHolder<T>::GetLock()
 }
 
 template class TC_GAME_API HashMapHolder<Player>;
-template class TC_GAME_API HashMapHolder<Transport>;
 
 namespace PlayerNameMapHolder
 {
-typedef std::unordered_map<std::string, Player*> MapType;
-static MapType PlayerNameMap;
+    typedef std::unordered_map<std::string, Player*> MapType;
+    static MapType PlayerNameMap;
 
-void Insert(Player* p)
-{
-    PlayerNameMap[p->GetName()] = p;
-}
+    void Insert(Player* p)
+    {
+        PlayerNameMap[p->GetName()] = p;
+    }
 
-void Remove(Player* p)
-{
-    PlayerNameMap.erase(p->GetName());
-}
+    void Remove(Player* p)
+    {
+        PlayerNameMap.erase(p->GetName());
+    }
 
-Player* Find(std::string const& name)
-{
-    std::string charName(name);
-    if (!normalizePlayerName(charName))
-        return nullptr;
+    Player* Find(std::string_view name)
+    {
+        std::string charName(name);
+        if (!normalizePlayerName(charName))
+            return nullptr;
 
-    auto itr = PlayerNameMap.find(charName);
-    return (itr != PlayerNameMap.end()) ? itr->second : nullptr;
-}
+        auto itr = PlayerNameMap.find(charName);
+        return (itr != PlayerNameMap.end()) ? itr->second : nullptr;
+    }
 } // namespace PlayerNameMapHolder
 
 WorldObject* ObjectAccessor::GetWorldObject(WorldObject const& p, ObjectGuid const& guid)
@@ -182,14 +178,9 @@ GameObject* ObjectAccessor::GetGameObject(WorldObject const& u, ObjectGuid const
     return u.GetMap()->GetGameObject(guid);
 }
 
-Transport* ObjectAccessor::GetTransportOnMap(WorldObject const& u, ObjectGuid const& guid)
+Transport* ObjectAccessor::GetTransport(WorldObject const& u, ObjectGuid const& guid)
 {
     return u.GetMap()->GetTransport(guid);
-}
-
-Transport* ObjectAccessor::GetTransport(ObjectGuid const& guid)
-{
-    return HashMapHolder<Transport>::Find(guid);
 }
 
 DynamicObject* ObjectAccessor::GetDynamicObject(WorldObject const& u, ObjectGuid const& guid)
@@ -264,7 +255,7 @@ Player* ObjectAccessor::FindPlayer(ObjectGuid const& guid)
     return player && player->IsInWorld() ? player : nullptr;
 }
 
-Player* ObjectAccessor::FindPlayerByName(std::string const& name)
+Player* ObjectAccessor::FindPlayerByName(std::string_view name)
 {
     Player* player = PlayerNameMapHolder::Find(name);
     if (!player || !player->IsInWorld())
@@ -284,7 +275,7 @@ Player* ObjectAccessor::FindConnectedPlayer(ObjectGuid const& guid)
     return HashMapHolder<Player>::Find(guid);
 }
 
-Player* ObjectAccessor::FindConnectedPlayerByName(std::string const& name)
+Player* ObjectAccessor::FindConnectedPlayerByName(std::string_view name)
 {
     return PlayerNameMapHolder::Find(name);
 }

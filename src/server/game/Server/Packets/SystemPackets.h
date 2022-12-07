@@ -44,6 +44,12 @@ namespace WorldPackets
             SavedThrottleObjectState ThrottleState;
         };
 
+        struct GameRuleValuePair
+        {
+            int32 Rule = 0;
+            int32 Value = 0;
+        };
+
         class FeatureSystemStatus final : public ServerPacket
         {
         public:
@@ -122,6 +128,9 @@ namespace WorldPackets
             uint32 ClubsPresenceUpdateTimer              = 0;
             uint32 HiddenUIClubsPresenceUpdateTimer      = 0; ///< Timer for updating club presence when communities ui frame is hidden
             uint32 KioskSessionMinutes                   = 0;
+            int32 ActiveSeason                           = 0; ///< Currently active Classic season
+            int16 MaxPlayerNameQueriesPerPacket          = 50;
+            int16 PlayerNameQueryTelemetryInterval       = 600;
             bool ItemRestorationButtonEnabled        = false;
             bool CharUndeleteEnabled                 = false; ///< Implemented
             bool BpayStoreDisabledByParentalControls = false;
@@ -154,6 +163,7 @@ namespace WorldPackets
             SocialQueueConfig QuickJoinConfig;
             SquelchInfo Squelch;
             RafSystemFeatureInfo RAFSystem;
+            std::vector<GameRuleValuePair> GameRuleValues;
         };
 
         class FeatureSystemStatusGlueScreen final : public ServerPacket
@@ -191,6 +201,11 @@ namespace WorldPackets
             int32 MinimumExpansionLevel              = 0;
             int32 MaximumExpansionLevel              = 0;
             uint32 KioskSessionMinutes               = 0;
+            int32 ActiveSeason                       = 0;     // Currently active Classic season
+            std::vector<GameRuleValuePair> GameRuleValues;
+            int16 MaxPlayerNameQueriesPerPacket = 50;
+            int16 PlayerNameQueryTelemetryInterval = 600;
+            Optional<int32> LaunchETA;
         };
 
         class MOTD final : public ServerPacket

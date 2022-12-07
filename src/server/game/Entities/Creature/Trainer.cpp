@@ -17,6 +17,7 @@
 
 #include "Trainer.h"
 #include "BattlePetMgr.h"
+#include "ConditionMgr.h"
 #include "Creature.h"
 #include "Log.h"
 #include "NPCPackets.h"
@@ -82,7 +83,7 @@ namespace Trainer
         }
 
         bool sendSpellVisual = true;
-        BattlePetSpeciesEntry const* speciesEntry = sSpellMgr->GetBattlePetSpecies(trainerSpell->SpellId);
+        BattlePetSpeciesEntry const* speciesEntry = BattlePets::BattlePetMgr::GetBattlePetSpeciesBySpell(trainerSpell->SpellId);
         if (speciesEntry)
         {
             if (player->GetSession()->GetBattlePetMgr()->HasMaxPetCount(speciesEntry, player->GetGUID()))

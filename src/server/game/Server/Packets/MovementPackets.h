@@ -19,6 +19,7 @@
 #define MovementPackets_h__
 
 #include "Packet.h"
+#include "CombatLogPacketsCommon.h"
 #include "Object.h"
 #include "Optional.h"
 
@@ -104,8 +105,7 @@ namespace WorldPackets
             struct Inner
             {
                 int32 Unknown_1 = 0;
-                int32 Unknown_2 = 0;
-                int32 Unknown_3 = 0;
+                Spells::SpellCastVisual Visual;
                 uint32 Unknown_4 = 0;
             };
 
@@ -682,6 +682,8 @@ namespace WorldPackets
                 Optional<CollisionHeightInfo> CollisionHeight;
                 Optional<MovementForce> MovementForce_;
                 Optional<ObjectGuid> MovementForceGUID;
+                Optional<ObjectGuid> MovementInertiaGUID;
+                Optional<uint32> MovementInertiaLifetimeMs;
             };
 
             MoveSetCompoundState() : ServerPacket(SMSG_MOVE_SET_COMPOUND_STATE, 4 + 1) { }
@@ -690,6 +692,16 @@ namespace WorldPackets
 
             ObjectGuid MoverGUID;
             std::vector<MoveStateChange> StateChanges;
+        };
+
+        class MoveInitActiveMoverComplete final : public ClientPacket
+        {
+        public:
+            MoveInitActiveMoverComplete(WorldPacket&& packet) : ClientPacket(CMSG_MOVE_INIT_ACTIVE_MOVER_COMPLETE, std::move(packet)) { }
+
+            void Read() override;
+
+            uint32 Ticks = 0;
         };
     }
 

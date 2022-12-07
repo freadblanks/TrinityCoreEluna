@@ -20,11 +20,7 @@
 #include "CreatureAIImpl.h"
 #include "Map.h"
 #include "MotionMaster.h"
-#include "Player.h"
-#include "QuestDef.h"
 #include "Spell.h"
-#include "SpellAuraEffects.h"
-#include "SpellAuras.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
 #include <sstream>
@@ -133,8 +129,23 @@ SpellCastResult UnitAI::DoCast(uint32 spellId)
         {
             if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId, me->GetMap()->GetDifficultyID()))
             {
-                bool playerOnly = spellInfo->HasAttribute(SPELL_ATTR3_ONLY_TARGET_PLAYERS);
-                target = SelectTarget(SelectTargetMethod::Random, 0, spellInfo->GetMaxRange(false), playerOnly);
+                DefaultTargetSelector targetSelectorInner(me, spellInfo->GetMaxRange(false), false, true, 0);
+                auto targetSelector = [&](Unit const* candidate) -> bool
+                {
+                    if (!candidate->IsPlayer())
+                    {
+                        if (spellInfo->HasAttribute(SPELL_ATTR3_ONLY_ON_PLAYER))
+                            return false;
+
+                        if (spellInfo->HasAttribute(SPELL_ATTR5_NOT_ON_PLAYER_CONTROLLED_NPC) && candidate->IsControlledByPlayer())
+                            return false;
+                    }
+                    else if (spellInfo->HasAttribute(SPELL_ATTR5_NOT_ON_PLAYER))
+                        return false;
+
+                    return targetSelectorInner(candidate);
+                };
+                target = SelectTarget(SelectTargetMethod::Random, 0, targetSelector);
             }
             break;
         }
@@ -148,10 +159,24 @@ SpellCastResult UnitAI::DoCast(uint32 spellId)
         {
             if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId, me->GetMap()->GetDifficultyID()))
             {
-                bool playerOnly = spellInfo->HasAttribute(SPELL_ATTR3_ONLY_TARGET_PLAYERS);
                 float range = spellInfo->GetMaxRange(false);
 
-                DefaultTargetSelector targetSelector(me, range, playerOnly, true, -(int32)spellId);
+                DefaultTargetSelector targetSelectorInner(me, range, false, true, -(int32)spellId);
+                auto targetSelector = [&](Unit const* candidate) -> bool
+                {
+                    if (!candidate->IsPlayer())
+                    {
+                        if (spellInfo->HasAttribute(SPELL_ATTR3_ONLY_ON_PLAYER))
+                            return false;
+
+                        if (spellInfo->HasAttribute(SPELL_ATTR5_NOT_ON_PLAYER_CONTROLLED_NPC) && candidate->IsControlledByPlayer())
+                            return false;
+                    }
+                    else if (spellInfo->HasAttribute(SPELL_ATTR5_NOT_ON_PLAYER))
+                        return false;
+
+                    return targetSelectorInner(candidate);
+                };
                 if (!spellInfo->HasAuraInterruptFlag(SpellAuraInterruptFlags::NOT_VICTIM) && targetSelector(me->GetVictim()))
                     target = me->GetVictim();
                 else
@@ -191,7 +216,7 @@ void UnitAI::FillAISpellInfo()
     {
         AISpellInfoType* AIInfo = &AISpellInfo[{ spellInfo->Id, spellInfo->Difficulty }];
 
-        if (spellInfo->HasAttribute(SPELL_ATTR0_CASTABLE_WHILE_DEAD))
+        if (spellInfo->HasAttribute(SPELL_ATTR0_ALLOW_CAST_WHILE_DEAD))
             AIInfo->condition = AICOND_DIE;
         else if (spellInfo->IsPassive() || spellInfo->GetDuration() == -1)
             AIInfo->condition = AICOND_AGGRO;
@@ -201,9 +226,7 @@ void UnitAI::FillAISpellInfo()
         if (AIInfo->cooldown.count() < int32(spellInfo->RecoveryTime))
             AIInfo->cooldown = Milliseconds(spellInfo->RecoveryTime);
 
-        if (!spellInfo->GetMaxRange(false))
-            UPDATE_TARGET(AITARGET_SELF)
-        else
+        if (spellInfo->GetMaxRange(false))
         {
             for (SpellEffectInfo const& effect : spellInfo->GetEffects())
             {
@@ -304,7 +327,7 @@ ThreatManager& UnitAI::GetThreatManager()
     return me->GetThreatManager();
 }
 
-void UnitAI::SortByDistance(std::list<Unit*> list, bool ascending)
+void UnitAI::SortByDistance(std::list<Unit*>& list, bool ascending)
 {
     list.sort(Trinity::ObjectDistanceOrderPred(me, ascending));
 }

@@ -19,7 +19,6 @@
 #define _WARDEN_MAC_H
 
 #include "ARC4.h"
-#include "ByteBuffer.h"
 #include "Warden.h"
 
 class WorldSession;
@@ -37,6 +36,7 @@ class TC_GAME_API WardenMac : public Warden
         void RequestHash() override;
         void HandleHashResult(ByteBuffer& buff) override;
         void RequestChecks() override;
+        size_t DEBUG_ForceSpecificChecks(std::vector<uint16> const& /*checks*/) override { return 0; }
         void HandleCheckResult(ByteBuffer& buff) override;
 };
 

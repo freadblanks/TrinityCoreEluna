@@ -72,7 +72,8 @@ target_link_libraries(common
     openssl
     valgrind
     threads
-    jemalloc)
+    jemalloc
+    openssl_ed25519)
 
 if (ELUNA)
   target_link_libraries(common

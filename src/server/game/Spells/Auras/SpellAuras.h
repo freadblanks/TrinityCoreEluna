@@ -44,6 +44,7 @@ class DispelInfo;
 class DynObjAura;
 class ChargeDropEvent;
 class DynamicObject;
+class HealInfo;
 class ProcEventInfo;
 class Unit;
 class UnitAura;
@@ -83,7 +84,7 @@ class TC_GAME_API AuraApplication
         bool IsSelfcast() const { return (_flags & AFLAG_NOCASTER) != 0; }
 
         uint32 GetEffectsToApply() const { return _effectsToApply; }
-        void UpdateApplyEffectMask(uint32 newEffMask);
+        void UpdateApplyEffectMask(uint32 newEffMask, bool canHandleNewEffects);
 
         void SetRemoveMode(AuraRemoveMode mode) { _removeMode = mode; }
         AuraRemoveMode GetRemoveMode() const { return _removeMode; }
@@ -126,7 +127,7 @@ class TC_GAME_API Aura
         typedef std::unordered_map<ObjectGuid, AuraApplication*> ApplicationMap;
 
         static uint32 BuildEffectMaskForOwner(SpellInfo const* spellProto, uint32 availableEffectMask, WorldObject* owner);
-        static Aura* TryRefreshStackOrCreate(AuraCreateInfo& createInfo);
+        static Aura* TryRefreshStackOrCreate(AuraCreateInfo& createInfo, bool updateEffectMask = true);
         static Aura* TryCreate(AuraCreateInfo& createInfo);
         static Aura* Create(AuraCreateInfo& createInfo);
         explicit Aura(AuraCreateInfo const& createInfo);
@@ -247,11 +248,13 @@ class TC_GAME_API Aura
         bool CanStackWith(Aura const* existingAura) const;
 
         bool IsProcOnCooldown(TimePoint now) const;
-        void AddProcCooldown(TimePoint cooldownEnd);
+        void AddProcCooldown(SpellProcEntry const* procEntry, TimePoint now);
         void ResetProcCooldown();
         bool IsUsingCharges() const { return m_isUsingCharges; }
         void SetUsingCharges(bool val) { m_isUsingCharges = val; }
         void PrepareProcToTrigger(AuraApplication* aurApp, ProcEventInfo& eventInfo, TimePoint now);
+        void PrepareProcChargeDrop(SpellProcEntry const* procEntry, ProcEventInfo const& eventInfo);
+        void ConsumeProcCharges(SpellProcEntry const* procEntry);
         uint32 GetProcEffectMask(AuraApplication* aurApp, ProcEventInfo& eventInfo, TimePoint now) const;
         float CalcProcChance(SpellProcEntry const& procEntry, ProcEventInfo& eventInfo) const;
         void TriggerProcOnEvent(uint32 procEffectMask, AuraApplication* aurApp, ProcEventInfo& eventInfo);
@@ -276,6 +279,8 @@ class TC_GAME_API Aura
         void CallScriptEffectCalcCritChanceHandlers(AuraEffect const* aurEff, AuraApplication const* aurApp, Unit const* victim, float& critChance);
         void CallScriptEffectAbsorbHandlers(AuraEffect* aurEff, AuraApplication const* aurApp, DamageInfo& dmgInfo, uint32& absorbAmount, bool & defaultPrevented);
         void CallScriptEffectAfterAbsorbHandlers(AuraEffect* aurEff, AuraApplication const* aurApp, DamageInfo& dmgInfo, uint32& absorbAmount);
+        void CallScriptEffectAbsorbHandlers(AuraEffect* aurEff, AuraApplication const* aurApp, HealInfo& healInfo, uint32& absorbAmount, bool& defaultPrevented);
+        void CallScriptEffectAfterAbsorbHandlers(AuraEffect* aurEff, AuraApplication const* aurApp, HealInfo& healInfo, uint32& absorbAmount);
         void CallScriptEffectManaShieldHandlers(AuraEffect* aurEff, AuraApplication const* aurApp, DamageInfo& dmgInfo, uint32& absorbAmount, bool & defaultPrevented);
         void CallScriptEffectAfterManaShieldHandlers(AuraEffect* aurEff, AuraApplication const* aurApp, DamageInfo& dmgInfo, uint32& absorbAmount);
         void CallScriptEffectSplitHandlers(AuraEffect* aurEff, AuraApplication const* aurApp, DamageInfo& dmgInfo, uint32& splitAmount);
@@ -306,6 +311,12 @@ class TC_GAME_API Aura
         AuraEffectVector const& GetAuraEffects() const { return _effects; }
 
         virtual std::string GetDebugInfo() const;
+
+        Aura(Aura const&) = delete;
+        Aura(Aura&&) = delete;
+
+        Aura& operator=(Aura const&) = delete;
+        Aura& operator=(Aura&&) = delete;
 
     private:
         AuraScript* GetScriptByType(std::type_info const& type) const;

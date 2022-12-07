@@ -28,7 +28,6 @@ Category: Caverns of Time, The Black Morass
 #include "Log.h"
 #include "Map.h"
 #include "Player.h"
-#include "SpellInfo.h"
 #include "the_black_morass.h"
 #include "TemporarySummon.h"
 
@@ -109,27 +108,12 @@ public:
             _currentRiftId      = 0;
         }
 
-        void InitWorldState(bool Enable = true)
-        {
-            DoUpdateWorldState(WORLD_STATE_BM, Enable ? 1 : 0);
-            DoUpdateWorldState(WORLD_STATE_BM_SHIELD, 100);
-            DoUpdateWorldState(WORLD_STATE_BM_RIFT, 0);
-        }
-
         bool IsEncounterInProgress() const override
         {
             if (GetData(TYPE_MEDIVH) == IN_PROGRESS)
                 return true;
 
             return false;
-        }
-
-        void OnPlayerEnter(Player* player) override
-        {
-            if (GetData(TYPE_MEDIVH) == IN_PROGRESS)
-                return;
-
-            player->SendUpdateWorldState(WORLD_STATE_BM, 0);
         }
 
         void OnCreatureCreate(Creature* creature) override
@@ -193,7 +177,7 @@ public:
                     if (data == IN_PROGRESS)
                     {
                         TC_LOG_DEBUG("scripts", "Instance The Black Morass: Starting event.");
-                        InitWorldState();
+                        DoUpdateWorldState(WORLD_STATE_BM, 1);
                         m_auiEncounter[1] = IN_PROGRESS;
                         ScheduleEventNextPortal(15s);
                     }
@@ -298,9 +282,6 @@ public:
                     TEMPSUMMON_CORPSE_DESPAWN);
                 if (temp)
                 {
-                    temp->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
-                    temp->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
-
                     if (Creature* boss = SummonedPortalBoss(temp))
                     {
                         if (boss->GetEntry() == NPC_AEONUS)

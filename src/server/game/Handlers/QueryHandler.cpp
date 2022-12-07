@@ -23,33 +23,35 @@
 #include "GameTime.h"
 #include "Item.h"
 #include "Log.h"
-#include "MapManager.h"
 #include "NPCHandler.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "QueryPackets.h"
 #include "Realm.h"
+#include "TerrainMgr.h"
 #include "World.h"
 
-void WorldSession::SendNameQueryOpcode(ObjectGuid guid)
+void WorldSession::BuildNameQueryData(ObjectGuid guid, WorldPackets::Query::NameCacheLookupResult& lookupData)
 {
     Player* player = ObjectAccessor::FindConnectedPlayer(guid);
 
-    WorldPackets::Query::QueryPlayerNameResponse response;
-    response.Player = guid;
+    lookupData.Player = guid;
 
-    if (response.Data.Initialize(guid, player))
-        response.Result = RESPONSE_SUCCESS; // name known
+    lookupData.Data.emplace();
+    if (lookupData.Data->Initialize(guid, player))
+        lookupData.Result = RESPONSE_SUCCESS; // name known
     else
-        response.Result = RESPONSE_FAILURE; // name unknown
-
-    SendPacket(response.Write());
+        lookupData.Result = RESPONSE_FAILURE; // name unknown
 }
 
-void WorldSession::HandleNameQueryOpcode(WorldPackets::Query::QueryPlayerName& packet)
+void WorldSession::HandleQueryPlayerNames(WorldPackets::Query::QueryPlayerNames& queryPlayerNames)
 {
-    SendNameQueryOpcode(packet.Player);
+    WorldPackets::Query::QueryPlayerNamesResponse response;
+    for (ObjectGuid guid : queryPlayerNames.Players)
+        BuildNameQueryData(guid, response.Players.emplace_back());
+
+    SendPacket(response.Write());
 }
 
 void WorldSession::HandleQueryTimeOpcode(WorldPackets::Query::QueryTime& /*queryTime*/)
@@ -144,12 +146,12 @@ void WorldSession::HandleQueryCorpseLocation(WorldPackets::Query::QueryCorpseLoc
             if (corpseMapEntry->IsDungeon() && corpseMapEntry->CorpseMapID >= 0)
             {
                 // if corpse map have entrance
-                if (Map* entranceMap = sMapMgr->CreateBaseMap(corpseMapEntry->CorpseMapID))
+                if (std::shared_ptr<TerrainInfo> entranceTerrain = sTerrainMgr.LoadTerrain(corpseMapEntry->CorpseMapID))
                 {
                     mapID = corpseMapEntry->CorpseMapID;
                     x = corpseMapEntry->Corpse.X;
                     y = corpseMapEntry->Corpse.Y;
-                    z = entranceMap->GetHeight(player->GetPhaseShift(), x, y, MAX_HEIGHT);
+                    z = entranceTerrain->GetStaticHeight(player->GetPhaseShift(), x, y, MAX_HEIGHT);
                 }
             }
         }

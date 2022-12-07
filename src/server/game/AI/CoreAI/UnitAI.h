@@ -20,7 +20,6 @@
 
 #include "Containers.h"
 #include "Errors.h"
-#include "EventMap.h"
 #include "ObjectGuid.h"
 #include "SpellDefines.h"
 #include "ThreatManager.h"
@@ -296,14 +295,14 @@ class TC_GAME_API UnitAI
         virtual void JustExitedCombat() { }
 
         // Called when the unit is about to be removed from the world (despawn, grid unload, corpse disappearing, player logging out etc.)
-        virtual void LeavingWorld() { }
+        virtual void OnDespawn() { }
 
         // Called at any Damage to any victim (before damage apply)
         virtual void DamageDealt(Unit* /*victim*/, uint32& /*damage*/, DamageEffectType /*damageType*/) { }
 
         // Called at any Damage from any attacker (before damage apply)
         // Note: it for recalculation damage or special reaction at damage
-        virtual void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/) { }
+        virtual void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) { }
 
         // Called when the creature receives heal
         virtual void HealReceived(Unit* /*done_by*/, uint32& /*addhealth*/) { }
@@ -334,8 +333,6 @@ class TC_GAME_API UnitAI
         // Called when a game event starts or ends
         virtual void OnGameEvent(bool /*start*/, uint16 /*eventId*/) { }
 
-        virtual void OnMovementGeneratorFinalized(MovementGeneratorType /*type*/) { }
-
         virtual std::string GetDebugInfo() const;
 
     private:
@@ -343,7 +340,7 @@ class TC_GAME_API UnitAI
         UnitAI& operator=(UnitAI const& right) = delete;
 
         ThreatManager& GetThreatManager();
-        void SortByDistance(std::list<Unit*> list, bool ascending = true);
+        void SortByDistance(std::list<Unit*>& list, bool ascending = true);
 };
 
 #endif

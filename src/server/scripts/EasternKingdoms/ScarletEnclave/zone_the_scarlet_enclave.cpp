@@ -19,7 +19,6 @@
 #include "MotionMaster.h"
 #include "PassiveAI.h"
 #include "Player.h"
-#include "ScriptedCreature.h"
 #include "TemporarySummon.h"
 
 /*####
@@ -71,7 +70,6 @@ public:
             me->setActive(true);
             me->SetFarVisible(true);
             me->SetVisible(false);
-            me->AddUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
             me->SetCanFly(true);
 
             me->GetPosition(x, y, z);

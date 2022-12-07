@@ -27,7 +27,6 @@
 #include "Player.h"
 #include "SpellAuraEffects.h"
 #include "SpellHistory.h"
-#include "SpellMgr.h"
 #include "SpellScript.h"
 #include <numeric>
 
@@ -53,6 +52,7 @@ enum DeathKnightSpells
     SPELL_DK_DEATH_STRIKE_OFFHAND               = 66188,
     SPELL_DK_FESTERING_WOUND                    = 194310,
     SPELL_DK_FROST                              = 137006,
+    SPELL_DK_FROST_SCYTHE                       = 207230,
     SPELL_DK_GLYPH_OF_FOUL_MENAGERIE            = 58642,
     SPELL_DK_GLYPH_OF_THE_GEIST                 = 58640,
     SPELL_DK_GLYPH_OF_THE_SKELETON              = 146652,
@@ -431,7 +431,6 @@ class spell_dk_death_grip_initial : public SpellScript
     }
 };
 
-
 // 48743 - Death Pact
 class spell_dk_death_pact : public AuraScript
 {
@@ -797,6 +796,31 @@ class spell_dk_raise_dead : public SpellScript
     }
 };
 
+// 59057 - Rime
+class spell_dk_rime : public AuraScript
+{
+    PrepareAuraScript(spell_dk_rime);
+
+    bool Validate(SpellInfo const* spellInfo) override
+    {
+        return spellInfo->GetEffects().size() > EFFECT_1 && ValidateSpellInfo({ SPELL_DK_FROST_SCYTHE });
+    }
+
+    bool CheckProc(AuraEffect const* /*aurEff*/, ProcEventInfo& eventInfo)
+    {
+        float chance = static_cast<float>(GetSpellInfo()->GetEffect(EFFECT_1).CalcValue(GetTarget()));
+        if (eventInfo.GetSpellInfo()->Id == SPELL_DK_FROST_SCYTHE)
+            chance /= 2.f;
+
+        return roll_chance_f(chance);
+    }
+
+    void Register() override
+    {
+        DoCheckEffectProc += AuraCheckEffectProcFn(spell_dk_rime::CheckProc, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL);
+    }
+};
+
 // 55233 - Vampiric Blood
 class spell_dk_vampiric_blood : public AuraScript
 {
@@ -815,26 +839,27 @@ class spell_dk_vampiric_blood : public AuraScript
 
 void AddSC_deathknight_spell_scripts()
 {
-    RegisterAuraScript(spell_dk_advantage_t10_4p);
-    RegisterAuraScript(spell_dk_anti_magic_shell);
+    RegisterSpellScript(spell_dk_advantage_t10_4p);
+    RegisterSpellScript(spell_dk_anti_magic_shell);
     RegisterSpellScript(spell_dk_army_transform);
     RegisterSpellScript(spell_dk_blood_boil);
-    RegisterAuraScript(spell_dk_dancing_rune_weapon);
+    RegisterSpellScript(spell_dk_dancing_rune_weapon);
     RegisterSpellAndAuraScriptPair(spell_dk_death_and_decay, spell_dk_death_and_decay_AuraScript);
     RegisterSpellScript(spell_dk_death_coil);
     RegisterSpellScript(spell_dk_death_gate);
     RegisterSpellScript(spell_dk_death_grip_initial);
-    RegisterAuraScript(spell_dk_death_pact);
+    RegisterSpellScript(spell_dk_death_pact);
     RegisterSpellScript(spell_dk_death_strike);
-    RegisterAuraScript(spell_dk_death_strike_enabler);
+    RegisterSpellScript(spell_dk_death_strike_enabler);
     RegisterSpellScript(spell_dk_festering_strike);
     RegisterSpellScript(spell_dk_ghoul_explode);
     RegisterSpellScript(spell_dk_glyph_of_scourge_strike_script);
-    RegisterAuraScript(spell_dk_mark_of_blood);
-    RegisterAuraScript(spell_dk_necrosis);
+    RegisterSpellScript(spell_dk_mark_of_blood);
+    RegisterSpellScript(spell_dk_necrosis);
     RegisterSpellScript(spell_dk_pet_geist_transform);
     RegisterSpellScript(spell_dk_pet_skeleton_transform);
-    RegisterAuraScript(spell_dk_pvp_4p_bonus);
+    RegisterSpellScript(spell_dk_pvp_4p_bonus);
     RegisterSpellScript(spell_dk_raise_dead);
-    RegisterAuraScript(spell_dk_vampiric_blood);
+    RegisterSpellScript(spell_dk_rime);
+    RegisterSpellScript(spell_dk_vampiric_blood);
 }

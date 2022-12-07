@@ -751,12 +751,12 @@ namespace UF
             return std::end(_values);
         }
 
-        std::size_t size() const
+        static constexpr std::size_t size()
         {
             return Size;
         }
 
-        T const& operator[](uint32 index) const
+        T const& operator[](std::size_t index) const
         {
             return _values[index];
         }
@@ -764,6 +764,19 @@ namespace UF
     private:
         T _values[Size] = {};
     };
+
+    // workaround functions for internal compiler errors in msvc 19.33.31629
+    template<typename T>
+    constexpr std::size_t size()
+    {
+        return T::size();
+    }
+
+    template<typename T>
+    constexpr std::size_t size_of_value_type()
+    {
+        return sizeof(typename T::value_type);
+    }
 
     template<typename T, std::size_t Size, uint32 Bit, uint32 FirstElementBit>
     class UpdateFieldArray : public UpdateFieldArrayBase<T, Size>

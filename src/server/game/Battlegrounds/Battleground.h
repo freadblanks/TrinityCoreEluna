@@ -47,21 +47,7 @@ namespace WorldPackets
         struct BattlegroundPlayerPosition;
     }
 
-    namespace WorldState
-    {
-        class InitWorldStates;
-    }
 }
-
-enum BattlegroundCriteriaId
-{
-    BG_CRITERIA_CHECK_RESILIENT_VICTORY,
-    BG_CRITERIA_CHECK_SAVE_THE_DAY,
-    BG_CRITERIA_CHECK_EVERYTHING_COUNTS,
-    BG_CRITERIA_CHECK_AV_PERFECTION,
-    BG_CRITERIA_CHECK_DEFENSE_OF_THE_ANCIENTS,
-    BG_CRITERIA_CHECK_NOT_EVEN_A_SCRATCH,
-};
 
 enum BattlegroundBroadcastTexts
 {
@@ -119,7 +105,14 @@ enum BattlegroundSpells
     SPELL_RECENTLY_DROPPED_FLAG     = 42792,                // Recently Dropped Flag
     SPELL_AURA_PLAYER_INACTIVE      = 43681,                // Inactive
     SPELL_HONORABLE_DEFENDER_25Y    = 68652,                // +50% honor when standing at a capture point that you control, 25yards radius (added in 3.2)
-    SPELL_HONORABLE_DEFENDER_60Y    = 66157                 // +50% honor when standing at a capture point that you control, 60yards radius (added in 3.2), probably for 40+ player battlegrounds
+    SPELL_HONORABLE_DEFENDER_60Y    = 66157,                // +50% honor when standing at a capture point that you control, 60yards radius (added in 3.2), probably for 40+ player battlegrounds
+    SPELL_MERCENARY_CONTRACT_HORDE  = 193472,
+    SPELL_MERCENARY_CONTRACT_ALLIANCE = 193475,
+    SPELL_MERCENARY_HORDE_1         = 193864,
+    SPELL_MERCENARY_HORDE_REACTIONS = 195838,
+    SPELL_MERCENARY_ALLIANCE_1      = 193863,
+    SPELL_MERCENARY_ALLIANCE_REACTIONS = 195843,
+    SPELL_MERCENARY_SHAPESHIFT      = 193970,
 };
 
 enum BattlegroundTimeIntervals
@@ -136,7 +129,7 @@ enum BattlegroundTimeIntervals
     BUFF_RESPAWN_TIME               = 180,                  // secs
     BATTLEGROUND_COUNTDOWN_MAX      = 120,                  // secs
     ARENA_COUNTDOWN_MAX             = 60,                   // secs
-    PLAYER_POSITION_UPDATE_INTERVAL = 5                     // secs
+    PLAYER_POSITION_UPDATE_INTERVAL = 5000,                 // ms
 };
 
 enum BattlegroundStartTimeIntervals
@@ -171,6 +164,7 @@ struct BattlegroundPlayer
     time_t OfflineRemoveTime;                              // for tracking and removing offline players from queue after 5 minutes
     uint32 Team;                                           // Player's team
     int32 ActiveSpec;                                      // Player's active spec
+    bool Mercenary;
 };
 
 struct BattlegroundObjectInfo
@@ -274,14 +268,10 @@ class TC_GAME_API Battleground
         virtual void Reset();                               // resets all common properties for battlegrounds, must be implemented and called in BG subclass
         virtual void StartingEventCloseDoors() { }
         virtual void StartingEventOpenDoors() { }
-        virtual void ResetBGSubclass() { }                  // must be implemented in BG subclass
 
         virtual void DestroyGate(Player* /*player*/, GameObject* /*go*/) { }
 
-        /* achievement req. */
-        virtual bool IsAllNodesControlledByTeam(uint32 /*team*/) const { return false; }
-        void StartCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry);
-        virtual bool CheckAchievementCriteriaMeet(uint32 /*criteriaId*/, Player const* /*player*/, Unit const* /*target*/ = nullptr, uint32 /*miscvalue1*/ = 0);
+        void TriggerGameEvent(uint32 gameEventId);
 
         /* Battleground */
         // Get methods:
@@ -378,7 +368,6 @@ class TC_GAME_API Battleground
 
         // Packet Transfer
         // method that should fill worldpacket with actual world states (not yet implemented for all battlegrounds!)
-        virtual void FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& /*packet*/) { }
         void SendPacketToTeam(uint32 teamId, WorldPacket const* packet, Player* except = nullptr) const;
         void SendPacketToAll(WorldPacket const* packet) const;
 
@@ -394,7 +383,7 @@ class TC_GAME_API Battleground
         void RemoveAuraOnTeam(uint32 SpellID, uint32 TeamID);
         void RewardHonorToTeam(uint32 Honor, uint32 TeamID);
         void RewardReputationToTeam(uint32 faction_id, uint32 Reputation, uint32 TeamID);
-        void UpdateWorldState(uint32 variable, uint32 value, bool hidden = false);
+        void UpdateWorldState(int32 worldStateId, int32 value, bool hidden = false);
         virtual void EndBattleground(uint32 winner);
         void BlockMovement(Player* player);
 
@@ -488,6 +477,7 @@ class TC_GAME_API Battleground
         uint32 GetPlayerTeam(ObjectGuid guid) const;
         uint32 GetOtherTeam(uint32 teamId) const;
         bool IsPlayerInBattleground(ObjectGuid guid) const;
+        bool IsPlayerMercenaryInBattleground(ObjectGuid guid) const;
 
         bool ToBeDeleted() const { return m_SetDeleteThis; }
         void SetDeleteThis() { m_SetDeleteThis = true; }

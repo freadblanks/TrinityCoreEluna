@@ -29,7 +29,6 @@ WorldPackets::Guild::QueryGuildInfoResponse::QueryGuildInfoResponse()
 WorldPacket const* WorldPackets::Guild::QueryGuildInfoResponse::Write()
 {
     _worldPacket << GuildGuid;
-    _worldPacket << PlayerGuid;
     _worldPacket.WriteBit(Info.has_value());
     _worldPacket.FlushBits();
 
@@ -179,6 +178,8 @@ ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Guild::GuildRosterMemberD
     data << uint8(rosterMemberData.Level);
     data << uint8(rosterMemberData.ClassID);
     data << uint8(rosterMemberData.Gender);
+    data << uint64(rosterMemberData.GuildClubMemberID);
+    data << uint8(rosterMemberData.RaceID);
 
     data.WriteBits(rosterMemberData.Name.length(), 6);
     data.WriteBits(rosterMemberData.Note.length(), 8);

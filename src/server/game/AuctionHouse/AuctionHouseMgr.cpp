@@ -20,6 +20,7 @@
 #include "AuctionHousePackets.h"
 #include "AccountMgr.h"
 #include "Bag.h"
+#include "BattlePetMgr.h"
 #include "DB2Stores.h"
 #include "CharacterCache.h"
 #include "CollectionMgr.h"
@@ -35,7 +36,6 @@
 #include "Player.h"
 #include "Realm.h"
 #include "ScriptMgr.h"
-#include "SpellMgr.h"
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
@@ -631,6 +631,7 @@ void AuctionHouseMgr::LoadAuctions()
             auction.BidAmount = fields[7].GetUInt64();
             auction.StartTime = std::chrono::system_clock::from_time_t(fields[8].GetInt64());
             auction.EndTime = std::chrono::system_clock::from_time_t(fields[9].GetInt64());
+            auction.ServerFlags = static_cast<AuctionPostingServerFlag>(fields[10].GetUInt8());
 
             auto biddersItr = biddersByAuction.find(auction.Id);
             if (biddersItr != biddersByAuction.end())
@@ -1003,6 +1004,7 @@ void AuctionHouseObject::AddAuction(CharacterDatabaseTransaction trans, AuctionP
         stmt->setUInt64(7, auction.BidAmount);
         stmt->setInt64(8, std::chrono::system_clock::to_time_t(auction.StartTime));
         stmt->setInt64(9, std::chrono::system_clock::to_time_t(auction.EndTime));
+        stmt->setUInt8(10, auction.ServerFlags.AsUnderlyingType());
         trans->Append(stmt);
 
         for (Item* item : auction.Items)
@@ -1278,7 +1280,7 @@ void AuctionHouseObject::BuildListBuckets(WorldPackets::AuctionHouse::AuctionLis
                     if (player->HasSpell(itemTemplate->Effects[1]->SpellID))
                         continue;
 
-                    if (BattlePetSpeciesEntry const* battlePetSpecies = sSpellMgr->GetBattlePetSpecies(itemTemplate->Effects[1]->SpellID))
+                    if (BattlePetSpeciesEntry const* battlePetSpecies = BattlePets::BattlePetMgr::GetBattlePetSpeciesBySpell(itemTemplate->Effects[1]->SpellID))
                         if (knownPetSpecies.test(battlePetSpecies->ID))
                             continue;
                 }
@@ -1754,7 +1756,7 @@ bool AuctionHouseObject::BuyCommodity(CharacterDatabaseTransaction trans, Player
             if (!sCharacterCache->GetCharacterNameByGuid(auction->Owner, ownerName))
                 ownerName = sObjectMgr->GetTrinityStringForDBCLocale(LANG_UNKNOWN);
 
-            sLog->outCommand(bidderAccId, "GM %s (Account: %u) bought commodity in auction: %s (Entry: %u Count: %u) and pay money: " UI64FMTD ". Original owner %s (Account: %u)",
+            sLog->OutCommand(bidderAccId, "GM %s (Account: %u) bought commodity in auction: %s (Entry: %u Count: %u) and pay money: " UI64FMTD ". Original owner %s (Account: %u)",
                 player->GetName().c_str(), bidderAccId, items[0].Items[0]->GetNameForLocaleIdx(sWorld->GetDefaultDbcLocale()).c_str(),
                 items[0].Items[0]->GetEntry(), boughtFromAuction, auction->BuyoutOrUnitPrice * boughtFromAuction, ownerName.c_str(),
                 sCharacterCache->GetCharacterAccountIdByGuid(auction->Owner));
@@ -1854,18 +1856,16 @@ void AuctionHouseObject::SendAuctionWon(AuctionPosting const* auction, Player* b
 
     // data for gm.log
     std::string bidderName;
-    bool logGmTrade = false;
+    bool logGmTrade = auction->ServerFlags.HasFlag(AuctionPostingServerFlag::GmLogBuyer);
 
     if (bidder)
     {
         bidderAccId = bidder->GetSession()->GetAccountId();
         bidderName = bidder->GetName();
-        logGmTrade = bidder->GetSession()->HasPermission(rbac::RBAC_PERM_LOG_GM_TRADE);
     }
     else
     {
         bidderAccId = sCharacterCache->GetCharacterAccountIdByGuid(auction->Bidder);
-        logGmTrade = AccountMgr::HasPermission(bidderAccId, rbac::RBAC_PERM_LOG_GM_TRADE, realm.Id.Realm);
 
         if (logGmTrade && !sCharacterCache->GetCharacterNameByGuid(auction->Bidder, bidderName))
             bidderName = sObjectMgr->GetTrinityStringForDBCLocale(LANG_UNKNOWN);
@@ -1879,7 +1879,7 @@ void AuctionHouseObject::SendAuctionWon(AuctionPosting const* auction, Player* b
 
         uint32 ownerAccId = sCharacterCache->GetCharacterAccountIdByGuid(auction->Owner);
 
-        sLog->outCommand(bidderAccId, "GM %s (Account: %u) won item in auction: %s (Entry: %u Count: %u) and pay money: " UI64FMTD ". Original owner %s (Account: %u)",
+        sLog->OutCommand(bidderAccId, "GM %s (Account: %u) won item in auction: %s (Entry: %u Count: %u) and pay money: " UI64FMTD ". Original owner %s (Account: %u)",
             bidderName.c_str(), bidderAccId, auction->Items[0]->GetNameForLocaleIdx(sWorld->GetDefaultDbcLocale()).c_str(),
             auction->Items[0]->GetEntry(), auction->GetTotalItemCount(), auction->BidAmount, ownerName.c_str(), ownerAccId);
     }
@@ -1958,7 +1958,6 @@ void AuctionHouseObject::SendAuctionExpired(AuctionPosting const* auction, Chara
     {
         if (owner)
             owner->GetSession()->SendAuctionClosedNotification(auction, 0.0f, false);
-
 
         auto itemItr = auction->Items.begin();
         while (itemItr != auction->Items.end())

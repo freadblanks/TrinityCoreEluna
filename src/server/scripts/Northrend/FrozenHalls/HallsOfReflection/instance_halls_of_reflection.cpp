@@ -24,8 +24,13 @@
 #include "ScriptMgr.h"
 #include "TemporarySummon.h"
 #include "Transport.h"
-#include "WorldStatePackets.h"
-#include <sstream>
+
+DungeonEncounterData const encounters[] =
+{
+    { DATA_FALRIC, {{ 1992 }} },
+    { DATA_MARWYN, {{ 1993 }} },
+    { DATA_THE_LICH_KING_ESCAPE, {{ 1990 }} }
+};
 
 Position const JainaSpawnPos           = { 5236.659f, 1929.894f, 707.7781f, 0.8726646f }; // Jaina Spawn Position
 Position const SylvanasSpawnPos        = { 5236.667f, 1929.906f, 707.7781f, 0.8377581f }; // Sylvanas Spawn Position (sniffed)
@@ -90,6 +95,7 @@ class instance_halls_of_reflection : public InstanceMapScript
             {
                 SetHeaders(DataHeader);
                 SetBossNumber(EncounterCount);
+                LoadDungeonEncounterData(encounters);
 
                 _teamInInstance           = 0;
                 _waveCount                = 0;
@@ -294,12 +300,6 @@ class instance_halls_of_reflection : public InstanceMapScript
                 }
             }
 
-            void FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet) override
-            {
-                packet.Worldstates.emplace_back(WORLD_STATE_HOR_WAVES_ENABLED, (_introState == DONE && GetBossState(DATA_MARWYN) != DONE) ? 1 : 0);
-                packet.Worldstates.emplace_back(WORLD_STATE_HOR_WAVE_COUNT, _waveCount);
-            }
-
             bool SetBossState(uint32 type, EncounterState state) override
             {
                 if (!InstanceScript::SetBossState(type, state))
@@ -321,7 +321,7 @@ class instance_halls_of_reflection : public InstanceMapScript
                                 bunny->CastSpell(bunny, SPELL_START_HALLS_OF_REFLECTION_QUEST_AE, true);
 
                             if (Creature* korelnOrLoralen = instance->GetCreature(KorelnOrLoralenGUID))
-                                korelnOrLoralen->AddNpcFlag(UNIT_NPC_FLAG_QUESTGIVER);
+                                korelnOrLoralen->SetNpcFlag(UNIT_NPC_FLAG_QUESTGIVER);
 
                             HandleGameObject(EntranceDoorGUID, true);
                             HandleGameObject(ImpenetrableDoorGUID, true);
@@ -344,7 +344,7 @@ class instance_halls_of_reflection : public InstanceMapScript
                                 break;
                             case DONE:
                                 if (GameObject* chest = instance->GetGameObject(CaptainsChestGUID))
-                                    chest->RemoveFlag(GameObjectFlags(GO_FLAG_LOCKED | GO_FLAG_NOT_SELECTABLE | GO_FLAG_NODESPAWN));
+                                    chest->RemoveFlag(GO_FLAG_LOCKED | GO_FLAG_NOT_SELECTABLE | GO_FLAG_NODESPAWN);
 
                                 DoUseDoorOrButton(CaveInGUID, 15);
 
@@ -355,8 +355,6 @@ class instance_halls_of_reflection : public InstanceMapScript
                                 }
                                 break;
                             case FAIL:
-                                DoStopCriteriaTimer(CriteriaStartEvent::SendEvent, ACHIEV_NOT_RETREATING_EVENT);
-
                                 if (Creature* jainaOrSylvanas = instance->GetCreature(JainaOrSylvanasEscapeGUID))
                                     jainaOrSylvanas->DespawnOrUnsummon(10s);
 
@@ -393,7 +391,7 @@ class instance_halls_of_reflection : public InstanceMapScript
                             _teamInInstance = player->GetTeam();
                 }
 
-                if (Transport* gunship = sTransportMgr->CreateTransport(_teamInInstance == HORDE ? GO_ORGRIMS_HAMMER : GO_THE_SKYBREAKER, UI64LIT(0), instance))
+                if (Transport* gunship = sTransportMgr->CreateTransport(_teamInInstance == HORDE ? GO_ORGRIMS_HAMMER : GO_THE_SKYBREAKER, instance))
                     gunship->EnableMovement(GetBossState(DATA_THE_LICH_KING_ESCAPE) == DONE);
             }
 
@@ -466,8 +464,6 @@ class instance_halls_of_reflection : public InstanceMapScript
                     default:
                         break;
                 }
-
-                SaveToDB();
             }
 
             void SetGuidData(uint32 type, ObjectGuid data) override
@@ -539,7 +535,7 @@ class instance_halls_of_reflection : public InstanceMapScript
                 {
                     // spawning all wave npcs at once
                     case EVENT_SPAWN_WAVES:
-                        _waveCount = 1;
+                        _waveCount = GetBossState(DATA_FALRIC) == DONE ? 6 : 1;
                         DoUpdateWorldState(WORLD_STATE_HOR_WAVES_ENABLED, 1);
                         DoUpdateWorldState(WORLD_STATE_HOR_WAVE_COUNT, _waveCount);
                         {
@@ -553,7 +549,7 @@ class instance_halls_of_reflection : public InstanceMapScript
                             possibilityList.push_back(NPC_WAVE_MAGE);
 
                             // iterate each wave
-                            for (uint8 i = 0; i < 8; ++i)
+                            for (uint8 i = GetBossState(DATA_FALRIC) == DONE ? 4 : 0; i < 8; ++i)
                             {
                                 tempList = possibilityList;
 
@@ -594,7 +590,7 @@ class instance_halls_of_reflection : public InstanceMapScript
                                 if (Creature* temp = instance->GetCreature(guid))
                                 {
                                     temp->CastSpell(temp, SPELL_SPIRIT_ACTIVATE, false);
-                                    temp->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                                    temp->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
                                     temp->SetImmuneToAll(false);
                                     temp->AI()->DoZoneInCombat(temp);
                                 }
@@ -737,31 +733,16 @@ class instance_halls_of_reflection : public InstanceMapScript
                 return ObjectGuid::Empty;
             }
 
-            void WriteSaveDataMore(std::ostringstream& data) override
+            void AfterDataLoad() override
             {
-                data << _introState << ' ' << _frostswornGeneralState << ' ' << _quelDelarState;
-            }
+                if (GetBossState(DATA_FALRIC) == DONE)
+                {
+                    _introState = DONE;
+                    _quelDelarState = DONE;
+                }
 
-            void ReadSaveDataMore(std::istringstream& data) override
-            {
-                uint32 temp = 0;
-                data >> temp;
-                if (temp == DONE)
-                    SetData(DATA_INTRO_EVENT, DONE);
-                else
-                    SetData(DATA_INTRO_EVENT, NOT_STARTED);
-
-                data >> temp;
-                if (temp == DONE)
-                    SetData(DATA_FROSTSWORN_GENERAL, DONE);
-                else
-                    SetData(DATA_FROSTSWORN_GENERAL, NOT_STARTED);
-
-                data >> temp;
-                if (temp == DONE)
-                    SetData(DATA_QUEL_DELAR_EVENT, DONE);
-                else
-                    SetData(DATA_QUEL_DELAR_EVENT, NOT_STARTED);
+                if (GetBossState(DATA_THE_LICH_KING_ESCAPE) == DONE)
+                    _frostswornGeneralState = DONE;
             }
 
         private:

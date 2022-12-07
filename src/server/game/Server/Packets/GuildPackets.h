@@ -75,7 +75,6 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             ObjectGuid GuildGuid;
-            ObjectGuid PlayerGuid;
             Optional<GuildInfo> Info;
         };
 
@@ -113,6 +112,8 @@ namespace WorldPackets
             uint8 Level = 0;
             uint8 ClassID = 0;
             uint8 Gender = 0;
+            uint64 GuildClubMemberID = 0;
+            uint8 RaceID = 0;
             bool Authenticated = false;
             bool SorEligible = false;
             GuildRosterProfessionData Profession[2];
@@ -759,7 +760,6 @@ namespace WorldPackets
             uint8 Tab = 0;
             bool FullUpdate = false;
         };
-
 
         class GuildBankRemainingWithdrawMoneyQuery final : public ClientPacket
         {

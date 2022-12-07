@@ -143,7 +143,6 @@ enum Vehicles
 enum Misc
 {
     DATA_SHUTOUT               = 29112912, // 2911, 2912 are achievement IDs
-    DATA_ORBIT_ACHIEVEMENTS    = 1,
     VEHICLE_SPAWNS             = 5,
     FREYA_SPAWNS               = 4
 
@@ -223,7 +222,7 @@ class boss_flame_leviathan : public CreatureScript
 
         struct boss_flame_leviathanAI : public BossAI
         {
-            boss_flame_leviathanAI(Creature* creature) : BossAI(creature, BOSS_LEVIATHAN)
+            boss_flame_leviathanAI(Creature* creature) : BossAI(creature, DATA_FLAME_LEVIATHAN)
             {
                 Initialize();
             }
@@ -250,7 +249,7 @@ class boss_flame_leviathan : public CreatureScript
 
                 DoCast(SPELL_INVIS_AND_STEALTH_DETECT);
 
-                me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_STUNNED));
+                me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_UNINTERACTIBLE | UNIT_FLAG_STUNNED);
                 me->SetReactState(REACT_PASSIVE);
             }
 
@@ -327,9 +326,6 @@ class boss_flame_leviathan : public CreatureScript
             void JustDied(Unit* /*killer*/) override
             {
                 _JustDied();
-                // Set Field Flags 67108928 = 64 | 67108864 = UNIT_FLAG_UNK_6 | UNIT_FLAG_SKINNABLE
-                // Set DynFlags 12
-                // Set NPCFlags 0
                 Talk(SAY_DEATH);
             }
 
@@ -354,10 +350,6 @@ class boss_flame_leviathan : public CreatureScript
                         return Shutout ? 1 : 0;
                     case DATA_UNBROKEN:
                         return Unbroken ? 1 : 0;
-                    case DATA_ORBIT_ACHIEVEMENTS:
-                        if (ActiveTowers) // Only on HardMode
-                            return ActiveTowersCount;
-                        break;
                     default:
                         break;
                 }
@@ -525,6 +517,7 @@ class boss_flame_leviathan : public CreatureScript
                         {
                             towerOfStorms = false;
                             --ActiveTowersCount;
+                            instance->DoUpdateWorldState(WORLD_STATE_FLAME_LEVIATHAN_DESTROYED_TOWERS, 4 - ActiveTowersCount);
                         }
                         break;
                     case ACTION_TOWER_OF_FROST_DESTROYED:
@@ -532,6 +525,7 @@ class boss_flame_leviathan : public CreatureScript
                         {
                             towerOfFrost = false;
                             --ActiveTowersCount;
+                            instance->DoUpdateWorldState(WORLD_STATE_FLAME_LEVIATHAN_DESTROYED_TOWERS, 4 - ActiveTowersCount);
                         }
                         break;
                     case ACTION_TOWER_OF_FLAMES_DESTROYED:
@@ -539,6 +533,7 @@ class boss_flame_leviathan : public CreatureScript
                         {
                             towerOfFlames = false;
                             --ActiveTowersCount;
+                            instance->DoUpdateWorldState(WORLD_STATE_FLAME_LEVIATHAN_DESTROYED_TOWERS, 4 - ActiveTowersCount);
                         }
                         break;
                     case ACTION_TOWER_OF_LIFE_DESTROYED:
@@ -546,9 +541,11 @@ class boss_flame_leviathan : public CreatureScript
                         {
                             towerOfLife = false;
                             --ActiveTowersCount;
+                            instance->DoUpdateWorldState(WORLD_STATE_FLAME_LEVIATHAN_DESTROYED_TOWERS, 4 - ActiveTowersCount);
                         }
                         break;
                     case ACTION_START_HARD_MODE:  // Activate hard-mode enable all towers, apply buffs on leviathan
+                        instance->DoUpdateWorldState(WORLD_STATE_FLAME_LEVIATHAN_DESTROYED_TOWERS, 0);
                         ActiveTowers = true;
                         towerOfStorms = true;
                         towerOfLife = true;
@@ -573,7 +570,7 @@ class boss_flame_leviathan : public CreatureScript
                 if (id != ACTION_MOVE_TO_CENTER_POSITION)
                     return;
                 me->SetReactState(REACT_AGGRESSIVE);
-                me->RemoveUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_STUNNED));
+                me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_UNINTERACTIBLE | UNIT_FLAG_STUNNED);
             }
 
             private:
@@ -640,17 +637,17 @@ class boss_flame_leviathan_seat : public CreatureScript
                         if (Creature* turret = turretPassenger->ToCreature())
                         {
                             turret->SetFaction(me->GetVehicleBase()->GetFaction());
-                            turret->SetUnitFlags(UnitFlags(0)); // unselectable
+                            turret->ReplaceAllUnitFlags(UnitFlags(0)); // unselectable
                             turret->AI()->AttackStart(who);
                         }
                     if (Unit* devicePassenger = me->GetVehicleKit()->GetPassenger(SEAT_DEVICE))
                         if (Creature* device = devicePassenger->ToCreature())
                         {
-                            device->AddNpcFlag(UNIT_NPC_FLAG_SPELLCLICK);
-                            device->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                            device->SetNpcFlag(UNIT_NPC_FLAG_SPELLCLICK);
+                            device->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
                         }
 
-                    me->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                    me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
                 }
                 else if (seatId == SEAT_TURRET)
                 {
@@ -659,8 +656,8 @@ class boss_flame_leviathan_seat : public CreatureScript
 
                     if (Unit* device = ASSERT_NOTNULL(me->GetVehicleKit())->GetPassenger(SEAT_DEVICE))
                     {
-                        device->AddNpcFlag(UNIT_NPC_FLAG_SPELLCLICK);
-                        device->SetUnitFlags(UnitFlags(0)); // unselectable
+                        device->SetNpcFlag(UNIT_NPC_FLAG_SPELLCLICK);
+                        device->ReplaceAllUnitFlags(UnitFlags(0)); // unselectable
                     }
                 }
             }
@@ -737,7 +734,7 @@ class boss_flame_leviathan_defense_turret : public CreatureScript
         {
             boss_flame_leviathan_defense_turretAI(Creature* creature) : TurretAI(creature) { }
 
-            void DamageTaken(Unit* who, uint32 &damage) override
+            void DamageTaken(Unit* who, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
             {
                 if (!CanAIAttack(who))
                     damage = 0;
@@ -776,7 +773,7 @@ class boss_flame_leviathan_overload_device : public CreatureScript
                 if (me->GetVehicle())
                 {
                     me->RemoveNpcFlag(UNIT_NPC_FLAG_SPELLCLICK);
-                    me->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                    me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
 
                     if (Unit* player = me->GetVehicle()->GetPassenger(SEAT_PLAYER))
                     {
@@ -903,12 +900,12 @@ class npc_pool_of_tar : public CreatureScript
         {
             npc_pool_of_tarAI(Creature* creature) : ScriptedAI(creature)
             {
-                me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
                 me->SetReactState(REACT_PASSIVE);
                 me->CastSpell(me, SPELL_TAR_PASSIVE, true);
             }
 
-            void DamageTaken(Unit* /*who*/, uint32& damage) override
+            void DamageTaken(Unit* /*who*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
             {
                 damage = 0;
             }
@@ -972,7 +969,7 @@ class npc_thorims_hammer : public CreatureScript
         {
             npc_thorims_hammerAI(Creature* creature) : ScriptedAI(creature)
             {
-                me->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
                 me->CastSpell(me, AURA_DUMMY_BLUE, true);
             }
 
@@ -1011,7 +1008,7 @@ public:
         npc_mimirons_infernoAI(Creature* creature) : EscortAI(creature)
         {
             Initialize();
-            me->AddUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_NOT_SELECTABLE));
+            me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_UNINTERACTIBLE);
             me->CastSpell(me, AURA_DUMMY_YELLOW, true);
             me->SetReactState(REACT_PASSIVE);
         }
@@ -1068,7 +1065,7 @@ class npc_hodirs_fury : public CreatureScript
         {
             npc_hodirs_furyAI(Creature* creature) : ScriptedAI(creature)
             {
-                me->AddUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
                 me->CastSpell(me, AURA_DUMMY_GREEN, true);
             }
 
@@ -1212,7 +1209,7 @@ class npc_brann_bronzebeard_ulduar_intro : public CreatureScript
                 _instance = creature->GetInstanceScript();
             }
 
-            bool GossipSelect(Player* player, uint32 menuId, uint32 gossipListId) override
+            bool OnGossipSelect(Player* player, uint32 menuId, uint32 gossipListId) override
             {
                 if (menuId == GOSSIP_MENU_BRANN_BRONZEBEARD && gossipListId == GOSSIP_OPTION_BRANN_BRONZEBEARD)
                 {
@@ -1266,7 +1263,7 @@ class npc_lorekeeper : public CreatureScript
                 }
             }
 
-            bool GossipSelect(Player* player, uint32 menuId, uint32 gossipListId) override
+            bool OnGossipSelect(Player* player, uint32 menuId, uint32 gossipListId) override
             {
                 if (menuId == GOSSIP_MENU_LORE_KEEPER && gossipListId == GOSSIP_OPTION_LORE_KEEPER)
                 {
@@ -1274,7 +1271,7 @@ class npc_lorekeeper : public CreatureScript
                     CloseGossipMenuFor(player);
                     me->GetMap()->LoadGrid(364, -16); // make sure leviathan is loaded
 
-                    if (Creature* leviathan = _instance->GetCreature(BOSS_LEVIATHAN))
+                    if (Creature* leviathan = _instance->GetCreature(DATA_FLAME_LEVIATHAN))
                     {
                         leviathan->AI()->DoAction(ACTION_START_HARD_MODE);
                         me->SetVisible(false);
@@ -1425,79 +1422,7 @@ class achievement_unbroken : public AchievementCriteriaScript
         }
 };
 
-class achievement_orbital_bombardment : public AchievementCriteriaScript
-{
-    public:
-        achievement_orbital_bombardment() : AchievementCriteriaScript("achievement_orbital_bombardment") { }
-
-        bool OnCheck(Player* /*source*/, Unit* target) override
-        {
-            if (!target)
-                return false;
-
-            if (Creature* Leviathan = target->ToCreature())
-                if (Leviathan->AI()->GetData(DATA_ORBIT_ACHIEVEMENTS) >= 1)
-                    return true;
-
-            return false;
-        }
-};
-
-class achievement_orbital_devastation : public AchievementCriteriaScript
-{
-    public:
-        achievement_orbital_devastation() : AchievementCriteriaScript("achievement_orbital_devastation") { }
-
-        bool OnCheck(Player* /*source*/, Unit* target) override
-        {
-            if (!target)
-                return false;
-
-            if (Creature* Leviathan = target->ToCreature())
-                if (Leviathan->AI()->GetData(DATA_ORBIT_ACHIEVEMENTS) >= 2)
-                    return true;
-
-            return false;
-        }
-};
-
-class achievement_nuked_from_orbit : public AchievementCriteriaScript
-{
-    public:
-        achievement_nuked_from_orbit() : AchievementCriteriaScript("achievement_nuked_from_orbit") { }
-
-        bool OnCheck(Player* /*source*/, Unit* target) override
-        {
-            if (!target)
-                return false;
-
-            if (Creature* Leviathan = target->ToCreature())
-                if (Leviathan->AI()->GetData(DATA_ORBIT_ACHIEVEMENTS) >= 3)
-                    return true;
-
-            return false;
-        }
-};
-
-class achievement_orbit_uary : public AchievementCriteriaScript
-{
-    public:
-        achievement_orbit_uary() : AchievementCriteriaScript("achievement_orbit_uary") { }
-
-        bool OnCheck(Player* /*source*/, Unit* target) override
-        {
-            if (!target)
-                return false;
-
-            if (Creature* Leviathan = target->ToCreature())
-                if (Leviathan->AI()->GetData(DATA_ORBIT_ACHIEVEMENTS) == 4)
-                    return true;
-
-            return false;
-        }
-};
-
-// 62399 Overload Circuit
+// 62399 - Overload Circuit
 class spell_overload_circuit : public AuraScript
 {
     PrepareAuraScript(spell_overload_circuit);
@@ -1523,7 +1448,7 @@ class spell_overload_circuit : public AuraScript
     }
 };
 
-// 62292 Blaze
+// 62292 - Blaze
 class spell_tar_blaze : public AuraScript
 {
     PrepareAuraScript(spell_tar_blaze);
@@ -1545,6 +1470,7 @@ class spell_tar_blaze : public AuraScript
     }
 };
 
+// 64414 - Load into Catapult
 class spell_load_into_catapult : public SpellScriptLoader
 {
     enum Spells
@@ -1590,6 +1516,7 @@ class spell_load_into_catapult : public SpellScriptLoader
         }
 };
 
+// 62705 - Auto-repair
 class spell_auto_repair : public SpellScriptLoader
 {
     enum Spells
@@ -1659,6 +1586,7 @@ class spell_auto_repair : public SpellScriptLoader
         }
 };
 
+// 62475 - Systems Shutdown
 class spell_systems_shutdown : public SpellScriptLoader
 {
     public:
@@ -1676,7 +1604,7 @@ class spell_systems_shutdown : public SpellScriptLoader
 
                 //! This could probably in the SPELL_EFFECT_SEND_EVENT handler too:
                 owner->AddUnitState(UNIT_STATE_STUNNED | UNIT_STATE_ROOT);
-                owner->AddUnitFlag(UNIT_FLAG_STUNNED);
+                owner->SetUnitFlag(UNIT_FLAG_STUNNED);
                 owner->RemoveAurasDueToSpell(SPELL_GATHERING_SPEED);
             }
 
@@ -1741,6 +1669,7 @@ class FlameLeviathanPursuedTargetSelector
         }
 };
 
+// 62374 - Pursued
 class spell_pursue : public SpellScriptLoader
 {
     public:
@@ -1788,6 +1717,7 @@ class spell_pursue : public SpellScriptLoader
         }
 };
 
+// 62324 - Throw Passenger
 class spell_vehicle_throw_passenger : public SpellScriptLoader
 {
     public:
@@ -1876,13 +1806,9 @@ void AddSC_boss_flame_leviathan()
     new achievement_three_car_garage_siege();
     new achievement_shutout();
     new achievement_unbroken();
-    new achievement_orbital_bombardment();
-    new achievement_orbital_devastation();
-    new achievement_nuked_from_orbit();
-    new achievement_orbit_uary();
 
-    RegisterAuraScript(spell_overload_circuit);
-    RegisterAuraScript(spell_tar_blaze);
+    RegisterSpellScript(spell_overload_circuit);
+    RegisterSpellScript(spell_tar_blaze);
     new spell_load_into_catapult();
     new spell_auto_repair();
     new spell_systems_shutdown();

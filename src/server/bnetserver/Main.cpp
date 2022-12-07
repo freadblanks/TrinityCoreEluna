@@ -34,6 +34,7 @@
 #include "IPLocation.h"
 #include "LoginRESTService.h"
 #include "MySQLThreading.h"
+#include "OpenSSLCrypto.h"
 #include "ProcessPriority.h"
 #include "RealmList.h"
 #include "SecretMgr.h"
@@ -41,6 +42,7 @@
 #include "SslContext.h"
 #include "Util.h"
 #include <boost/asio/signal_set.hpp>
+#include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <google/protobuf/stubs/common.h>
@@ -113,6 +115,8 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    std::vector<std::string> overriddenKeys = sConfigMgr->OverrideWithEnvVariablesIfAny();
+
     sLog->RegisterAppender<AppenderDB>();
     sLog->Initialize(nullptr);
 
@@ -124,15 +128,17 @@ int main(int argc, char** argv)
         []()
         {
             TC_LOG_INFO("server.bnetserver", "Using configuration file %s.", sConfigMgr->GetFilename().c_str());
-            TC_LOG_INFO("server.bnetserver", "Using SSL version: %s (library: %s)", OPENSSL_VERSION_TEXT, SSLeay_version(SSLEAY_VERSION));
+            TC_LOG_INFO("server.bnetserver", "Using SSL version: %s (library: %s)", OPENSSL_VERSION_TEXT, OpenSSL_version(OPENSSL_VERSION));
             TC_LOG_INFO("server.bnetserver", "Using Boost version: %i.%i.%i", BOOST_VERSION / 100000, BOOST_VERSION / 100 % 1000, BOOST_VERSION % 100);
         }
     );
 
-    // Seed the OpenSSL's PRNG here.
-    // That way it won't auto-seed when calling BigNumber::SetRand and slow down the first world login
-    BigNumber seed;
-    seed.SetRand(16 * 8);
+    for (std::string const& key : overriddenKeys)
+        TC_LOG_INFO("server.authserver", "Configuration field '%s' was overridden with environment variable.", key.c_str());
+
+    OpenSSLCrypto::threadsSetup(boost::dll::program_location().remove_filename());
+
+    std::shared_ptr<void> opensslHandle(nullptr, [](void*) { OpenSSLCrypto::threadsCleanup(); });
 
     // bnetserver PID file creation
     std::string pidFile = sConfigMgr->GetStringDefault("PidFile", "");
@@ -163,8 +169,6 @@ int main(int argc, char** argv)
         return 0;
 
     sSecretMgr->Initialize(SECRET_OWNER_BNETSERVER);
-
-    sSessionMgr.FixLegacyAuthHashes();
 
     // Load IP Location Database
     sIPLocation->Load();

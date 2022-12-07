@@ -37,7 +37,7 @@ enum BattlegroundRLGameObjects
     BG_RL_OBJECT_TYPE_BUFF_2    = 184664
 };
 
-constexpr Seconds BG_RL_REMOVE_DOORS_TIMER    = 5s;
+inline constexpr Seconds BG_RL_REMOVE_DOORS_TIMER    = 5s;
 
 enum BattlegroundRLEvents
 {
@@ -50,7 +50,6 @@ class BattlegroundRL : public Arena
         BattlegroundRL(BattlegroundTemplate const* battlegroundTemplate);
 
         /* inherited from BattlegroundClass */
-        void FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& packet) override;
         void StartingEventCloseDoors() override;
         void StartingEventOpenDoors() override;
 

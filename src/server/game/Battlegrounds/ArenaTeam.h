@@ -23,7 +23,6 @@
 #include "ObjectGuid.h"
 #include <list>
 #include <string>
-#include <map>
 
 class WorldSession;
 class WorldPacket;
@@ -73,6 +72,7 @@ enum ArenaTeamEvents
     ERR_ARENA_TEAM_DISBANDED_S              = 9             // captain name + arena team name
 };
 
+// EnumUtils: DESCRIBE THIS
 enum ArenaTeamTypes
 {
     ARENA_TEAM_2v2      = 2,
@@ -168,9 +168,6 @@ class TC_GAME_API ArenaTeam
         int32 LostAgainst(uint32 Own_MMRating, uint32 Opponent_MMRating, int32& rating_change);
         void MemberLost(Player* player, uint32 againstMatchmakerRating, int32 MatchmakerRatingChange = -12);
         void OfflineMemberLost(ObjectGuid guid, uint32 againstMatchmakerRating, int32 MatchmakerRatingChange = -12);
-
-
-
 
         bool FinishWeek(); // returns true if arena team played this week
         void FinishGame(int32 mod);

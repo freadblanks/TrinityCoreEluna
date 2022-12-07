@@ -256,7 +256,6 @@ void WorldPackets::Party::SetPartyAssignment::Read()
     Set = _worldPacket.ReadBit();
 }
 
-
 void WorldPackets::Party::SetRole::Read()
 {
     _worldPacket >> PartyIndex;
@@ -424,14 +423,15 @@ ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Party::PartyPlayerInfo co
 {
     data.WriteBits(playerInfo.Name.size(), 6);
     data.WriteBits(playerInfo.VoiceStateID.size() + 1, 6);
-    data.WriteBit(playerInfo.FromSocialQueue);
+    data.WriteBit(playerInfo.Connected);
     data.WriteBit(playerInfo.VoiceChatSilenced);
+    data.WriteBit(playerInfo.FromSocialQueue);
     data << playerInfo.GUID;
-    data << uint8(playerInfo.Status);
     data << uint8(playerInfo.Subgroup);
     data << uint8(playerInfo.Flags);
     data << uint8(playerInfo.RolesAssigned);
     data << uint8(playerInfo.Class);
+    data << uint8(playerInfo.FactionGroup);
     data.WriteString(playerInfo.Name);
     if (!playerInfo.VoiceStateID.empty())
         data << playerInfo.VoiceStateID;
@@ -483,6 +483,7 @@ WorldPacket const* WorldPackets::Party::PartyUpdate::Write()
     _worldPacket << PartyGUID;
     _worldPacket << uint32(SequenceNum);
     _worldPacket << LeaderGUID;
+    _worldPacket << uint8(LeaderFactionGroup);
     _worldPacket << uint32(PlayerList.size());
     _worldPacket.WriteBit(LfgInfos.has_value());
     _worldPacket.WriteBit(LootSettings.has_value());
@@ -605,8 +606,9 @@ void WorldPackets::Party::PartyMemberFullState::Initialize(Player const* player)
     MemberStats.WmoDoodadPlacementID = 0;
 
     // Vehicle
-    if (player->GetVehicle() && player->GetVehicle()->GetVehicleInfo())
-        MemberStats.VehicleSeat = player->GetVehicle()->GetVehicleInfo()->SeatID[player->m_movementInfo.transport.seat];
+    if (::Vehicle const* vehicle = player->GetVehicle())
+        if (VehicleSeatEntry const* vehicleSeat = vehicle->GetSeatForPassenger(player))
+            MemberStats.VehicleSeat = vehicleSeat->ID;
 
     // Auras
     for (AuraApplication const* aurApp : player->GetVisibleAuras())
@@ -678,6 +680,22 @@ WorldPacket const* WorldPackets::Party::PartyKillLog::Write()
 {
     _worldPacket << Player;
     _worldPacket << Victim;
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Party::BroadcastSummonCast::Write()
+{
+    _worldPacket << Target;
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Party::BroadcastSummonResponse::Write()
+{
+    _worldPacket << Target;
+    _worldPacket.WriteBit(Accepted);
+    _worldPacket.FlushBits();
 
     return &_worldPacket;
 }

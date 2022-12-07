@@ -19,8 +19,8 @@
 #define TRINITYCORE_QUEST_H
 
 #include "Common.h"
-#include "DBCEnums.h"
 #include "DatabaseEnvFwd.h"
+#include "EnumFlag.h"
 #include "LootItemType.h"
 #include "Optional.h"
 #include "RaceMask.h"
@@ -30,6 +30,7 @@
 #include <vector>
 
 class Player;
+enum Difficulty : uint8;
 
 namespace WorldPackets
 {
@@ -50,24 +51,26 @@ namespace WorldPackets
 #define QUEST_REWARD_CURRENCY_COUNT 4
 #define QUEST_REWARD_DISPLAY_SPELL_COUNT 3
 
-enum QuestFailedReason
+// EnumUtils: DESCRIBE THIS
+enum QuestFailedReason : uint32
 {
     QUEST_ERR_NONE                              = 0,
-    QUEST_ERR_FAILED_LOW_LEVEL                  = 1,        // "You are not high enough level for that quest.""
-    QUEST_ERR_FAILED_WRONG_RACE                 = 6,        // "That quest is not available to your race."
-    QUEST_ERR_ALREADY_DONE                      = 7,        // "You have completed that daily quest today."
-    QUEST_ERR_ONLY_ONE_TIMED                    = 12,       // "You can only be on one timed quest at a time"
-    QUEST_ERR_ALREADY_ON1                       = 13,       // "You are already on that quest"
-    QUEST_ERR_FAILED_EXPANSION                  = 16,       // "This quest requires an expansion enabled account."
-    QUEST_ERR_ALREADY_ON2                       = 18,       // "You are already on that quest"
-    QUEST_ERR_FAILED_MISSING_ITEMS              = 21,       // "You don't have the required items with you.  Check storage."
-    QUEST_ERR_FAILED_NOT_ENOUGH_MONEY           = 23,       // "You don't have enough money for that quest"
-    QUEST_ERR_FAILED_CAIS                       = 24,       // "You cannot complete quests once you have reached tired time"
-    QUEST_ERR_ALREADY_DONE_DAILY                = 26,       // "You have completed that daily quest today."
-    QUEST_ERR_FAILED_SPELL                      = 28,       // "You haven't learned the required spell."
-    QUEST_ERR_HAS_IN_PROGRESS                   = 30        // "Progress Bar objective not completed"
+    QUEST_ERR_FAILED_LOW_LEVEL                  = 1,        // DESCRIPTION "You are not high enough level for that quest.""
+    QUEST_ERR_FAILED_WRONG_RACE                 = 6,        // DESCRIPTION "That quest is not available to your race."
+    QUEST_ERR_ALREADY_DONE                      = 7,        // DESCRIPTION "You have completed that daily quest today."
+    QUEST_ERR_ONLY_ONE_TIMED                    = 12,       // DESCRIPTION "You can only be on one timed quest at a time"
+    QUEST_ERR_ALREADY_ON1                       = 13,       // DESCRIPTION "You are already on that quest"
+    QUEST_ERR_FAILED_EXPANSION                  = 16,       // DESCRIPTION "This quest requires an expansion enabled account."
+    QUEST_ERR_ALREADY_ON2                       = 18,       // DESCRIPTION "You are already on that quest"
+    QUEST_ERR_FAILED_MISSING_ITEMS              = 21,       // DESCRIPTION "You don't have the required items with you.  Check storage."
+    QUEST_ERR_FAILED_NOT_ENOUGH_MONEY           = 23,       // DESCRIPTION "You don't have enough money for that quest"
+    QUEST_ERR_FAILED_CAIS                       = 24,       // DESCRIPTION "You cannot complete quests once you have reached tired time"
+    QUEST_ERR_ALREADY_DONE_DAILY                = 26,       // DESCRIPTION "You have completed that daily quest today."
+    QUEST_ERR_FAILED_SPELL                      = 28,       // DESCRIPTION "You haven't learned the required spell."
+    QUEST_ERR_HAS_IN_PROGRESS                   = 30        // DESCRIPTION "Progress Bar objective not completed"
 };
 
+// EnumUtils: DESCRIBE THIS
 enum class QuestPushReason : uint8
 {
     Success                         = 0,    // "Sharing quest with %s..."
@@ -627,7 +630,7 @@ class TC_GAME_API Quest
         QuestObjectives Objectives;
         std::array<uint32, QUEST_EMOTE_COUNT> DetailsEmote = { };
         std::array<uint32, QUEST_EMOTE_COUNT> DetailsEmoteDelay = { };
-        std::array<uint32, QUEST_EMOTE_COUNT> OfferRewardEmote = { };
+        std::array<int32, QUEST_EMOTE_COUNT> OfferRewardEmote = { };
         std::array<uint32, QUEST_EMOTE_COUNT> OfferRewardEmoteDelay = { };
 
         uint32 GetRewChoiceItemsCount() const { return _rewChoiceItemsCount; }
@@ -641,6 +644,9 @@ class TC_GAME_API Quest
         WorldPacket BuildQueryData(LocaleConstant loc, Player* player) const;
 
         void BuildQuestRewards(WorldPackets::Quest::QuestRewards& rewards, Player* player) const;
+
+        // Helpers
+        static uint32 RoundXPValue(uint32 xp);
 
         std::vector<uint32> DependentPreviousQuests;
         std::vector<uint32> DependentBreadcrumbQuests;
@@ -739,9 +745,6 @@ class TC_GAME_API Quest
         uint32 _specialFlags = 0; // custom flags, not sniffed/WDB
         std::bitset<MAX_QUEST_OBJECTIVE_TYPE> _usedQuestObjectiveTypes;
         uint32 _scriptId = 0;
-
-        // Helpers
-        static uint32 RoundXPValue(uint32 xp);
 };
 
 struct QuestStatusData
