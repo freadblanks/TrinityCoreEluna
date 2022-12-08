@@ -36,6 +36,9 @@
 #include "ScriptMgr.h"
 #include "World.h"
 #include "WorldSession.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 #include <boost/algorithm/string/replace.hpp>
 #include <sstream>
 
@@ -164,6 +167,7 @@ void ChatHandler::SendSysMessage(uint32 entry)
 
 bool ChatHandler::_ParseCommands(std::string_view text)
 {
+
     if (Trinity::ChatCommands::TryExecuteCommand(*this, text))
         return true;
 

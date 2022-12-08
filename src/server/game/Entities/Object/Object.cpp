@@ -875,29 +875,15 @@ void WorldObject::setActive(bool on)
 void WorldObject::SetVisibilityDistanceOverride(VisibilityDistanceType type)
 {
     ASSERT(type < VisibilityDistanceType::Max);
-    if (GetTypeId() == TYPEID_PLAYER)
+    return SetVisibilityDistanceOverride(VisibilityDistances[AsUnderlyingType(type)]);
+}
+
+void WorldObject::SetVisibilityDistanceOverride(float distance)
+{
+    if(GetTypeId() == TYPEID_PLAYER)
         return;
 
-    if (Creature* creature = ToCreature())
-    {
-        creature->RemoveUnitFlag2(UNIT_FLAG2_LARGE_AOI | UNIT_FLAG2_GIGANTIC_AOI | UNIT_FLAG2_INFINITE_AOI);
-        switch (type)
-        {
-            case VisibilityDistanceType::Large:
-                creature->SetUnitFlag2(UNIT_FLAG2_LARGE_AOI);
-                break;
-            case VisibilityDistanceType::Gigantic:
-                creature->SetUnitFlag2(UNIT_FLAG2_GIGANTIC_AOI);
-                break;
-            case VisibilityDistanceType::Infinite:
-                creature->SetUnitFlag2(UNIT_FLAG2_INFINITE_AOI);
-                break;
-            default:
-                break;
-        }
-    }
-
-    m_visibilityDistanceOverride = VisibilityDistances[AsUnderlyingType(type)];
+    m_visibilityDistanceOverride = distance;
 }
 
 void WorldObject::SetFarVisible(bool on)
@@ -1454,6 +1440,15 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool ignoreStealth, boo
 
     if (!sConditionMgr->IsObjectMeetingVisibilityByObjectIdConditions(obj->GetTypeId(), obj->GetEntry(), this))
         return false;
+
+    if (const GameObject* object = obj->ToGameObject()) {
+        const std::set<ObjectGuid> infinites = object->GetMap()->GetInfiniteGameObjects();
+        if (std::find(infinites.begin(), infinites.end(), object->GetGUID()) != infinites.end()) {
+            float distance = GetDistance(obj);
+            //TC_LOG_ERROR("misc", "[+) WorldObject::CanSeeOrDetect(Infinite) : %f ", distance);
+            return true && (distance <= object->GetVisibilityRange());
+        }
+    }
 
     bool corpseVisibility = false;
     if (distanceCheck)

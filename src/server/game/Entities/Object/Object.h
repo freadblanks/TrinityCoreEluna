@@ -60,6 +60,9 @@ class UpdateData;
 class WorldObject;
 class WorldPacket;
 class ZoneScript;
+#ifdef ELUNA
+class ElunaEventProcessor;
+#endif
 struct FactionTemplateEntry;
 struct Loot;
 struct PositionFullTerrainStatus;
@@ -147,6 +150,7 @@ float const DEFAULT_COLLISION_HEIGHT = 2.03128f; // Most common value in dbc
 class TC_GAME_API Object
 {
     public:
+        ThisCore::AnyData Variables;
         virtual ~Object();
 
         bool IsInWorld() const { return m_inWorld; }
@@ -439,7 +443,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
     public:
         virtual ~WorldObject();
 
-        virtual void Update(uint32 /*time_diff*/) { }
+        virtual void Update(uint32 time_diff) { }
 
         void AddToWorld() override;
         void RemoveFromWorld() override;
@@ -675,11 +679,16 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         void SetFarVisible(bool on);
         bool IsVisibilityOverridden() const { return m_visibilityDistanceOverride.has_value(); }
         void SetVisibilityDistanceOverride(VisibilityDistanceType type);
+        void SetVisibilityDistanceOverride(float distance);
         void SetWorldObject(bool apply);
         bool IsPermanentWorldObject() const { return m_isWorldObject; }
         bool IsWorldObject() const;
 
         uint32  LastUsedScriptID;
+
+#ifdef ELUNA
+        ElunaEventProcessor* ElunaEvents;
+#endif
 
         // Transports
         TransportBase* GetTransport() const { return m_transport; }
