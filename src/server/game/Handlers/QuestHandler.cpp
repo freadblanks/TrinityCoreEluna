@@ -438,10 +438,6 @@ void WorldSession::HandleQuestgiverChooseRewardOpcode(WorldPackets::Quest::Quest
 
                     _player->PlayerTalkClass->ClearMenus();
 
-#ifdef ELUNA
-                    sEluna->OnQuestReward(_player, questGiver, quest, packet.Choice.Item.ItemID);
-#endif
-
                     questGiver->AI()->OnQuestReward(_player, quest, packet.Choice.LootItemType, packet.Choice.Item.ItemID);
                     break;
                 }

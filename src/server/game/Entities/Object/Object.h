@@ -443,7 +443,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
     public:
         virtual ~WorldObject();
 
-        virtual void Update(uint32 time_diff) { }
+        virtual void Update(uint32 time_diff);
 
         void AddToWorld() override;
         void RemoveFromWorld() override;
@@ -686,10 +686,6 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
 
         uint32  LastUsedScriptID;
 
-#ifdef ELUNA
-        ElunaEventProcessor* ElunaEvents;
-#endif
-
         // Transports
         TransportBase* GetTransport() const { return m_transport; }
         float GetTransOffsetX() const { return m_movementInfo.transport.pos.GetPositionX(); }
@@ -723,6 +719,10 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         virtual uint16 GetAIAnimKitId() const { return 0; }
         virtual uint16 GetMovementAnimKitId() const { return 0; }
         virtual uint16 GetMeleeAnimKitId() const { return 0; }
+
+#ifdef ELUNA
+        ElunaEventProcessor* ElunaEvents;
+#endif
 
         // Watcher
         bool IsPrivateObject() const { return !_privateObjectOwner.IsEmpty(); }

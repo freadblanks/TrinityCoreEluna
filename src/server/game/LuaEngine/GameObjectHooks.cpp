@@ -92,12 +92,13 @@ void Eluna::OnDamaged(GameObject* pGameObject, WorldObject* attacker)
     CallAllFunctions(GameObjectEventBindings, key);
 }
 
-void Eluna::OnLootStateChanged(GameObject* pGameObject, uint32 state)
+void Eluna::OnLootStateChanged(GameObject* pGameObject, uint32 state, Unit* unit)
 {
-    START_HOOK(GAMEOBJECT_EVENT_ON_LOOT_STATE_CHANGE, pGameObject->GetEntry());
-    Push(pGameObject);
-    Push(state);
-    CallAllFunctions(GameObjectEventBindings, key);
+	START_HOOK(GAMEOBJECT_EVENT_ON_LOOT_STATE_CHANGE, pGameObject->GetEntry());
+	Push(pGameObject);
+	Push(state);
+	Push(unit);
+	CallAllFunctions(GameObjectEventBindings, key);
 }
 
 void Eluna::OnGameObjectStateChanged(GameObject* pGameObject, uint32 state)

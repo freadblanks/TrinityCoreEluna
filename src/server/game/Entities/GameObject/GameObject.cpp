@@ -3348,7 +3348,7 @@ void GameObject::SetLootState(LootState state, Unit* unit)
         m_lootStateUnitGUID.Clear();
 
 #ifdef ELUNA
-    sEluna->OnLootStateChanged(this, state);
+    sEluna->OnLootStateChanged(this, state, unit);
 #endif
 
     AI()->OnLootStateChanged(state, unit);
